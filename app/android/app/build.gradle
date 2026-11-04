@@ -7,8 +7,8 @@ android {
         applicationId "com.masro7.league"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode((System.getenv("VERSION_CODE") ?: "1") as int)
+        versionName(System.getenv("VERSION_NAME") ?: "1.0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,6 +18,14 @@ android {
     }
     // مفتاح توقيع للتجربة بس (مو للمتجر)، ثابت عشان التحديث يركب فوق القديم بدون حذف
     signingConfigs {
+        // مفتاح الرفع لقوقل بلاي: upload.p12 محمي بكلمة سر في GitHub Secrets (ANDROID_KEY_PASS)
+        upload {
+            storeFile file('upload.p12')
+            storeType 'pkcs12'
+            storePassword System.getenv("ANDROID_KEY_PASS") ?: ""
+            keyAlias 'upload'
+            keyPassword System.getenv("ANDROID_KEY_PASS") ?: ""
+        }
         test {
             storeFile file('test.keystore')
             storePassword 'masro7test'
@@ -30,6 +38,7 @@ android {
             signingConfig signingConfigs.test
         }
         release {
+            if (System.getenv("ANDROID_KEY_PASS")) signingConfig signingConfigs.upload
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
