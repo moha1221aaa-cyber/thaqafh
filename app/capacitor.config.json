@@ -1,0 +1,17 @@
+{
+  "appId": "com.masro7.league",
+  "appName": "MASRO7 LEAGUE",
+  "webDir": "www",
+  "server": {
+    "url": "https://masro7-league.pages.dev",
+    "androidScheme": "https",
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "backgroundColor": "#091335"
+  },
+  "ios": {
+    "backgroundColor": "#091335",
+    "contentInset": "never"
+  }
+}
