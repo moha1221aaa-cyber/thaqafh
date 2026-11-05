@@ -92,7 +92,7 @@ async function azure(env, text) {
       "Ocp-Apim-Subscription-Key": env.AZURE_TTS_KEY.trim(),
       "Content-Type": "application/ssml+xml",
       "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
-      "User-Agent": "masro7-league"
+      "User-Agent": "feekaro-play"
     },
     body: ssml
   });

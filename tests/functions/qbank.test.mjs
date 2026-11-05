@@ -5,7 +5,7 @@ import { onRequestGet } from "../../functions/qbank.js";
 import HARD from "../../lib/qbank-hard.js";
 
 const auth = await setupAuth();
-const get = tok => runFn(onRequestGet, new Request("https://masro7-league.pages.dev/qbank", { headers: tok ? { Authorization: "Bearer " + tok } : {} }), {});
+const get = tok => runFn(onRequestGet, new Request("https://play.feekaro.com/qbank", { headers: tok ? { Authorization: "Bearer " + tok } : {} }), {});
 check("guest refused (401)", (await get()).status === 401);
 check("fake token refused (401)", (await get("a.b.c")).status === 401);
 check("player refused (403)", (await get(await auth.token("u_p1", "p1@t"))).status === 403);

@@ -360,7 +360,7 @@ function cineMatchIntro(d) {
     const el = cineOverlay("", `
 <div class="cine-beam l"></div><div class="cine-beam r"></div><div class="cine-beam c"></div>
 <div class="cine-bar t"></div><div class="cine-bar b"></div>
-<div class="cine-kicker">دوري بنو مسروح للنخبة · الجولة ${escapeHTML(String(d.round || ""))}</div>
+<div class="cine-kicker">فيكارو للمسابقات · الجولة ${escapeHTML(String(d.round || ""))}</div>
 <div class="cine-big"><span class="cine-gold">المواجهة ${escapeHTML(BC_AR_NUM_F[d.cur] || String(n))}</span></div>
 <div class="cine-duel">
 <div class="cine-p p1"><div class="av"><img src="${safeSrc(bcAv(o, 1))}" alt=""></div><b>${escapeHTML(o.p1)}</b></div>
@@ -395,7 +395,7 @@ function cineIdent(d, at) {
     const el = cineOverlay("ident", `
 <div class="cine-bar t"></div><div class="cine-bar b"></div>
 <img src="logo.png" class="cine-logo" alt="">
-<div class="cine-idname"><span class="cine-gold">دوري بنو مسروح للنخبة</span><small>MASRO7 LEAGUE</small></div>
+<div class="cine-idname"><span class="cine-gold">فيكارو للمسابقات</span><small>FEEKARO PLAY</small></div>
 <div class="cine-idmatch">المواجهة ${escapeHTML(BC_AR_NUM_F[d.cur] || String(d.cur + 1))}<b>${escapeHTML(o.p1)} <i>ضد</i> ${escapeHTML(o.p2)}</b></div>
 <div class="cine-skip">اضغط للتخطي</div>`, CINE_IDENT_MS - late);
     if (!el) return 0;

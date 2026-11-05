@@ -1,7 +1,7 @@
 {
-  "name": "MASRO7 LEAGUE - دوري بنو مسروح للنخبة",
-  "short_name": "MASRO7",
-  "description": "موقع دوري بنو مسروح للنخبة: الترتيب، المواجهات، التوقعات، والغرفة الصوتية للمسابقات",
+  "name": "FEEKARO PLAY - فيكارو للمسابقات",
+  "short_name": "FEEKARO",
+  "description": "موقع فيكارو للمسابقات: الترتيب، المواجهات، التوقعات، والغرفة الصوتية للمسابقات",
   "start_url": "/?pwa=1",
   "scope": "/",
   "display": "standalone",

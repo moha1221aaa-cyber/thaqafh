@@ -13,4 +13,4 @@ measurementId: "G-HZ65BFFXNL"
 };
 
 const AGORA_APP_ID = "6affdf8140bb4004b2ec1ba75d202bbc";
-const AGORA_CHANNEL = "masro7_main_room";
+const AGORA_CHANNEL = "feekaro_main_room";

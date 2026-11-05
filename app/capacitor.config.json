@@ -1,9 +1,9 @@
 {
-  "appId": "com.masro7.league",
-  "appName": "MASRO7 LEAGUE",
+  "appId": "com.feekaro.play",
+  "appName": "FEEKARO PLAY",
   "webDir": "www",
   "server": {
-    "url": "https://masro7-league.pages.dev",
+    "url": "https://play.feekaro.com",
     "androidScheme": "https",
     "errorPath": "offline.html"
   },

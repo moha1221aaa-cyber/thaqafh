@@ -9,7 +9,7 @@ let bcSyncBusy = false, bcSyncAgain = false;
 let bcMyUid = null;
 /* القناة: البث الخاص (بروفة المنظم) له قناة لحاله، فمحد يسمعه ولا يطلع في عدد المستمعين */
 let bcJoinedCh = "";
-function bcChannel() { return typeof bcIsReh === "function" && bcIsReh(openLiveId) ? "masro7_live_rehearsal" : BC_CHANNEL; }
+function bcChannel() { return typeof bcIsReh === "function" && bcIsReh(openLiveId) ? "feekaro_live_rehearsal" : BC_CHANNEL; }
 /* وقت جوابي بالصوت (VA.rec): أصوات البث كلها عندي تسكت، عشان إلغاء الصدى ما يقطّع كلامي (voice-answer.js).
    الحالة تنحسب من وجود التسجيل نفسه، و liveTick يعيدها كل 200ms، فما تعلق ساكتة أبد */
 let bcQuiet = false;

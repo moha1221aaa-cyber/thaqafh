@@ -24,7 +24,7 @@ const env = { STT_NOVA: "0", STT_WHISPER1: "0", AI: { run: async (model, input) 
     return { response: '{"said":"الرياض"}' };
 } } };
 const audio = Buffer.alloc(4000, 1).toString("base64");
-const req = async (body, tok) => new Request("https://masro7-league.pages.dev/ai", { method: "POST", headers: { Origin: "https://masro7-league.pages.dev", "Content-Type": "application/json", Authorization: "Bearer " + (tok || await auth.token("u1")) }, body: JSON.stringify(body) });
+const req = async (body, tok) => new Request("https://play.feekaro.com/ai", { method: "POST", headers: { Origin: "https://play.feekaro.com", "Content-Type": "application/json", Authorization: "Bearer " + (tok || await auth.token("u1")) }, body: JSON.stringify(body) });
 
 {
     const c = ctxFor(await req({ task: "voice", stream: true, q: "ما عاصمة السعودية؟", answer: "الرياض", audio }), env);

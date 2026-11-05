@@ -82,3 +82,8 @@ Rules:
 
 ## Remotion (فيديو)
 سكلات Remotion الرسمية (remotion-dev/skills، نسخة 4.0.536) في .claude/skills/remotion-*. أي فيديو للدوري ابدأ بـ remotion-best-practices، والريندر عبر GitHub Actions لو التحميل هنا انحجب. كود الفيديو يكون في مجلد video/ منفصل عن الموقع.
+
+## فيكارو للمسابقات (5 نوفمبر 2026): هذي النسخة صارت منصة عامة
+- هذا المستودع **نسخة** من دوري بنو مسروح الخاص (مستودع ---Feekaro، **ما ينلمس أبد**). الاسم: **فيكارو للمسابقات / FEEKARO PLAY** على play.feekaro.com، تحت براند فيكارو. مشروع Cloudflare Pages اسمه feekaro-play (منفصل).
+- قنوات أجورا انغيّرت لـ feekaro_* عشان ما تلتقي بغرف الدوري الأصلي (لو انضافت قناة، حدّث CHANNELS في functions/agora-token.js).
+- **باقي (ينتظر مشروع Firebase جديد):** js/config.js و lib/firestore-public.js و lib/firebase-auth.js للحين على مشروع masro7league الأصلي، لا تنشر هذا الموقع قبل ما تتبدل. وأجورا و Cloudinary نفس حسابات الأصلي، تحتاج حساب/تطبيق جديد. بعدها: مساحة مسابقة لكل منظم (بدل منظم واحد ثابت).

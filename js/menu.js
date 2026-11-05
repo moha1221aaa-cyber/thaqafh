@@ -169,7 +169,7 @@ const MENU_INFO = {
         title: "سياسة الخصوصية",
         html: () => `
 <div class="info-block">
-<p>آخر تحديث: 26 أكتوبر 2026. هذي الصفحة تشرح وش نجمع في موقع دوري بنو مسروح للنخبة وليش.</p>
+<p>آخر تحديث: 26 أكتوبر 2026. هذي الصفحة تشرح وش نجمع في موقع فيكارو للمسابقات وليش.</p>
 </div>
 <div class="info-block">
 <h4>البيانات اللي نجمعها</h4>
@@ -213,8 +213,8 @@ const MENU_INFO = {
         html: () => `
 <div class="info-block" style="text-align:center;">
 <img src="icon-192.png" alt="" width="72" height="72" style="border-radius:16px;">
-<h4 style="margin:10px 0 4px;">دوري بنو مسروح للنخبة</h4>
-<div style="color:#94a3b8;font-size:12px;">MASRO7 LEAGUE</div>
+<h4 style="margin:10px 0 4px;">فيكارو للمسابقات</h4>
+<div style="color:#94a3b8;font-size:12px;">FEEKARO PLAY</div>
 </div>
 <div class="info-block">
 <p>دوري أسئلة ومعلومات عامة بنظام الجرس. فيه ترتيب المتسابقين والمواجهات، وتوقعات للجمهور، وغرفة صوتية، وبث مباشر لكل جولة بطابع برامج المسابقات.</p>
@@ -243,7 +243,7 @@ ${menuItemHTML("i-share", "مشاركة الموقع", "menuRun(shareSite)")}
 ${loggedIn ? menuItemHTML("i-settings", "إعدادات الحساب", "menuSwapModal(openSettingsModal)") : ""}
 <div class="side-menu-group">معلومات</div>
 ${Object.keys(MENU_INFO).map(k => menuItemHTML(MENU_INFO[k].icon, MENU_INFO[k].title, `menuSwapModal(function(){openInfoPage(${jsArg(k)})})`)).join("")}
-<div class="side-menu-foot">MASRO7 LEAGUE © 2026</div>`;
+<div class="side-menu-foot">FEEKARO PLAY © 2026</div>`;
 }
 
 function openSideMenu() {
@@ -290,10 +290,10 @@ function openInfoPage(key) {
 }
 
 async function shareSite() {
-    const url = "https://masro7-league.pages.dev/";
-    const text = "دوري بنو مسروح للنخبة: الترتيب والمواجهات والتوقعات والبث المباشر";
+    const url = "https://play.feekaro.com/";
+    const text = "فيكارو للمسابقات: الترتيب والمواجهات والتوقعات والبث المباشر";
     if (navigator.share) {
-        try { await navigator.share({ title: "MASRO7 LEAGUE", text: text, url: url }); } catch (e) {}
+        try { await navigator.share({ title: "FEEKARO PLAY", text: text, url: url }); } catch (e) {}
         return;
     }
     try {

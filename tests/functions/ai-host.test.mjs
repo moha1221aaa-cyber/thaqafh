@@ -11,7 +11,7 @@ const reply = { open: "أهلاً", intros: ["مواجهة نارية"], close: 
     hack: ["{p}"]
 } };
 const env = { AI: { run: async () => ({ response: JSON.stringify(reply) }) } };
-const req = new Request("https://masro7-league.pages.dev/ai", { method: "POST", headers: { Origin: "https://masro7-league.pages.dev", "Content-Type": "application/json", Authorization: "Bearer " + await auth.token("u1") },
+const req = new Request("https://play.feekaro.com/ai", { method: "POST", headers: { Origin: "https://play.feekaro.com", "Content-Type": "application/json", Authorization: "Bearer " + await auth.token("u1") },
     body: JSON.stringify({ task: "host", round: 3, matches: [{ p1: "سعد", p2: "فهد" }] }) });
 const j = await (await onRequestPost(ctxFor(req, env))).json();
 check("streak filtered (needs {p}, max 2)", JSON.stringify(j.situ.streak) === JSON.stringify(["{p} نار!", "{p} ثالثة زايدة"]), j.situ);

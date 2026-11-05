@@ -108,9 +108,9 @@ function bcBestMoment(d) {
 /* ===== المقدم ===== */
 const BC_HOST = {
     open: [
-        "أهلاً وسهلاً بكم في بث مباشر جديد من دوري بنو مسروح للنخبة. الجولة {r}، والليلة عندنا {n} مواجهات، فاستعدوا!",
-        "مساء الخير، ومعكم البث المباشر للجولة {r} من دوري بنو مسروح للنخبة. {n} مواجهات بانتظاركم، والأسرع على الجرس هو اللي يكسب.",
-        "أهلاً بكم في استوديو دوري بنو مسروح للنخبة. الجولة {r} بدأت، وعندنا الليلة {n} مواجهات مليانة تحدي."
+        "أهلاً وسهلاً بكم في بث مباشر جديد من فيكارو للمسابقات. الجولة {r}، والليلة عندنا {n} مواجهات، فاستعدوا!",
+        "مساء الخير، ومعكم البث المباشر للجولة {r} من فيكارو للمسابقات. {n} مواجهات بانتظاركم، والأسرع على الجرس هو اللي يكسب.",
+        "أهلاً بكم في استوديو فيكارو للمسابقات. الجولة {r} بدأت، وعندنا الليلة {n} مواجهات مليانة تحدي."
     ],
     intro: ["المواجهة {ord}: {p1} ضد {p2}.", "ننتقل للمواجهة {ord}، بين {p1} و{p2}.", "حياكم في المواجهة {ord}. {p1} في مواجهة {p2}."],
     introTail: ["مين بيكون الأسرع على الجرس؟", "خمسة أسئلة تفصل بين الفوز والخسارة.", "التركيز مطلوب من أول سؤال."],
@@ -213,7 +213,7 @@ function bcTicker(d) {
     const nx = (d.order || []).find((o, i) => o.state === "pending" && i !== d.cur);
     if (nx) items.push(`${ic("zap")} المواجهة الجاية: ${escapeHTML(nx.p1)} ضد ${escapeHTML(nx.p2)}`);
     items.unshift(...showStats(d));
-    items.push(`دوري بنو مسروح للنخبة · الجولة ${escapeHTML(String(d.round))} · بث مباشر`);
+    items.push(`فيكارو للمسابقات · الجولة ${escapeHTML(String(d.round))} · بث مباشر`);
     const sig = items.join("|");
     if (sig === bcTickerSig && el) return;
     bcTickerSig = sig;
@@ -364,7 +364,7 @@ function bcShare(id) {
     if (!d) return;
     const url = bcShareUrl(id);
     const when = d.status === "scheduled" ? ` يبدأ الساعة ${bcTimeLabel(d.startAt || 0)}` : " مباشر الحين";
-    const text = `🔴 بث الجولة ${d.round} من دوري بنو مسروح للنخبة${when}\nادخل من هنا:\n${url}`;
+    const text = `🔴 بث الجولة ${d.round} من فيكارو للمسابقات${when}\nادخل من هنا:\n${url}`;
     try { navigator.clipboard.writeText(url).then(() => roomToast("نسخت رابط البث", "check")).catch(() => {}); } catch (e) {}
     window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
 }

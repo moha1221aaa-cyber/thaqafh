@@ -11,7 +11,7 @@ const LIVE_COUNT_MS = 3500;   /* العد التنازلي قبل البداية
 const LIVE_BUZZ_MS = 15000;   /* وقت ضغط الجرس */
 const LIVE_ANSWER_MS = 7000;  /* وقت الجواب بعد الجرس (طلب محمد 23 أكتوبر 2026): المقدم يحكم قبلها، ولو خلص الوقت ينتقل للثاني */
 const LIVE_REVEAL_MS = 6500;  /* عرض الإجابة قبل السؤال التالي */
-const BC_CHANNEL = "masro7_live_round"; /* قناة صوت البث (منفصلة عن الغرفة الصوتية) */
+const BC_CHANNEL = "feekaro_live_round"; /* قناة صوت البث (منفصلة عن الغرفة الصوتية) */
 const BC_MATCH_SCENES = ["intro", "talk", "countdown", "playing", "result"];
 
 /* أسئلة احتياطية تُستخدم فقط إذا قاعدة الأسئلة ما تكفي */
@@ -177,7 +177,7 @@ function bcNotifyChanges(prev, next) {
         if (x.status === "scheduled" && (!p || p.status !== "scheduled") && !mine)
             notify("بث جديد مجدول 📅", `بث الجولة ${x.round} يبدأ الساعة ${bcTimeLabel(x.startAt || 0)}`, "sch_" + id + "_" + x.startAt, url);
         if (x.status === "live" && (!p || p.status !== "live") && !mine)
-            notify("البث بدأ 🔴", `بث الجولة ${x.round} من دوري بنو مسروح للنخبة مباشر الحين`, "live_" + id + "_" + (x.startedAt || x.sceneAt || ""), url);
+            notify("البث بدأ 🔴", `بث الجولة ${x.round} من فيكارو للمسابقات مباشر الحين`, "live_" + id + "_" + (x.startedAt || x.sceneAt || ""), url);
         /* دورك: مواجهتك صارت الحالية في البث */
         const o = bcCur(x);
         if (currentUser && o && x.status === "live" && (o.uid1 === currentUser.uid || o.uid2 === currentUser.uid) && x.scene === "intro" && (!p || p.cur !== x.cur || p.scene !== "intro") && openLiveId !== id)
@@ -1016,7 +1016,7 @@ function liveCtx() {
 }
 
 /* ===== البث الخاص (بروفة المنظم لحاله، 27 أكتوبر 2026، طلب محمد) =====
-   محد يشوفه ولا يدخله: الوثيقة في liveSecrets/rehearsal (القواعد: المنظم بس)، والصوت قناة masro7_live_rehearsal.
+   محد يشوفه ولا يدخله: الوثيقة في liveSecrets/rehearsal (القواعد: المنظم بس)، والصوت قناة feekaro_live_rehearsal.
    المتسابقين وهميين: يضغطون جاهز، ويضغطون الجرس بوقت عشوائي (وأحياناً ما أحد يضغط)، والمنظم يحكم صح أو غلط مثل البث الحقيقي.
    الأسئلة من نفس البنك بس ما تنحسب "انسألت" (ما فيه ختم ولا سجل)، والنتيجة ما تنكتب في الجدول، وما فيه تشخيص في liveDiag */
 const BC_REH_NAMES = ["سالم", "فيصل", "نواف", "تركي", "ماجد", "راكان", "بندر", "خالد", "يزيد", "مشعل", "عبدالله", "سلطان"];

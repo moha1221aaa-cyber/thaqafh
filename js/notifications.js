@@ -44,7 +44,7 @@ function notify(title, body, tag, url, force) {
     } else { try { new Notification(title, opt); } catch (e) {} }
 }
 /* توافق مع الكود القديم */
-function showNotification(message) { notify("MASRO7 LEAGUE", message, "", "/"); }
+function showNotification(message) { notify("FEEKARO PLAY", message, "", "/"); }
 document.addEventListener("DOMContentLoaded", renderNotifBell);
 setTimeout(renderNotifBell, 1500);
 
