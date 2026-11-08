@@ -190,7 +190,7 @@ try {
         upd(db, { ready2: true, scene: "talk", sceneAt: Date.now() });
         check("ident sting shows when both are ready", await until(() => fan.$(".cine.ident"), 3000));
         await sleep(1600);
-        check("sting has the logo and the league name", await fan.evaluate(() => { const el = document.querySelector(".cine.ident"); return !!el && !!el.querySelector(".cine-logo.on") && /دوري بنو مسروح/.test(el.textContent); }));
+        check("sting has the logo and the league name", await fan.evaluate(() => { const el = document.querySelector(".cine.ident"); return !!el && !!el.querySelector(".cine-logo.on") && /منصة فيكارو الثقافية/.test(el.textContent); }));
         await fan.screenshot({ path: out + "/3-ident.png" });
         check("welcome transition after the sting", await until(() => fan.$(".st-trans.talk"), 6000));
         check("sting gone after it ends", await until(async () => !(await fan.$(".cine.ident")), 1500));

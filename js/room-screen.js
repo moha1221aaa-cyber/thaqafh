@@ -87,7 +87,7 @@ ${lockHTML}
 <div class="rcd-icon">${ic("mic")}</div>
 <div>
 <div class="rcd-title">الغرفة الصوتية</div>
-<div class="rcd-sub">${live && roomState.hostName ? "المضيف: " + escapeHTML(roomState.hostName) : "دوري بنو مسروح للنخبة"}</div>
+<div class="rcd-sub">${live && roomState.hostName ? "المضيف: " + escapeHTML(roomState.hostName) : "منصة فيكارو الثقافية"}</div>
 </div>
 </div>
 <div class="rcd-avatars">${avatars}</div>

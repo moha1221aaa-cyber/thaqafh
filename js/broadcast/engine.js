@@ -177,7 +177,7 @@ function bcNotifyChanges(prev, next) {
         if (x.status === "scheduled" && (!p || p.status !== "scheduled") && !mine)
             notify("بث جديد مجدول 📅", `بث الجولة ${x.round} يبدأ الساعة ${bcTimeLabel(x.startAt || 0)}`, "sch_" + id + "_" + x.startAt, url);
         if (x.status === "live" && (!p || p.status !== "live") && !mine)
-            notify("البث بدأ 🔴", `بث الجولة ${x.round} من دوري بنو مسروح للنخبة مباشر الحين`, "live_" + id + "_" + (x.startedAt || x.sceneAt || ""), url);
+            notify("البث بدأ 🔴", `بث الجولة ${x.round} من منصة فيكارو الثقافية مباشر الحين`, "live_" + id + "_" + (x.startedAt || x.sceneAt || ""), url);
         /* دورك: مواجهتك صارت الحالية في البث */
         const o = bcCur(x);
         if (currentUser && o && x.status === "live" && (o.uid1 === currentUser.uid || o.uid2 === currentUser.uid) && x.scene === "intro" && (!p || p.cur !== x.cur || p.scene !== "intro") && openLiveId !== id)

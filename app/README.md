@@ -1,4 +1,4 @@
-# تطبيق MASRO7 LEAGUE (أندرويد وآيفون)
+# تطبيق منصة فيكارو الثقافية (أندرويد وآيفون)
 
 مبني بـ Capacitor 8. التطبيق يفتح موقع الدوري من `server.url` في `capacitor.config.json`
 (الحين https://masro7-league.pages.dev)، فأي تحديث للموقع يوصل للتطبيق على طول.

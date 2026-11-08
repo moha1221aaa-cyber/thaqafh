@@ -480,7 +480,7 @@ function bcStageHTML(d, me) {
         return `
 <div class="bc-wait">
 <img src="logo.png" class="bc-wait-logo" alt="">
-<div class="bc-wait-k">دوري بنو مسروح للنخبة</div>
+<div class="bc-wait-k">منصة فيكارو الثقافية</div>
 <div class="bc-title">بث الجولة ${escapeHTML(String(d.round))}</div>
 <div class="bc-wait-t">يبدأ البث بعد</div>
 <div class="bc-clock" id="bcClock"></div>
@@ -507,7 +507,7 @@ ${isAdmin ? `<div class="bc-admin"><button class="bc-go" onclick="bcGoLive()">${
 <div class="bc-onair-tag">ON AIR</div>
 <img src="logo.png" class="bc-logo" alt="">
 <div class="bc-title">بث الجولة ${escapeHTML(String(d.round))}</div>
-<div class="bc-sub">دوري بنو مسروح للنخبة · ${total} مواجهات · المنظم: ${escapeHTML(d.hostName || "")}</div>
+<div class="bc-sub">منصة فيكارو الثقافية · ${total} مواجهات · المنظم: ${escapeHTML(d.hostName || "")}</div>
 </div>
 <div class="bc-fixtures">${bcFixturesHTML(d, false)}</div>
 ${isAdmin ? "" : `<div class="lv-muted">أول مواجهة تبدأ بعد شوي...</div>`}

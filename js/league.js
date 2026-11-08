@@ -206,7 +206,7 @@ container.innerHTML = `
 }
 
 function shareStandingsToWhatsApp() {
-let text = `🏆 *جدول ترتيب دوري بنو مسروح للنخبة* 🏆\n\n`;
+let text = `🏆 *جدول ترتيب منصة فيكارو الثقافية* 🏆\n\n`;
 players.forEach((p, idx) => {
 let medal = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : `${idx + 1}.`));
 text += `${medal} *${p.name}* - ${p.pts} نقطة (ف:${p.w} | ت:${p.d} | خ:${p.l} | له:${p.gf})\n`;
@@ -229,7 +229,7 @@ async function shareMatchCard(m) {
     x.direction = "rtl"; x.textAlign = "center"; x.textBaseline = "middle";
     const logo = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = "logo.png"; });
     if (logo) x.drawImage(logo, W / 2 - 90, 70, 180, 180);
-    x.fillStyle = "#ffffff"; x.font = F(800, 54); x.fillText("دوري بنو مسروح للنخبة", W / 2, 310);
+    x.fillStyle = "#ffffff"; x.font = F(800, 54); x.fillText("منصة فيكارو الثقافية", W / 2, 310);
     x.fillStyle = "#60a5fa"; x.font = F(700, 38); x.fillText(`الجولة ${m.round}`, W / 2, 375);
     const s1 = Number(m.s1), s2 = Number(m.s2);
     const side = (name, cx, win) => {
@@ -246,7 +246,7 @@ async function shareMatchCard(m) {
     const res = s1 === s2 ? "تعادل" : `الفوز لـ ${s1 > s2 ? m.p1.name : m.p2.name}`;
     x.fillStyle = s1 === s2 ? "#facc15" : "#4ade80"; x.font = F(800, 56); x.fillText(res, W / 2, 870, 900);
     x.fillStyle = "#94a3b8"; x.font = F(700, 32); x.fillText("masro7-league.pages.dev", W / 2, 990);
-    const text = `🏆 دوري بنو مسروح للنخبة\n${m.p1.name} ${s1} : ${s2} ${m.p2.name}\n${res}\nhttps://masro7-league.pages.dev`;
+    const text = `🏆 منصة فيكارو الثقافية\n${m.p1.name} ${s1} : ${s2} ${m.p2.name}\n${res}\nhttps://masro7-league.pages.dev`;
     const blob = await new Promise(r => c.toBlob(r, "image/png"));
     const file = blob && new File([blob], "masro7-result.png", { type: "image/png" });
     try {
