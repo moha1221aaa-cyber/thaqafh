@@ -245,8 +245,8 @@ async function shareMatchCard(m) {
     x.fillStyle = "#ffffff"; x.font = F(900, 130); x.direction = "ltr"; x.fillText(`${s2} : ${s1}`, W / 2, 575, 300); x.direction = "rtl";
     const res = s1 === s2 ? "تعادل" : `الفوز لـ ${s1 > s2 ? m.p1.name : m.p2.name}`;
     x.fillStyle = s1 === s2 ? "#facc15" : "#4ade80"; x.font = F(800, 56); x.fillText(res, W / 2, 870, 900);
-    x.fillStyle = "#94a3b8"; x.font = F(700, 32); x.fillText("masro7-league.pages.dev", W / 2, 990);
-    const text = `🏆 منصة فيكارو الثقافية\n${m.p1.name} ${s1} : ${s2} ${m.p2.name}\n${res}\nhttps://masro7-league.pages.dev`;
+    x.fillStyle = "#94a3b8"; x.font = F(700, 32); x.fillText("thaqafah.pages.dev", W / 2, 990);
+    const text = `🏆 منصة فيكارو الثقافية\n${m.p1.name} ${s1} : ${s2} ${m.p2.name}\n${res}\nhttps://thaqafah.pages.dev`;
     const blob = await new Promise(r => c.toBlob(r, "image/png"));
     const file = blob && new File([blob], "masro7-result.png", { type: "image/png" });
     try {

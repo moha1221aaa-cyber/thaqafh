@@ -1,7 +1,7 @@
 /* البث الخاص (بروفة المنظم لحاله، 27 أكتوبر 2026، طلب محمد): زر "بث خاص لي" في أدوات المنظم
    - الوثيقة في liveSecrets/rehearsal (المنظم بس)، فما تطلع لأي أحد ثاني ولا توصل منها إشعارات
    - متسابقين وهميين يضغطون جاهز والجرس لحالهم، والمنظم يحكم مثل البث الحقيقي
-   - الصوت في قناة masro7_live_rehearsal، والنتيجة ما تنكتب في الجدول، والأسئلة ما تنحسب "انسألت"، وما فيه تشخيص في liveDiag
+   - الصوت في قناة thaqafah_live_rehearsal، والنتيجة ما تنكتب في الجدول، والأسئلة ما تنحسب "انسألت"، وما فيه تشخيص في liveDiag
    node tests/harness/rehearsal.mjs */
 import { serve, FakeDB, seed, launch, device, until, sleep } from "./harness.mjs";
 const srv = await serve();
@@ -59,7 +59,7 @@ try {
     check("no question history saved", !db.data("room/main/liveDiag/_qhistory"));
     check("no public diagnostics for the private broadcast", !db.data("room/main/liveDiag/rehearsal"));
     check("no public predictions doc", db.list("room/main/livePred").length === 0);
-    check("audio on its own channel", channels.length > 0 && channels.every(c => c === "masro7_live_rehearsal"), channels);
+    check("audio on its own channel", channels.length > 0 && channels.every(c => c === "thaqafah_live_rehearsal"), channels);
     /* إنهاء */
     await host.evaluate(() => { window.confirm = () => true; bcEnd(); });
     check("ends like a normal broadcast", !!await until(() => db.data(REH).status === "ended", 5000));

@@ -27,8 +27,8 @@ auth.routes.push({ match: u => u.startsWith("https://firestore.googleapis.com/")
     if (!DOC || !u.includes("/room/main/games/bara?")) return new Response("{}", { status: 404 });
     return new Response(JSON.stringify({ fields: enc(DOC).mapValue.fields }));
 } });
-const post = async (body, tok, e) => runFn(onRequestPost, new Request("https://masro7-league.pages.dev/bara", { method: "POST",
-    headers: Object.assign({ Origin: "https://masro7-league.pages.dev", "Content-Type": "application/json" }, tok ? { Authorization: "Bearer " + tok } : {}), body: JSON.stringify(body) }), e || env);
+const post = async (body, tok, e) => runFn(onRequestPost, new Request("https://thaqafah.pages.dev/bara", { method: "POST",
+    headers: Object.assign({ Origin: "https://thaqafah.pages.dev", "Content-Type": "application/json" }, tok ? { Authorization: "Bearer " + tok } : {}), body: JSON.stringify(body) }), e || env);
 const J = async r => ({ status: r.status, j: await r.json() });
 const admin = await auth.token("u_admin", "moha1221aaa@gmail.com"), a = await auth.token("u_a"), b = await auth.token("u_b"), x = await auth.token("u_x");
 const T = { u_admin: admin, u_a: a, u_b: b };
@@ -101,7 +101,7 @@ check("reveal + الإيصال: السيرفر يحكم (صح)", v3.verdict && v
 check("reveal: إيصال جولة 1 ما ينفع لجولة 2", (await J(await post({ action: "reveal", gid: GID, round: 2, receipt: g.j.receipt }, admin))).j.verdict === null);
 
 /* الحماية */
-check("Origin ثاني 403", (await runFn(onRequestPost, new Request("https://masro7-league.pages.dev/bara", { method: "POST", headers: { Origin: "https://evil.example", Authorization: "Bearer " + a }, body: "{}" }), env)).status === 403);
+check("Origin ثاني 403", (await runFn(onRequestPost, new Request("https://thaqafah.pages.dev/bara", { method: "POST", headers: { Origin: "https://evil.example", Authorization: "Bearer " + a }, body: "{}" }), env)).status === 403);
 check("action غلط 400", (await post({ action: "peek", gid: GID, round: 1 }, a)).status === 400);
 check("رقم لعبة غلط 400", (await post({ action: "role", gid: "../x", round: 1 }, a)).status === 400);
 let limited = false;

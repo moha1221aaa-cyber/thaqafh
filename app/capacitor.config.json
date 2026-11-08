@@ -3,7 +3,7 @@
   "appName": "فيكارو",
   "webDir": "www",
   "server": {
-    "url": "https://masro7-league.pages.dev",
+    "url": "https://thaqafah.pages.dev",
     "androidScheme": "https",
     "errorPath": "offline.html"
   },

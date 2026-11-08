@@ -24,8 +24,8 @@ auth.routes.push({ match: u => u.startsWith("https://firestore.googleapis.com/")
     if (!DOC || !u.includes("/liveMatches/" + ID + "?")) return new Response("{}", { status: 404 });
     return new Response(JSON.stringify({ fields: enc(DOC).mapValue.fields }));
 } });
-const post = async (body, tok) => runFn(onRequestPost, (new Request("https://masro7-league.pages.dev/answer", { method: "POST",
-    headers: Object.assign({ Origin: "https://masro7-league.pages.dev", "Content-Type": "application/json" }, tok ? { Authorization: "Bearer " + tok } : {}), body: JSON.stringify(body) })), env);
+const post = async (body, tok) => runFn(onRequestPost, (new Request("https://thaqafah.pages.dev/answer", { method: "POST",
+    headers: Object.assign({ Origin: "https://thaqafah.pages.dev", "Content-Type": "application/json" }, tok ? { Authorization: "Bearer " + tok } : {}), body: JSON.stringify(body) })), env);
 const admin = await auth.token("u_admin", "moha1221aaa@gmail.com"), p1 = await auth.token("u_p1"), p2 = await auth.token("u_p2");
 
 /* --- seal --- */
@@ -43,7 +43,7 @@ check("unseal: other question → null", await unseal(key, ID, sealed[1].text, s
 check("unseal: other broadcast → null", await unseal(key, "round_8", sealed[0].text, sealed[0].seal) === null);
 const t = sealed[0].seal; const tampered = t.slice(0, -3) + (t.slice(-3) === "AAA" ? "BBB" : "AAA");
 check("unseal: tampered → null", await unseal(key, ID, sealed[0].text, tampered) === null);
-check("seal 503 without secret", (await onRequestPost(ctxFor(new Request("https://masro7-league.pages.dev/answer", { method: "POST", headers: { Origin: "https://masro7-league.pages.dev", Authorization: "Bearer " + admin }, body: JSON.stringify({ action: "seal", id: ID, items: [{ text: "a", answer: "b" }] }) }), {}))).status === 503);
+check("seal 503 without secret", (await onRequestPost(ctxFor(new Request("https://thaqafah.pages.dev/answer", { method: "POST", headers: { Origin: "https://thaqafah.pages.dev", Authorization: "Bearer " + admin }, body: JSON.stringify({ action: "seal", id: ID, items: [{ text: "a", answer: "b" }] }) }), {}))).status === 503);
 
 /* --- grade: انشال 26 أكتوبر 2026 (المقدم يحكم من 23 أكتوبر، وكان يصرف رصيد السمع لأي حساب: فحص 25 أكتوبر البند 20) --- */
 const now = Date.now();
@@ -94,5 +94,5 @@ check("open: box from liveBoxes doc", j.qs && j.qs[0].text === "م2 سؤال", j
 BOXES = null;
 check("open: boxed but no boxes doc → 404", (await post({ action: "open", id: ID, m: 1 }, admin)).status === 404);
 
-check("bad origin refused", (await onRequestPost(ctxFor(new Request("https://masro7-league.pages.dev/answer", { method: "POST", headers: { Origin: "https://evil.example" }, body: "{}" }), env))).status === 403);
+check("bad origin refused", (await onRequestPost(ctxFor(new Request("https://thaqafah.pages.dev/answer", { method: "POST", headers: { Origin: "https://evil.example" }, body: "{}" }), env))).status === 403);
 auth.restore(); done();

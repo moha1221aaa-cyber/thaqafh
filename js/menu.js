@@ -290,7 +290,7 @@ function openInfoPage(key) {
 }
 
 async function shareSite() {
-    const url = "https://masro7-league.pages.dev/";
+    const url = "https://thaqafah.pages.dev/";
     const text = "منصة فيكارو الثقافية: الترتيب والمواجهات والتوقعات والبث المباشر";
     if (navigator.share) {
         try { await navigator.share({ title: "FEEKARO", text: text, url: url }); } catch (e) {}

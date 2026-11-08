@@ -13,8 +13,8 @@ auth.routes.push({ match: u => u.startsWith("https://firestore.googleapis.com/")
     if (!DOC || !u.includes("/room/main/games/som?")) return new Response("{}", { status: 404 });
     return new Response(JSON.stringify({ fields: enc(DOC).mapValue.fields }));
 } });
-const post = async (body, tok, e) => runFn(onRequestPost, new Request("https://masro7-league.pages.dev/som", { method: "POST",
-    headers: Object.assign({ Origin: "https://masro7-league.pages.dev", "Content-Type": "application/json" }, tok ? { Authorization: "Bearer " + tok } : {}), body: JSON.stringify(body) }), e || env);
+const post = async (body, tok, e) => runFn(onRequestPost, new Request("https://thaqafah.pages.dev/som", { method: "POST",
+    headers: Object.assign({ Origin: "https://thaqafah.pages.dev", "Content-Type": "application/json" }, tok ? { Authorization: "Bearer " + tok } : {}), body: JSON.stringify(body) }), e || env);
 const admin = await auth.token("u_admin", "moha1221aaa@gmail.com"), a = await auth.token("u_a"), b = await auth.token("u_b"), x = await auth.token("u_x");
 const GID = "sabc12345";
 
@@ -62,7 +62,7 @@ DOC = Object.assign({}, DOC, { show: ["u_a", "u_nobody"] });
 check("reveal: لاعب مو في التوزيع 409", (await post({ action: "reveal", gid: GID, round: 1 }, admin)).status === 409);
 
 /* الحماية */
-check("Origin ثاني 403", (await runFn(onRequestPost, new Request("https://masro7-league.pages.dev/som", { method: "POST", headers: { Origin: "https://evil.example", Authorization: "Bearer " + a }, body: "{}" }), env)).status === 403);
+check("Origin ثاني 403", (await runFn(onRequestPost, new Request("https://thaqafah.pages.dev/som", { method: "POST", headers: { Origin: "https://evil.example", Authorization: "Bearer " + a }, body: "{}" }), env)).status === 403);
 check("action غلط 400", (await post({ action: "peek", gid: GID, round: 1 }, a)).status === 400);
 let limited = false;
 for (let i = 0; i < 70 && !limited; i++) limited = (await post({ action: "hand", gid: GID, round: 1 }, b)).status === 429;

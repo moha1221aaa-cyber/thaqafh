@@ -414,7 +414,7 @@ roomState.hostAvatar = (currentUserDocData && currentUserDocData.photoURL) ? cur
 roomState.mics = Array(MIC_SLOTS).fill(null);
 roomState.mics[HOST_SEAT] = { uid: currentUser.uid, name: roomState.hostName, avatar: roomState.hostAvatar, muted: false };
 
-joinVoiceChannel("masro7_main_room", currentUser.uid).catch(() => {
+joinVoiceChannel("thaqafah_main_room", currentUser.uid).catch(() => {
     /* فشل تشغيل المايك: نحرر مقعد المضيف حتى لا يبقى محجوزاً بدون صوت */
     if (roomState.mics[HOST_SEAT] && roomState.mics[HOST_SEAT].uid === currentUser.uid) {
         roomState.mics[HOST_SEAT] = null;
@@ -464,7 +464,7 @@ roomState.mics[index] = mine;
 renderRoomUI();
 
 try {
-    await joinVoiceChannel("masro7_main_room", currentUser.uid);
+    await joinVoiceChannel("thaqafah_main_room", currentUser.uid);
 } catch (e) {
     // فشل تشغيل المايك: نحرر المقعد حتى لا يبقى محجوزاً بدون صوت
     roomReleaseMySeat(index);
