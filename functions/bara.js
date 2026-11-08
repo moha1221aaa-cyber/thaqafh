@@ -28,6 +28,17 @@ const json = (status, obj) => new Response(JSON.stringify(obj), {
 });
 const isAdmin = u => !!u && String(u.email || "").toLowerCase() === ADMIN_EMAIL;
 
+/* داخل جلسة (sid = رمز الجلسة، 6 أحرف): اللعبة في sessions/<sid>/games/<اللعبة> والمضيف هو مضيف الجلسة (مو منظم المنصة) */
+const SID_RE = /^[A-Z0-9]{6}$/;
+const GAME = "bara";
+const sidOf = b => (b && typeof b.sid === "string" && SID_RE.test(b.sid)) ? b.sid : "";
+const docPath = sid => sid ? "sessions/" + sid + "/games/" + GAME : DOC;
+async function isHost(user, id) {
+  if (!id.sid) return isAdmin(user);
+  const s = await readPublicDoc("sessions/" + id.sid);
+  return !!(s && user && s.hostUid === user.uid);
+}
+
 async function overLimit(url, action, who) {
   const slot = Math.floor(Date.now() / 60000);
   const key = new Request(url.origin + "/bara-rl/" + action + "/" + encodeURIComponent(who) + "/" + slot);
@@ -68,15 +79,16 @@ async function openSealed(env, gid, text, sealed) {
 function ids(b) {
   const gid = String(b.gid || ""), round = Number(b.round);
   if (!GID_RE.test(gid) || !(Number.isInteger(round) && round >= 1 && round <= 50)) return null;
-  return { gid, round };
+  const sid = sidOf(b);
+  return { gid, round, sid, key: sid ? sid + "_" + gid : gid };
 }
 async function roundDoc(id) {
-  const d = await readPublicDoc(DOC);
+  const d = await readPublicDoc(docPath(id.sid));
   if (!d || d.active !== true || d.gid !== id.gid || Number(d.round) !== id.round || typeof d.plan !== "string") return null;
   return d;
 }
 async function plan(env, id, d) {
-  const p = await openSealed(env, id.gid, "r" + id.round, d.plan);
+  const p = await openSealed(env, id.key, "r" + id.round, d.plan);
   return p && p.w && Array.isArray(p.ids) ? p : null;
 }
 const roleOf = (p, uid) => p.o === uid
@@ -84,9 +96,9 @@ const roleOf = (p, uid) => p.o === uid
   : { out: false, cat: p.c, catName: BARA_WORDS[p.c].n, word: p.w };
 
 async function doDeal(env, b, user) {
-  if (!isAdmin(user)) return json(403, { error: "للمنظم بس" });
   const id = ids(b);
   if (!id) return json(400, { error: "bad id" });
+  if (!(await isHost(user, id))) return json(403, { error: "للمنظم بس" });
   const cat = String(b.cat || "random");
   if (cat !== "random" && !BARA_WORDS[cat]) return json(400, { error: "تصنيف غلط" });
   const pids = Array.isArray(b.pids) ? b.pids.map(String) : [];
@@ -95,7 +107,7 @@ async function doDeal(env, b, user) {
   if (!key) return json(503, { error: "الختم مو مضبوط في السيرفر" });
   const r = pickRound(cat, pids);
   const p = Object.assign(r, { ids: pids, by: user.uid });
-  const sealed = await seal(key, sealId(id.gid), "r" + id.round, JSON.stringify(p));
+  const sealed = await seal(key, sealId(id.key), "r" + id.round, JSON.stringify(p));
   return json(200, { plan: sealed, cat: p.c, catName: BARA_WORDS[p.c].n, role: pids.indexOf(user.uid) !== -1 ? roleOf(p, user.uid) : null });
 }
 
@@ -111,9 +123,9 @@ async function doRole(env, b, user) {
 }
 
 async function doReveal(env, b, user) {
-  if (!isAdmin(user)) return json(403, { error: "للمنظم بس" });
   const id = ids(b);
   if (!id) return json(400, { error: "bad id" });
+  if (!(await isHost(user, id))) return json(403, { error: "للمنظم بس" });
   const d = await roundDoc(id);
   if (!d) return json(409, { error: "مو هذي الجولة" });
   if (["vote", "guess", "result"].indexOf(d.phase) === -1) return json(409, { error: "التصويت ما بدأ" });
@@ -121,7 +133,7 @@ async function doReveal(env, b, user) {
   if (!p) return json(500, { error: "ما قدرت أفتح الجولة" });
   const out = { out: p.o, word: p.w, opts: p.opts, cat: p.c };
   if (b.receipt) {
-    const g = await openSealed(env, id.gid, "g" + id.round, String(b.receipt));
+    const g = await openSealed(env, id.key, "g" + id.round, String(b.receipt));
     out.verdict = g && g.u === p.o ? { choice: g.c, ok: g.c === p.w } : null;
   }
   return json(200, out);
@@ -138,11 +150,11 @@ async function doGuess(context, env, b, user) {
   const choice = String(b.choice || "");
   if (p.opts.indexOf(choice) === -1) return json(400, { error: "اختار من الخيارات" });
   /* أول تخمين ينحسب: نفس الإيصال يرجع لو انعاد (كاش Cloudflare، حماية تخفف التجريب). والإيصال ما يقول صح أو غلط أصلاً */
-  const lock = new Request(new URL(context.request.url).origin + "/bara-guess/" + [id.gid, id.round, user.uid].map(encodeURIComponent).join("/"));
+  const lock = new Request(new URL(context.request.url).origin + "/bara-guess/" + [id.key, id.round, user.uid].map(encodeURIComponent).join("/"));
   const prev = await caches.default.match(lock);
   if (prev) return json(200, { receipt: await prev.text(), repeat: true });
   const key = await sealKey(env);
-  const receipt = await seal(key, sealId(id.gid), "g" + id.round, JSON.stringify({ u: user.uid, c: choice }));
+  const receipt = await seal(key, sealId(id.key), "g" + id.round, JSON.stringify({ u: user.uid, c: choice }));
   await caches.default.put(lock, new Response(receipt, { headers: { "Cache-Control": "max-age=3600" } }));
   return json(200, { receipt });
 }

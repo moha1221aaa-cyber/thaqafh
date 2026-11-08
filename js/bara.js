@@ -195,8 +195,19 @@ let baraLastHTML = "";
 try { const r = JSON.parse(sessionStorage.getItem("baraRole") || "null"); if (r && r.key) baraRole = r; } catch (e) {}
 try { baraGuessSent = sessionStorage.getItem("baraGuess") || ""; } catch (e) {}
 
-function baraRef() { return firebaseDB.collection("room").doc("main").collection("games").doc("bara"); }
-function baraVoteRef(uid) { return firebaseDB.collection("baraVotes").doc(uid); }
+/* داخل جلسة (baraSess = رمز الجلسة): الطاولة في sessions/<الرمز>/games/bara وأصواتها في sessions/<الرمز>/baraVotes، والمنظم = مضيف الجلسة (majlis.js) */
+let baraSess = null;
+function baraRef() { return baraSess ? firebaseDB.collection("sessions").doc(baraSess).collection("games").doc("bara") : firebaseDB.collection("room").doc("main").collection("games").doc("bara"); }
+function baraVotesCol() { return baraSess ? firebaseDB.collection("sessions").doc(baraSess).collection("baraVotes") : firebaseDB.collection("baraVotes"); }
+function baraVoteRef(uid) { return baraVotesCol().doc(uid); }
+function baraHost() { return baraSess ? !!(currentUser && sess && sess.id === baraSess && currentUser.uid === sess.hostUid) : !!isAdmin; }
+function baraSetSession(sid) {
+    sid = sid || null;
+    if (baraSess === sid) return;
+    baraWatch(false, true);
+    baraSess = sid; baraState = null;
+    if (sid) baraWatch(true, true);
+}
 function baraNow() { return typeof bcNow === "function" ? bcNow() : Date.now(); }
 function baraMe() { return currentUser ? currentUser.uid : ""; }
 function baraMyName() {
@@ -207,7 +218,7 @@ function baraActiveGame() { return !!(baraState && baraState.active); }
 function baraInRound(s, uid) { return !!s && ["ask", "vote", "guess", "result"].indexOf(s.phase) !== -1 && (s.pids || []).indexOf(uid) !== -1; }
 
 async function baraApi(body) {
-    const r = await fetch("/bara", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await authHeaders()), body: JSON.stringify(body) });
+    const r = await fetch("/bara", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await authHeaders()), body: JSON.stringify(baraSess ? Object.assign({ sid: baraSess }, body) : body) });
     let j = {};
     try { j = await r.json(); } catch (e) {}
     if (!r.ok) throw new Error(j.error || "bara " + r.status);
@@ -220,7 +231,7 @@ async function baraDo(a, quiet) {
     try {
         const out = await firebaseDB.runTransaction(async tx => {
             const snap = await tx.get(ref);
-            const r = baraReduce(snap.exists ? snap.data() : null, a, { uid: currentUser.uid, now: baraNow(), host: !!isAdmin });
+            const r = baraReduce(snap.exists ? snap.data() : null, a, { uid: currentUser.uid, now: baraNow(), host: baraHost() });
             /* Firestore يرفض undefined، فالحالة تنكتب نظيفة */
             if (!r.err) tx.set(ref, JSON.parse(JSON.stringify(r.s)));
             return r;
@@ -295,7 +306,8 @@ function baraSoundFor(prev, s) {
 }
 
 /* الاستماع للطاولة وقت ما الغرفة مفتوحة (room-screen.js) */
-function baraWatch(on) {
+function baraWatch(on, viaSess) {
+    if (baraSess && !viaSess) return;   /* شاشة الغرفة ما تقطع طاولة الجلسة */
     if (on && !baraUnsub && firebaseDB) {
         baraUnsub = baraRef().onSnapshot(doc => baraOnSnap(doc.exists ? doc.data() : null), () => {});
         if (!baraRetry) baraRetry = setInterval(baraFetchRole, 1500);
@@ -313,9 +325,9 @@ function baraOnSnap(s) {
     baraState = s;
     const me = baraMe(), act = !!(s && s.active);
     const pPhase = prev && prev.active ? prev.phase : "", nPhase = act ? s.phase : "";
-    if (act && !(prev && prev.active) && s.phase === "lobby" && me !== s.hostUid && roomScreenOpen) roomToast("طاولة برا السالفة فتحت، ادخل وانضم", "users");
+    if (act && !(prev && prev.active) && s.phase === "lobby" && me !== s.hostUid && (roomScreenOpen || baraSess)) roomToast("طاولة برا السالفة فتحت، ادخل وانضم", "users");
     /* أول جولة تنفتح الطاولة للاعبين (مرة وحدة) */
-    if (act && pPhase === "lobby" && nPhase === "ask" && (s.pids || []).indexOf(me) !== -1 && roomScreenOpen && !baraIsOpen) baraOpen();
+    if (act && pPhase === "lobby" && nPhase === "ask" && (s.pids || []).indexOf(me) !== -1 && (roomScreenOpen || baraSess) && !baraIsOpen) baraOpen();
     if (act && prev && s.phase === "ask") {
         const p = s.asks[s.turn];
         if (p && (p.a === me || p.b === me) && !(prev.phase === "ask" && prev.turn === s.turn && prev.round === s.round)) { try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {} }
@@ -324,10 +336,11 @@ function baraOnSnap(s) {
     if (act && baraKey(s) !== baraCardKey) { baraCardKey = baraKey(s); baraCardOpen = false; baraGuessPick = ""; }
     if (!act && baraIsOpen) baraClose(true);
     if (pPhase !== nPhase || (prev && s && prev.round !== s.round) || (prev && s && (prev.pids || []).length !== (s.pids || []).length)) {
-        if (typeof renderRoomUI === "function") renderRoomUI();
+        if (baraSess) { if (typeof renderMajlis === "function") renderMajlis(); }
+        else if (typeof renderRoomUI === "function") renderRoomUI();
     }
     baraListenMyVote(act && (s.pids || []).indexOf(me) !== -1);
-    baraListenVotes(act && isAdmin && (s.phase === "vote" || s.phase === "guess"));
+    baraListenVotes(act && baraHost() && (s.phase === "vote" || s.phase === "guess"));
     baraFetchRole();
     baraRender();
 }
@@ -342,7 +355,7 @@ function baraListenMyVote(on) {
 function baraListenVotes(on) {
     if (on && !baraVotesUnsub && firebaseDB) {
         const s = baraState;
-        baraVotesUnsub = firebaseDB.collection("baraVotes").where("gid", "==", s.gid).onSnapshot(snap => {
+        baraVotesUnsub = baraVotesCol().where("gid", "==", s.gid).onSnapshot(snap => {
             baraVoteDocs = {};
             snap.forEach(d => { baraVoteDocs[d.id] = d.data(); });
             const cur = baraState;
@@ -371,7 +384,7 @@ async function baraFetchRole() {
 /* ===== المنظم: كل مرحلة بزر ===== */
 async function baraHostRound() {
     const s = baraState;
-    if (!isAdmin || !s || !s.active || baraHostBusy) return;
+    if (!baraHost() || !s || !s.active || baraHostBusy) return;
     if (s.phase !== "lobby" && s.phase !== "result") return;
     if (s.round >= s.rounds) { await baraDo({ t: "end" }); return; }
     if (s.pids.length < BARA.MIN_P) return roomToast("لازم " + BARA.MIN_P + " لاعبين على الأقل", "users");
@@ -393,12 +406,12 @@ function baraHostLap() { baraDo({ t: "lap", asks: baraPairs(baraState.pids) }); 
 function baraHostVote() { baraDo({ t: "vote" }); }
 async function baraHostReveal() {
     const s = baraState;
-    if (!isAdmin || !s || s.phase !== "vote" || baraHostBusy) return;
+    if (!baraHost() || !s || s.phase !== "vote" || baraHostBusy) return;
     baraHostBusy = true; baraRender();
     try {
         const r = await baraApi({ action: "reveal", gid: s.gid, round: s.round });
         /* الأصوات من القاعدة نفسها لحظة الكشف (مو بس من آخر تحديث وصل) */
-        const snap = await firebaseDB.collection("baraVotes").where("gid", "==", s.gid).get();
+        const snap = await baraVotesCol().where("gid", "==", s.gid).get();
         const votes = {};
         snap.forEach(d => { const v = d.data(); if (v.gid === s.gid && v.round === s.round && v.target) votes[d.id] = v.target; });
         await baraDo({ t: "reveal", votes, out: r.out, opts: r.opts });
@@ -409,7 +422,7 @@ async function baraHostReveal() {
 /* النتيجة: السيرفر يحكم على إيصال التخمين (لو فيه)، والكلمة تنكشف للكل */
 async function baraHostSettle(skip) {
     const s = baraState;
-    if (!isAdmin || !s || s.phase !== "guess" || baraHostBusy) return;
+    if (!baraHost() || !s || s.phase !== "guess" || baraHostBusy) return;
     if (skip && !confirm("تتخطى تخمين " + baraName(s, s.res.out) + "؟ (ينحسب ما خمّن)")) return;
     baraHostBusy = true; baraRender();
     try {
@@ -438,7 +451,7 @@ function baraPickCat(c) { baraCatPick = c === "random" || BARA_CAT_IDS.indexOf(c
 
 /* ===== حركات اللاعبين ===== */
 async function baraCreate() {
-    if (!isAdmin || !currentUser) return roomToast("المنظم بس يفتح الطاولة", "lock");
+    if (!baraHost() || !currentUser) return roomToast("المنظم بس يفتح الطاولة", "lock");
     if (baraActiveGame() && baraState.phase !== "over") return baraOpen();
     const gid = "b" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
     const r = await baraDo({ t: "create", gid, name: baraMyName() });
@@ -501,7 +514,7 @@ function baraOpen() {
         document.body.appendChild(el);
     }
     /* زر الرجوع في الجوال يسكّر الطاولة بس ويرجعك للغرفة (app.js popstate) */
-    if (!baraIsOpen) { try { window.history.pushState({ roomOpen: true, baraOpen: true }, ""); } catch (e) {} }
+    if (!baraIsOpen) { try { window.history.pushState(baraSess ? { baraOpen: true } : { roomOpen: true, baraOpen: true }, ""); } catch (e) {} }
     baraIsOpen = true; baraLastHTML = "";
     el.classList.add("open");
     document.body.classList.add("bara-open");
@@ -520,7 +533,7 @@ function baraToggleRules() { baraRulesOpen = !baraRulesOpen; baraRender(); }
 /* شريط الطاولة في الغرفة (room.js renderRoomUI) */
 function baraRoomPill() {
     const s = baraState;
-    if (!s || !s.active || !roomState.isLive) return "";
+    if (!s || !s.active || (!baraSess && !roomState.isLive)) return "";
     const t = s.phase === "lobby" ? "مفتوحة للانضمام (" + s.pids.length + "/" + BARA.MAX_P + ")" : s.phase === "over" ? "انتهت، شوف الترتيب" : "الجولة " + s.round + " من " + s.rounds;
     return `<button class="som-pill bara-pill" onclick="baraOpen()"><span class="som-pill-dot"></span><span class="som-pill-t"><b>برا السالفة</b> · ${escapeHTML(t)}</span><span class="som-pill-go">افتح ${ic("chevron-right")}</span></button>`;
 }
@@ -556,7 +569,7 @@ function baraPlayersHTML(s, opts) {
         const p = s.players[u] || {}, cls = ["bara-tile"];
         if (u === me) cls.push("me");
         if (rank && i === 0 && (p.score || 0) > 0) cls.push("win");
-        const kick = isAdmin && s.phase === "lobby" && u !== me ? `<button class="bara-x" onclick="baraKick(${jsArg(u)})" aria-label="طلّع ${escapeHTML(p.name || "")}">${ic("x")}</button>` : "";
+        const kick = baraHost() && s.phase === "lobby" && u !== me ? `<button class="bara-x" onclick="baraKick(${jsArg(u)})" aria-label="طلّع ${escapeHTML(p.name || "")}">${ic("x")}</button>` : "";
         const sub = opts.scores ? `<span class="bara-pts">${p.score || 0}</span>` : u === s.hostUid && s.phase === "lobby" ? `<span class="bara-tag">المنظم</span>` : "";
         return `<div class="${cls.join(" ")}">${rank ? `<span class="bara-rank">${i + 1}</span>` : ""}${baraAv(s, u)}${kick}<span class="bara-nm">${escapeHTML(p.name || "لاعب")}</span>${sub}</div>`;
     }).join("")}</div>`;
@@ -571,7 +584,7 @@ function baraCatsHTML() {
 function baraAskHTML(s) {
     const me = baraMe(), done = s.turn >= s.asks.length, n = s.pids.length;
     const lapN = Math.min(s.laps, Math.floor(s.turn / n) + 1), inLap = done ? n : (s.turn % n) + 1;
-    if (done) return `<div class="bara-panel"><div class="bara-p-t">خلصت ${s.laps > 1 ? "الدورة " + s.laps : "دورة الأسئلة"}</div><div class="bara-p-s">${isAdmin ? "ابدأ التصويت، أو زيد دورة أسئلة ثانية" : "ننتظر المنظم يبدأ التصويت"}</div></div>`;
+    if (done) return `<div class="bara-panel"><div class="bara-p-t">خلصت ${s.laps > 1 ? "الدورة " + s.laps : "دورة الأسئلة"}</div><div class="bara-p-s">${baraHost() ? "ابدأ التصويت، أو زيد دورة أسئلة ثانية" : "ننتظر المنظم يبدأ التصويت"}</div></div>`;
     const { a, b } = s.asks[s.turn];
     const t = a === me ? "دورك تسأل " + baraName(s, b) : b === me ? baraName(s, a) + " يسألك" : baraName(s, a) + " يسأل " + baraName(s, b);
     return `<div class="bara-panel ask${a === me || b === me ? " mine" : ""}">
@@ -581,7 +594,7 @@ function baraAskHTML(s) {
 <div class="bara-ask-p">${baraAv(s, b, "bara-av lg")}<span>${escapeHTML(baraName(s, b))}</span><small>يجاوب</small></div>
 </div>
 <div class="bara-p-t">${escapeHTML(t)}</div>
-<div class="bara-p-s">سؤال ${inLap} من ${n}${s.laps > 1 ? " · الدورة " + lapN : ""} · اسأل بالمايك عن السالفة</div>
+<div class="bara-p-s">سؤال ${inLap} من ${n}${s.laps > 1 ? " · الدورة " + lapN : ""} · اسأل عن السالفة</div>
 </div>`;
 }
 
@@ -660,7 +673,7 @@ function baraActHTML(s) {
         else if (playing) h = `<button class="som-b ghost" onclick="baraLeave()">طلّعني من الطاولة</button>`;
         else h = `<button class="som-b gold" onclick="baraJoin()" ${s.pids.length >= BARA.MAX_P ? "disabled" : ""}>${ic("plus")} انضم للطاولة</button>`;
     }
-    if (isAdmin) {
+    if (baraHost()) {
         if (s.phase === "lobby" || (s.phase === "result" && s.round < s.rounds)) {
             if (s.phase === "lobby") h += `<div class="bara-rounds"><span>عدد الجولات</span><button class="som-step sm" onclick="baraSetRounds(-1)" aria-label="أقل">−</button><b>${s.rounds}</b><button class="som-step sm" onclick="baraSetRounds(1)" aria-label="أكثر">+</button></div>`;
             h += `<div class="bara-sec">تصنيف الجولة ${s.round + 1}</div>${baraCatsHTML()}`;
@@ -690,7 +703,7 @@ function baraRulesHTML() {
 <div class="som-rules-h"><b>طريقة اللعب</b><button class="som-ic" onclick="baraToggleRules()" aria-label="سكّر">${ic("x")}</button></div>
 <ol>
 <li>كل جولة المنظم يختار تصنيف، وكل واحد يشوف دوره على جواله: <b>داخل السالفة</b> ويشوف الكلمة، أو <b>برا السالفة</b> ويعرف التصنيف بس.</li>
-<li><b>الأسئلة:</b> بالدور، كل واحد يسأل واحد ثاني بالمايك عن السالفة. اللي داخلها يجاوب بحيث ما يفضحها، واللي برا يحاول يفهم بدون ما ينكشف.</li>
+<li><b>الأسئلة:</b> بالدور، كل واحد يسأل واحد ثاني عن السالفة. اللي داخلها يجاوب بحيث ما يفضحها، واللي برا يحاول يفهم بدون ما ينكشف.</li>
 <li><b>التصويت:</b> كل واحد يصوّت سراً على اللي يظن إنه برا السالفة، ويقدر يغيّر صوته لين المنظم يكشف.</li>
 <li><b>الكشف:</b> لو أكثر واحد انصوّت عليه هو اللي برا السالفة انكشف، ولو غيره أو تعادل ما انكشف. وبالحالتين يخمّن السالفة من 8 خيارات.</li>
 </ol>
@@ -701,7 +714,7 @@ function baraRulesHTML() {
 }
 
 function baraMicBtn() {
-    if (!currentUser) return "";
+    if (!currentUser || baraSess) return "";   /* في الجلسة الكل جالسين مع بعض، بدون مايك */
     const seat = (roomState.mics || []).findIndex(m => m && m.uid === currentUser.uid);
     if (seat === -1) return `<button class="som-ic dim" onclick="baraMic()" aria-label="اطلع على المايك">${ic("mic")}</button>`;
     const muted = roomState.mics[seat].muted;
@@ -716,7 +729,7 @@ function baraRender() {
     const sub = s.phase === "lobby" ? "قبل البداية" : s.phase === "over" ? "النتيجة النهائية" : "الجولة " + s.round + " من " + s.rounds + " · " + s.catName;
     const html = `
 <div class="som-top">
-<button class="som-ic" onclick="baraClose()" aria-label="رجوع للغرفة">${ic("chevron-right")}</button>
+<button class="som-ic" onclick="baraClose()" aria-label="رجوع">${ic("chevron-right")}</button>
 <div class="som-title"><b>برا السالفة</b><span>${escapeHTML(sub)}</span></div>
 <div class="som-top-btns">${baraMicBtn()}<button class="som-ic" onclick="baraToggleRules()" aria-label="طريقة اللعب">${ic("book")}</button></div>
 </div>

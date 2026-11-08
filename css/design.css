@@ -283,7 +283,7 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, .tab:focus
   box-shadow: 0 8px 22px -8px rgba(37,211,102,.6) !important;
   margin: 6px 0 14px auto;
 }
-#table table{
+#tnStand table{
   border-collapse: separate; border-spacing: 0;
   background: var(--surface);
   border: 1px solid var(--line);
@@ -291,29 +291,29 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible, .tab:focus
   box-shadow: var(--shadow);
   font-variant-numeric: tabular-nums;
 }
-#table th, #table td{ border: 0; border-bottom: 1px solid var(--line); padding: 12px 4px; }
-#table th{
+#tnStand th, #tnStand td{ border: 0; border-bottom: 1px solid var(--line); padding: 12px 4px; }
+#tnStand th{
   background: var(--surface-2); color: var(--text-3); font-size: 11px; font-weight: 600; letter-spacing: .4px;
   position: sticky; top: 0;
 }
-#table tbody tr{ transition: background .2s; }
-#table tbody tr:last-child td{ border-bottom: 0; }
-#table tbody tr:hover{ background: rgba(59,130,246,.06); }
-#table td{ color: var(--text-2); font-size: 13px; }
-#table td.rank-cell{ width: 34px; font-weight: 800; color: var(--text-3); }
-#table td.pts-cell b{
+#tnStand tbody tr{ transition: background .2s; }
+#tnStand tbody tr:last-child td{ border-bottom: 0; }
+#tnStand tbody tr:hover{ background: rgba(59,130,246,.06); }
+#tnStand td{ color: var(--text-2); font-size: 13px; }
+#tnStand td.rank-cell{ width: 34px; font-weight: 800; color: var(--text-3); }
+#tnStand td.pts-cell b{
   display: inline-flex; min-width: 30px; height: 28px; align-items: center; justify-content: center;
   padding: 0 6px; border-radius: 9px; font-size: 14px; color: #fff;
   background: var(--brand-soft); border: 1px solid rgba(59,130,246,.3);
 }
-#table tr.top-1 td.rank-cell{ color: var(--gold); box-shadow: inset -3px 0 0 var(--gold); }
-#table tr.top-2 td.rank-cell{ color: var(--silver); box-shadow: inset -3px 0 0 var(--silver); }
-#table tr.top-3 td.rank-cell{ color: var(--bronze); box-shadow: inset -3px 0 0 var(--bronze); }
-#table tr.top-1{ background: linear-gradient(270deg, rgba(245,197,66,.10), transparent 60%); }
-#table tr.top-1 td.pts-cell b{ background: var(--gold-grad); color: #1c1403; border-color: transparent; }
-#table .table-player-cell span{ color: var(--text); font-weight: 700 !important; }
+#tnStand tr.top-1 td.rank-cell{ color: var(--gold); box-shadow: inset -3px 0 0 var(--gold); }
+#tnStand tr.top-2 td.rank-cell{ color: var(--silver); box-shadow: inset -3px 0 0 var(--silver); }
+#tnStand tr.top-3 td.rank-cell{ color: var(--bronze); box-shadow: inset -3px 0 0 var(--bronze); }
+#tnStand tr.top-1{ background: linear-gradient(270deg, rgba(245,197,66,.10), transparent 60%); }
+#tnStand tr.top-1 td.pts-cell b{ background: var(--gold-grad); color: #1c1403; border-color: transparent; }
+#tnStand .table-player-cell span{ color: var(--text); font-weight: 700 !important; }
 .table-player-img{ width: 32px; height: 32px; border: 0; box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px rgba(59,130,246,.55); }
-#table tr.top-1 .table-player-img{ box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--gold); }
+#tnStand tr.top-1 .table-player-img{ box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--gold); }
 .verified-badge{ color: #38bdf8; }
 
 /* ============ بطاقات المواجهات ============ */

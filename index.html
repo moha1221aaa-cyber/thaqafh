@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="css/design.css">
 <link rel="stylesheet" href="css/som.css">
 <link rel="stylesheet" href="css/bara.css">
+<link rel="stylesheet" href="css/tournaments.css">
 <link rel="stylesheet" href="css/broadcast.css">
 <script src="js/pwa.js"></script>
 <script src="js/wake.js"></script>
@@ -146,7 +147,28 @@
 </div>
 </div>
 
-<div id="table" class="section">
+<div id="tournaments" class="section">
+<div class="tn-seg tn-top" id="tnTop" role="tablist">
+<button type="button" class="active" data-k="official" onclick="tnSetMode('official')"><svg class="ic" aria-hidden="true"><use href="#i-trophy"/></svg> الرسمية</button>
+<button type="button" data-k="private" onclick="tnSetMode('private')"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg> الخاصة</button>
+</div>
+
+<div id="tnOfficialHead">
+<div class="tn-cards" id="tnPicker"></div>
+</div>
+
+<div id="tnPrivateHome" style="display:none;"></div>
+
+<div id="tnBodyHead"></div>
+
+<div id="tnBody">
+<div class="tn-seg tn-sub" id="tnSub" role="tablist">
+<button type="button" class="active" data-k="stand" onclick="tnSetPane('stand')"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg> الترتيب</button>
+<button type="button" data-k="matches" onclick="tnSetPane('matches')"><svg class="ic" aria-hidden="true"><use href="#i-ball"/></svg> المواجهات</button>
+</div>
+<div id="tnAdminBox"></div>
+
+<div id="tnStand">
 <button class="share-btn-wa" onclick="shareStandingsToWhatsApp()"><svg class="ic" aria-hidden="true"><use href="#i-message"/></svg> مشاركة الترتيب عبر واتساب</button>
 <table>
 <thead>
@@ -165,7 +187,7 @@
 </table>
 </div>
 
-<div id="matches" class="section">
+<div id="tnMatches" style="display:none;">
 <div id="liveMatchesBar"></div>
 <div class="mini-tabs">
 <div class="mini-tab active" onclick="showMiniTab(event,'upcoming')">القادمة</div>
@@ -179,19 +201,6 @@
 <div id="upcoming"></div>
 <div id="past" style="display:none;"></div>
 </div>
-
-<div id="predictions" class="section">
-<div class="prediction-tabs">
-<div class="prediction-tab active" onclick="switchPredictionTab('predict')"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg> توقع المواجهات</div>
-<div class="prediction-tab" onclick="switchPredictionTab('ranking')"><svg class="ic" aria-hidden="true"><use href="#i-trophy"/></svg> جدول الترتيب</div>
-</div>
-
-<div id="predictPage" class="prediction-page active">
-<div id="predictionContent"></div>
-</div>
-
-<div id="rankingPage" class="prediction-page">
-<div id="rankingContent"></div>
 </div>
 </div>
 
@@ -199,8 +208,16 @@
 <div id="fullAccountView"></div>
 </div>
 
-<div id="room" class="section">
+<div id="majlis" class="section">
+<div class="tn-seg tn-top" id="mjSeg" role="tablist">
+<button type="button" class="active" data-k="room" onclick="mjSetPane('room')"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg> الغرفة</button>
+<button type="button" data-k="session" onclick="mjSetPane('session')"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg> الجلسة</button>
+</div>
+<div id="mjRoom">
+<p class="mj-hint">الغرفة: فعاليات عن بعد بالصوت، كل واحد من مكانه.</p>
 <div id="roomCardBox"></div>
+</div>
+<div id="mjSession" style="display:none;"></div>
 </div>
 
 <div id="roomScreen" class="room-screen">
@@ -263,6 +280,52 @@
 <button class="modal-back-btn" onclick="goBackModal()"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg> رجوع</button>
 </div>
 <div id="linkPlayerModalBody"></div>
+</div>
+</div>
+
+<!-- مودال إنشاء بطولة خاصة -->
+<div id="tnCreateModal" class="modal-overlay">
+<div class="modal-content">
+<div class="modal-header">
+<h3><svg class="ic" aria-hidden="true"><use href="#i-trophy"/></svg> بطولة خاصة جديدة</h3>
+<button class="modal-back-btn" onclick="goBackModal()"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg> رجوع</button>
+</div>
+<div class="mj-form">
+<label for="tnName">اسم البطولة</label>
+<input type="text" id="tnName" maxlength="50" placeholder="مثال: بطولة الشلة">
+<label for="tnPlayers">المتسابقين (بين كل اسم واسم فاصلة أو سطر جديد، من 2 لين 12)</label>
+<textarea id="tnPlayers" rows="5" placeholder="احمد، مشاري، خلود، سعود"></textarea>
+<label for="tnFormat">النظام</label>
+<select id="tnFormat">
+<option value="double">دوري ذهاب وإياب</option>
+<option value="single">دوري من مواجهة وحدة</option>
+</select>
+<button type="button" id="tnCreateBtn" onclick="tnCreatePrivate()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> إنشاء البطولة</button>
+</div>
+</div>
+</div>
+
+<!-- مودال إنشاء جلسة -->
+<div id="sessionCreateModal" class="modal-overlay">
+<div class="modal-content">
+<div class="modal-header">
+<h3><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg> جلسة جديدة</h3>
+<button class="modal-back-btn" onclick="goBackModal()"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg> رجوع</button>
+</div>
+<div class="mj-form">
+<label for="sessTitle">اسم الجلسة</label>
+<input type="text" id="sessTitle" maxlength="50" placeholder="مثال: ليلة ثقافة في الاستراحة">
+<label for="sessPlace">وين الجلسة؟</label>
+<select id="sessPlace">
+<option>استراحة</option>
+<option>جمعة</option>
+<option>ديوانية</option>
+<option>مخيم</option>
+<option>بيت</option>
+<option>مكان ثاني</option>
+</select>
+<button type="button" id="sessCreateBtn" onclick="sessCreate()"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg> ابدأ الجلسة</button>
+</div>
 </div>
 </div>
 
@@ -401,29 +464,21 @@
 <input type="file" id="userAvatarFileInput" accept="image/*" style="display:none;" onchange="handleProfilePhotoUpload(event)">
 
 <div class="bottom-nav">
-<div class="tab active" onclick="showTab(event,'home')">
+<div class="tab active" data-sec="home" onclick="showTab(event,'home')">
 <div class="tab-icon"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg></div>
 <div>الرئيسية</div>
 </div>
-<div class="tab" onclick="showTab(event,'table')">
-<div class="tab-icon"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></div>
-<div>الترتيب</div>
+<div class="tab" data-sec="tournaments" onclick="showTab(event,'tournaments')">
+<div class="tab-icon"><svg class="ic" aria-hidden="true"><use href="#i-trophy"/></svg></div>
+<div>البطولات</div>
 </div>
-<div class="tab" onclick="showTab(event,'matches')">
-<div class="tab-icon"><svg class="ic" aria-hidden="true"><use href="#i-ball"/></svg></div>
-<div>المواجهات</div>
+<div class="tab" data-sec="majlis" onclick="showTab(event,'majlis')">
+<div class="tab-icon" id="roomTabIcon"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></div>
+<div>المجلس</div>
 </div>
-<div class="tab" onclick="showTab(event,'predictions')">
-<div class="tab-icon"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg></div>
-<div>التوقعات</div>
-</div>
-<div class="tab" onclick="showTab(event,'accountTab')">
+<div class="tab" data-sec="accountTab" onclick="showTab(event,'accountTab')">
 <div class="tab-icon"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg></div>
 <div>الحساب</div>
-</div>
-<div class="tab" onclick="showTab(event,'room')">
-<div class="tab-icon" id="roomTabIcon"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></div>
-<div>الغرفة</div>
 </div>
 </div>
 
@@ -435,8 +490,10 @@
 <script src="js/voice.js"></script>
 <script src="js/app.js"></script>
 <script src="js/notifications.js"></script>
-<script src="js/predictions.js"></script>
+<script src="js/users.js"></script>
 <script src="js/league.js"></script>
+<script src="js/tournaments.js"></script>
+<script src="js/majlis.js"></script>
 <script src="js/account.js"></script>
 <script src="js/videos.js"></script>
 <script src="js/room.js"></script>

@@ -272,7 +272,17 @@ let somDealtKey = "";            /* حركة التوزيع تطلع مرة وح
 let somLastHTML = "";            /* الشاشة ما تنرسم من جديد إلا لو تغيّر فيها شي (الشات ما يحرّكها) */
 try { const h = JSON.parse(sessionStorage.getItem("somHand") || "null"); if (h && h.key && Array.isArray(h.cards)) somHand = h; } catch (e) {}
 
-function somRef() { return firebaseDB.collection("room").doc("main").collection("games").doc("som"); }
+/* داخل جلسة (somSess = رمز الجلسة): الطاولة في sessions/<الرمز>/games/som، والمنظم = مضيف الجلسة (majlis.js) */
+let somSess = null;
+function somRef() { return somSess ? firebaseDB.collection("sessions").doc(somSess).collection("games").doc("som") : firebaseDB.collection("room").doc("main").collection("games").doc("som"); }
+function somHost() { return somSess ? !!(currentUser && sess && sess.id === somSess && currentUser.uid === sess.hostUid) : !!isAdmin; }
+function somSetSession(sid) {
+    sid = sid || null;
+    if (somSess === sid) return;
+    somWatch(false, true);
+    somSess = sid; somState = null; somHand = null; somLastHTML = "";
+    if (sid) somWatch(true, true);
+}
 function somNow() { return typeof bcNow === "function" ? bcNow() : Date.now(); }
 function somMe() { return currentUser ? currentUser.uid : ""; }
 function somMyName() {
@@ -283,7 +293,7 @@ function somActiveGame() { return !!(somState && somState.active); }
 function somInRound(s, uid) { return !!s && s.phase !== "lobby" && s.phase !== "over" && (s.seats || []).indexOf(uid) !== -1; }
 
 async function somApi(body) {
-    const r = await fetch("/som", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await authHeaders()), body: JSON.stringify(body) });
+    const r = await fetch("/som", { method: "POST", headers: Object.assign({ "Content-Type": "application/json" }, await authHeaders()), body: JSON.stringify(somSess ? Object.assign({ sid: somSess }, body) : body) });
     let j = {};
     try { j = await r.json(); } catch (e) {}
     if (!r.ok) throw new Error(j.error || "som " + r.status);
@@ -296,7 +306,7 @@ async function somDo(a, quiet) {
     try {
         const out = await firebaseDB.runTransaction(async tx => {
             const snap = await tx.get(ref);
-            const r = somReduce(snap.exists ? snap.data() : null, a, { uid: currentUser.uid, now: somNow(), host: !!isAdmin });
+            const r = somReduce(snap.exists ? snap.data() : null, a, { uid: currentUser.uid, now: somNow(), host: somHost() });
             /* Firestore يرفض undefined، فالحالة تنكتب نظيفة */
             /* pids: أرقام اللاعبين، عشان قواعد Firestore تسمح بالكتابة للاعبين بس (المرحلة 2) */
             if (!r.err) { const st = JSON.parse(JSON.stringify(r.s)); st.pids = (st.players || []).map(p => p.uid); tx.set(ref, st); }
@@ -375,7 +385,8 @@ function somSoundFor(prev, s) {
 }
 
 /* الاستماع للطاولة وقت ما الغرفة مفتوحة (room-screen.js) */
-function somWatch(on) {
+function somWatch(on, viaSess) {
+    if (somSess && !viaSess) return;   /* شاشة الغرفة ما تقطع طاولة الجلسة */
     if (on && !somUnsub && firebaseDB) {
         somUnsub = somRef().onSnapshot(doc => somOnSnap(doc.exists ? doc.data() : null), () => {});
         if (!somRetry) somRetry = setInterval(somFetchHand, 1500);
@@ -392,9 +403,9 @@ function somOnSnap(s) {
     somState = s;
     const me = somMe(), act = !!(s && s.active);
     const pPhase = prev && prev.active ? prev.phase : "", nPhase = act ? s.phase : "";
-    if (act && !(prev && prev.active) && s.phase === "lobby" && me !== s.hostUid && roomScreenOpen) roomToast("طاولة السوم فتحت، ادخل وانضم", "dice");
+    if (act && !(prev && prev.active) && s.phase === "lobby" && me !== s.hostUid && (roomScreenOpen || somSess)) roomToast("طاولة السوم فتحت، ادخل وانضم", "dice");
     /* أول ما تبدأ اللعبة تنفتح الطاولة للاعبين (مرة وحدة) */
-    if (act && pPhase === "lobby" && nPhase === "bid" && somPlayer(s, me) && roomScreenOpen && !somIsOpen) somOpen();
+    if (act && pPhase === "lobby" && nPhase === "bid" && somPlayer(s, me) && (roomScreenOpen || somSess) && !somIsOpen) somOpen();
     if (act && me && prev && (((s.phase === "bid" || s.phase === "offer") && s.turn === me && !(prev.turn === me && prev.phase === s.phase))
         || (s.phase === "respond" && pPhase !== "respond" && somOthers(s).indexOf(me) !== -1))) {
         try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
@@ -402,7 +413,8 @@ function somOnSnap(s) {
     somSoundFor(prev, s);
     if (!act && somIsOpen) somClose(true);
     if (pPhase !== nPhase || (prev && s && prev.round !== s.round) || (prev && s && (prev.players || []).length !== (s.players || []).length)) {
-        if (typeof renderRoomUI === "function") renderRoomUI();
+        if (somSess) { if (typeof renderMajlis === "function") renderMajlis(); }
+        else if (typeof renderRoomUI === "function") renderRoomUI();
     }
     somFetchHand();
     somRender();
@@ -428,7 +440,7 @@ async function somFetchHand() {
 /* ===== المنظم: يوزع ويكشف ويتخطى، كله بأزرار ===== */
 async function somHostNextRound() {
     const s = somState;
-    if (!isAdmin || !s || !s.active || somHostBusy) return;
+    if (!somHost() || !s || !s.active || somHostBusy) return;
     if (s.phase !== "lobby" && s.phase !== "result") return;
     if (s.phase === "result" && somIsOver(s)) { await somDo({ t: "end" }); return; }
     const seats = somEligible(s), round = s.round + 1;
@@ -447,7 +459,7 @@ async function somHostNextRound() {
 }
 async function somHostReveal() {
     const s = somState;
-    if (!isAdmin || !s || s.phase !== "showdown" || somHostBusy) return;
+    if (!somHost() || !s || s.phase !== "showdown" || somHostBusy) return;
     somHostBusy = true; somRender();
     try {
         const r = await somApi({ action: "reveal", gid: s.gid, round: s.round });
@@ -465,7 +477,7 @@ function somHostSkip() {
 
 /* ===== الحركات من الأزرار ===== */
 async function somCreate() {
-    if (!isAdmin || !currentUser) return roomToast("المنظم بس يفتح الطاولة", "lock");
+    if (!somHost() || !currentUser) return roomToast("المنظم بس يفتح الطاولة", "lock");
     if (somActiveGame() && somState.phase !== "over") return somOpen();
     const gid = "s" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
     const r = await somDo({ t: "create", gid, name: somMyName() });
@@ -538,7 +550,7 @@ function somOpen() {
         document.body.appendChild(el);
     }
     /* زر الرجوع في الجوال يسكّر الطاولة بس ويرجعك للغرفة (app.js popstate) */
-    if (!somIsOpen) { try { window.history.pushState({ roomOpen: true, somOpen: true }, ""); } catch (e) {} }
+    if (!somIsOpen) { try { window.history.pushState(somSess ? { somOpen: true } : { roomOpen: true, somOpen: true }, ""); } catch (e) {} }
     somIsOpen = true; somLastHTML = "";
     el.classList.add("open");
     document.body.classList.add("som-open");
@@ -558,7 +570,7 @@ function somToggleRules() { somRulesOpen = !somRulesOpen; somRender(); }
 /* شريط الطاولة في الغرفة (room.js renderRoomUI) */
 function somRoomPill() {
     const s = somState;
-    if (!s || !s.active || !roomState.isLive) return "";
+    if (!s || !s.active || (!somSess && !roomState.isLive)) return "";
     const t = s.phase === "lobby" ? "مفتوحة للانضمام (" + s.players.length + "/" + SOM.MAX_P + ")" : s.phase === "over" ? "انتهت، شوف الترتيب" : "الجولة " + s.round + " من " + s.maxRounds;
     return `<button class="som-pill" onclick="somOpen()"><span class="som-pill-dot"></span><span class="som-pill-t"><b>طاولة السوم</b> · ${escapeHTML(t)}</span><span class="som-pill-go">افتح ${ic("chevron-right")}</span></button>`;
 }
@@ -619,7 +631,7 @@ function somSeatHTML(s, p, pos, rank) {
     const av = p.av || getPlayerAvatar(p.name).url;
     const d = s.phase === "result" && s.res ? s.res.delta[u] : 0;
     const lead = s.leader === u && ["bid", "offer", "respond", "showdown"].indexOf(s.phase) !== -1;
-    const kick = isAdmin && s.phase === "lobby" && u !== me ? `<button class="som-x" onclick="somKick(${jsArg(u)})" aria-label="طلّع ${escapeHTML(p.name)}">${ic("x")}</button>` : "";
+    const kick = somHost() && s.phase === "lobby" && u !== me ? `<button class="som-x" onclick="somKick(${jsArg(u)})" aria-label="طلّع ${escapeHTML(p.name)}">${ic("x")}</button>` : "";
     if (pos.me) cls.push("spot-me");
     return `<div class="${cls.join(" ")}" style="left:${pos.x}%;${pos.me ? "" : "top:" + pos.y + "%"}">
 <div class="som-av"><img src="${safeSrc(cdnThumb(av))}" alt="" loading="lazy">${lead ? `<span class="som-lead">${ic("crown")}</span>` : ""}${rank != null ? `<span class="som-rank">${rank + 1}</span>` : ""}${kick}</div>
@@ -702,15 +714,15 @@ function somActHTML(s) {
     let h = "";
     if (s.phase === "lobby") {
         if (!currentUser) h = note("سجّل دخولك عشان تلعب");
-        else if (p) h = note("انضميت" + (isAdmin ? "" : "، ننتظر المنظم يبدأ") + " · اطلع على المايك عشان تفاوض بصوتك") + `<button class="som-b ghost" onclick="somLeave()">طلّعني من الطاولة</button>`;
+        else if (p) h = note("انضميت" + (somHost() ? "" : "، ننتظر المنظم يبدأ") + (somSess ? " · تفاوضوا بالكلام قدام بعض" : " · اطلع على المايك عشان تفاوض بصوتك")) + `<button class="som-b ghost" onclick="somLeave()">طلّعني من الطاولة</button>`;
         else h = `<button class="som-b gold" onclick="somJoin()" ${s.players.length >= SOM.MAX_P ? "disabled" : ""}>${ic("plus")} انضم للطاولة</button>`;
-        if (isAdmin) h += `<button class="som-b brand" onclick="somHostNextRound()" ${s.players.length >= SOM.MIN_P && !somHostBusy ? "" : "disabled"}>${ic("rocket")} ابدأ اللعبة (${s.players.length} لاعبين)</button>`;
+        if (somHost()) h += `<button class="som-b brand" onclick="somHostNextRound()" ${s.players.length >= SOM.MIN_P && !somHostBusy ? "" : "disabled"}>${ic("rocket")} ابدأ اللعبة (${s.players.length} لاعبين)</button>`;
     } else if (s.phase === "bid") {
         if (s.turn === me && p) h = somBidHTML(s, p);
         else if (somInRound(s, me) && !s.folded[me]) h = note(s.bids[me] ? "سومك " + somFmt(s.bids[me]) + " · انتظر دورك" : "انتظر دورك تسوم");
         else h = note("يسومون الحين");
     } else if (s.phase === "offer") {
-        h = s.leader === me ? somOfferHTML(s) : note(somOthers(s).indexOf(me) !== -1 ? "انتظر عرض " + escapeHTML(somName(s, s.leader)) + "، وكلّمه بالمايك لو تبي تفاوض" : "يفاوضون الحين");
+        h = s.leader === me ? somOfferHTML(s) : note(somOthers(s).indexOf(me) !== -1 ? "انتظر عرض " + escapeHTML(somName(s, s.leader)) + "، وكلّمه لو تبي تفاوض" : "يفاوضون الحين");
     } else if (s.phase === "respond") {
         if (somOthers(s).indexOf(me) !== -1 && !s.replies[me]) {
             const off = s.offers[me] || 0;
@@ -719,13 +731,13 @@ function somActHTML(s) {
         } else if (s.replies[me]) h = note(s.replies[me] === "refuse" ? "رفضت العرض، انتظر الباقين" : "قبلت العرض");
         else h = note(s.leader === me ? "انتظر ردودهم على عروضك" : "ينتظرون الردود");
     } else if (s.phase === "showdown") {
-        h = somDuelHTML(s) + (isAdmin ? `<button class="som-b gold" onclick="somHostReveal()" ${somHostBusy ? "disabled" : ""}>${ic("zap")} اكشف الأوراق</button>` : note("المنظم يكشف الأوراق الحين"));
+        h = somDuelHTML(s) + (somHost() ? `<button class="som-b gold" onclick="somHostReveal()" ${somHostBusy ? "disabled" : ""}>${ic("zap")} اكشف الأوراق</button>` : note("المنظم يكشف الأوراق الحين"));
     } else if (s.phase === "result") {
         const d = s.res && s.res.delta[me];
-        h = somDuelHTML(s) + note(d ? (d > 0 ? "كسبت " : "خسرت ") + somFmt(Math.abs(d)) + " بهالجولة" : (isAdmin ? "اضغط الجولة الجاية لما تكونون جاهزين" : "ننتظر المنظم يبدأ الجولة الجاية"));
-        if (isAdmin) h += `<button class="som-b brand" onclick="somHostNextRound()" ${somHostBusy ? "disabled" : ""}>${somIsOver(s) ? ic("trophy") + " الترتيب النهائي" : ic("chevron-right") + " الجولة الجاية (" + (s.round + 1) + " من " + s.maxRounds + ")"}</button>`;
+        h = somDuelHTML(s) + note(d ? (d > 0 ? "كسبت " : "خسرت ") + somFmt(Math.abs(d)) + " بهالجولة" : (somHost() ? "اضغط الجولة الجاية لما تكونون جاهزين" : "ننتظر المنظم يبدأ الجولة الجاية"));
+        if (somHost()) h += `<button class="som-b brand" onclick="somHostNextRound()" ${somHostBusy ? "disabled" : ""}>${somIsOver(s) ? ic("trophy") + " الترتيب النهائي" : ic("chevron-right") + " الجولة الجاية (" + (s.round + 1) + " من " + s.maxRounds + ")"}</button>`;
     } else if (s.phase === "over") h = note("شكراً للعب" + (p ? " · فلوسك " + somFmt(p.bal) : ""));
-    if (isAdmin) h += somHostBarHTML(s);
+    if (somHost()) h += somHostBarHTML(s);
     return h;
 }
 
@@ -783,7 +795,7 @@ ${ex([20, 21, 22, 23], "رباعية")}${ex([8, 9, 10, 28], "ثلاثية")}${ex
 <h4>الجولة</h4>
 <ol>
 <li><b>السوم:</b> بالدور، كل سوم أعلى من اللي قبله (بحد أقصى ${somFmt(SOM.JUMP)} زيادة). تقدر تثبّت على سومك أو تنسحب (الانسحاب ما يخسرك شي). يلف لين محد يعلّي.</li>
-<li><b>المفاوضة:</b> صاحب أعلى سوم يعرض على كل واحد مبلغ عشان ينسحب (أو صفر). تكلموا بالمايك.</li>
+<li><b>المفاوضة:</b> صاحب أعلى سوم يعرض على كل واحد مبلغ عشان ينسحب (أو صفر). ${somSess ? "تكلموا قدام بعض." : "تكلموا بالمايك."}</li>
 <li><b>الرد:</b> اللي يقبل ياخذ العرض من جيب صاحب السوم ويطلع. اللي يرفض يداقش.</li>
 <li><b>المداقشة:</b> المنظم يكشف أوراق اللي داقشوا. الأقوى ياخذ سومه مضاعف وسوم كل الخاسرين، والخاسر يخسر سومه.</li>
 <li>لو الكل قبلوا العروض، صاحب السوم ياخذ نص سومه من البنك. ولو انسحبوا كلهم قبل المفاوضة، الجولة تخلص بدون فلوس.</li>
@@ -793,7 +805,7 @@ ${ex([20, 21, 22, 23], "رباعية")}${ex([8, 9, 10, 28], "ثلاثية")}${ex
 }
 
 function somMicBtn() {
-    if (!currentUser) return "";
+    if (!currentUser || somSess) return "";   /* في الجلسة الكل جالسين مع بعض، بدون مايك */
     const seat = (roomState.mics || []).findIndex(m => m && m.uid === currentUser.uid);
     if (seat === -1) return `<button class="som-ic dim" onclick="somMic()" aria-label="اطلع على المايك">${ic("mic")}</button>`;
     const muted = roomState.mics[seat].muted;
@@ -807,7 +819,7 @@ function somRender() {
     if (!s || !s.active) { somClose(true); return; }
     const html = `
 <div class="som-top">
-<button class="som-ic" onclick="somClose()" aria-label="رجوع للغرفة">${ic("chevron-right")}</button>
+<button class="som-ic" onclick="somClose()" aria-label="رجوع">${ic("chevron-right")}</button>
 <div class="som-title"><b>السوم</b><span>${s.phase === "lobby" ? "قبل البداية" : s.phase === "over" ? "النتيجة النهائية" : "الجولة " + s.round + " من " + s.maxRounds}</span></div>
 <div class="som-top-btns">${somMicBtn()}<button class="som-ic" onclick="somToggleRules()" aria-label="طريقة اللعب">${ic("book")}</button></div>
 </div>

@@ -75,14 +75,7 @@ try {
     await p1.evaluate(() => { roomState.pinnedMsg = "x"; saveRoomState(); pinMessage(0); });
     await sleep(500);
     check("non-admin saveRoomState writes nothing", roomWrites(db, n4).length === 0);
-    /* التوقع بدون إيميل، و users بدون إيميل */
-    await p1.evaluate(() => {
-        const a = document.createElement("input"), b = document.createElement("input");
-        a.id = "tp1"; b.id = "tp2"; a.value = "2"; b.value = "1"; document.body.append(a, b);
-        savePrediction("m_test", "tp1", "tp2");
-    });
-    const pr = await until(() => db.data("predictions/u_p1_m_test"), 4000);
-    check("prediction saved without userEmail", pr && pr.userId === "u_p1" && !("userEmail" in pr), pr);
+    /* users بدون إيميل (تبويب التوقعات انشال 8 نوفمبر 2026) */
     const userWrites = db.log.filter(l => l.path === "users/u_p1" && l.keys.includes("email"));
     check("no email written to users/<uid>", userWrites.length === 0, userWrites);
 

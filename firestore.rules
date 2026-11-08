@@ -188,6 +188,20 @@ service cloud.firestore {
               && n.get('target', null) == (sameRound ? resource.data.get('target', null) : null)));
     }
 
+    // نفس الصوت السري، بس للعبة داخل جلسة (sessions/<sid>/games/bara)
+    function sessBaraVoteOk(sid, uid) {
+      let s = get(/databases/$(database)/documents/sessions/$(sid)/games/bara).data;
+      let n = request.resource.data;
+      let sameRound = resource != null && resource.data.get('gid', '') == s.get('gid', '') && resource.data.get('round', -1) == s.get('round', 0);
+      return n.keys().hasOnly(['gid', 'round', 'target', 'g'])
+        && s.get('active', false) == true && uid in s.get('pids', [])
+        && n.get('gid', '') == s.get('gid', '') && n.get('round', -1) == s.get('round', 0)
+        && ((s.get('phase', '') == 'vote' && n.get('target', '') is string && n.get('target', '') in s.get('pids', [])
+              && n.get('target', '') != uid && !('g' in n))
+          || (s.get('phase', '') == 'guess' && n.get('g', '') is string && n.get('g', '').size() > 0 && n.get('g', '').size() <= 4000
+              && n.get('target', null) == (sameRound ? resource.data.get('target', null) : null)));
+    }
+
     // جدول الدوري (المتسابقين والمواجهات والنتائج): الكل يقرا، والمنظم بس يكتب.
     // نتيجة البث (bcApplyResults) تنكتب من جهاز المنظم؛ لو كان غايب تنتظر لين يفتح الموقع.
     match /league/{doc} {
@@ -217,6 +231,82 @@ service cloud.firestore {
         && pid.matches(request.auth.uid + '_.+')
         && !('userEmail' in changedKeys());
       allow delete: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);
+    }
+
+    // ===== البطولات الخاصة (8 نوفمبر 2026): أي مستخدم مسجّل ينشئ بطولة بينه وبين أصحابه =====
+    // المعرّف = رمز 8 أحرف (A-Z و 0-9)، وهو السر: الكل يقدر get بالرمز (للمشاهدة بدون حساب)، بس ما فيه list للغرباء.
+    // صاحبها بس يكتب النتايج ويحذف، وما يتغيّر المالك.
+    function privTValid() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['name', 'ownerUid', 'ownerName', 'playersList', 'matches', 'double', 'createdAt', 'updatedAt'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 50
+        && d.ownerName is string && d.ownerName.size() <= 60
+        && d.playersList is list && d.playersList.size() >= 2 && d.playersList.size() <= 12
+        && d.matches is list && d.matches.size() <= 132
+        && d.double is bool;
+    }
+    match /privateTournaments/{tid} {
+      allow get: if true;
+      allow list: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+      allow create: if signedIn() && tid.matches('[A-Z0-9]{8}') && request.resource.data.ownerUid == request.auth.uid && privTValid();
+      allow update: if signedIn() && resource.data.ownerUid == request.auth.uid && request.resource.data.ownerUid == resource.data.ownerUid
+        && privTValid() && request.resource.data.playersList == resource.data.playersList;
+      allow delete: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+    }
+
+    // ===== الجلسات الحضورية (8 نوفمبر 2026): المضيف يفتح جلسة بالرمز (6 أحرف)، والحاضرين ينضمون، والمضيف يعطي النقاط =====
+    function sessDoc(sid) { return get(/databases/$(database)/documents/sessions/$(sid)).data; }
+    function sessHost(sid) { return signedIn() && sessDoc(sid).hostUid == request.auth.uid; }
+    function sessValid() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['title', 'place', 'hostUid', 'hostName', 'status', 'createdAt', 'endedAt'])
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 50
+        && d.place is string && d.place.size() <= 20
+        && d.hostName is string && d.hostName.size() <= 60
+        && d.status in ['open', 'ended'];
+    }
+    match /sessions/{sid} {
+      allow get: if true;
+      allow list: if isAdmin() || (signedIn() && resource.data.hostUid == request.auth.uid);
+      allow create: if signedIn() && sid.matches('[A-Z0-9]{6}') && request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.status == 'open' && sessValid();
+      allow update: if signedIn() && resource.data.hostUid == request.auth.uid && request.resource.data.hostUid == resource.data.hostUid && sessValid();
+      allow delete: if isAdmin() || (signedIn() && resource.data.hostUid == request.auth.uid);
+
+      // ألعاب الجلسة (السوم وبرا السالفة، 8 نوفمبر 2026): نفس قواعد الغرفة، بس المنظم = مضيف الجلسة
+      match /games/{g} {
+        allow read: if true;
+        allow write: if signedIn() && (sessHost(sid)
+          || (g == 'som' && somPlayerUpdate())
+          || (g == 'bara' && baraPlayerUpdate()));
+      }
+      // أصوات برا السالفة داخل الجلسة: سرية، يقراها صاحبها ومضيف الجلسة بس
+      match /baraVotes/{uid} {
+        allow read: if signedIn() && (request.auth.uid == uid || sessHost(sid));
+        allow create, update: if signedIn() && request.auth.uid == uid && sessBaraVoteOk(sid, uid);
+        allow delete: if sessHost(sid);
+      }
+
+      match /members/{mid} {
+        allow read: if true;
+        // الحاضر ينضم بنفسه (معرّفه uid حقه) بنقاط صفر والجلسة مفتوحة، والمضيف يضيف حاضرين بدون جوال (g_...) أو أي أحد
+        allow create: if signedIn() && request.resource.data.keys().hasOnly(['name', 'pts', 'joinedAt'])
+          && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 30
+          && request.resource.data.pts is int
+          && (
+            (mid == request.auth.uid && request.resource.data.pts == 0 && sessDoc(sid).status == 'open')
+            || (sessHost(sid) && sessDoc(sid).status == 'open' && request.resource.data.pts >= -9999 && request.resource.data.pts <= 9999)
+          );
+        // النقاط للمضيف بس (والجلسة مفتوحة)، والحاضر يغيّر اسمه بس
+        allow update: if signedIn() && (
+            (sessHost(sid) && sessDoc(sid).status == 'open' && changedKeys().hasOnly(['pts', 'name'])
+              && request.resource.data.pts is int && request.resource.data.pts >= -9999 && request.resource.data.pts <= 9999
+              && request.resource.data.name is string && request.resource.data.name.size() <= 30)
+            || (mid == request.auth.uid && changedKeys().hasOnly(['name'])
+              && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 30)
+          );
+        allow delete: if signedIn() && (mid == request.auth.uid || sessHost(sid) || isAdmin());
+      }
     }
 
     // الإيميل (المرحلة 2): صاحبه والمنظم بس يقرونه، وصاحبه يكتب إيميل حسابه نفسه بس

@@ -15,13 +15,10 @@ let adminTimer = null;
 let currentUser = null;
 let currentUserDocData = null;
 
-let predictions = {};
 let playerLinks = {};
 let leagueTrial = null;   /* league/current.trial لو المسابقة التجريبية شغالة */
 
-let predictionListener = null;
 let usersRankingListener = null;
-let predictionsRankingListener = null;
 let userProfileDocListener = null;
 let videosListener = null;
 
@@ -34,8 +31,6 @@ function cdnThumb(url, size) {
     return url.replace("/upload/", `/upload/w_${size},h_${size},c_fill,g_face,q_auto,f_auto/`);
 }
 function thumbUser(u) { if (u && u.photoURL) u.photoURL = cdnThumb(u.photoURL); return u; }
-let cachedPredictionsData = {};
-let isRankingDataLoaded = false;
 let activeModalId = null;
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -55,11 +50,9 @@ window.addEventListener('DOMContentLoaded', () => {
             if (user) {
                 isAdmin = (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
                 listenToUserProfileDoc(user.uid);
-                loadPredictions();
             } else {
                 isAdmin = false;
                 currentUserDocData = null;
-                predictions = {};
             }
 
             const addBtn = document.getElementById("addVideoBtn");
@@ -73,18 +66,22 @@ window.addEventListener('DOMContentLoaded', () => {
 
             table();
             renderMatches();
-            renderPredictions();
             renderFullAccountPage();
             renderLeagueSummary();
             renderRoomUI();
+            if (typeof loadPrivateLists === "function" && tn.mode === "private") loadPrivateLists();
+            if (typeof renderTournamentsPage === "function") renderTournamentsPage();
+            if (typeof renderMajlis === "function") renderMajlis();
             renderLiveBars();
             if (openLiveId) { liveLastSig = ""; renderLiveScreen(); }
         });
 
         loadFromFirebase();
-        startPredictionRanking();
+        startUsersListener();
         initRoomFeature();
         initLiveMatches();
+        initTournaments();
+        initMajlis();
     } catch (err) {
         console.error(err);
         document.getElementById("debugText").textContent = "خطأ في الاتصال بقواعد البيانات";
@@ -206,8 +203,8 @@ let players = [
 "حسام", "عبدالرحمن", "مشاري", "علول", "ياي", "خلود"
 ].map(name => ({ name:name, w:0, d:0, l:0, gf:0, ga:0, pts:0 }));
 
-function getPlayerAvatar(playerName) {
-let linkedUid = playerLinks[playerName];
+function getPlayerAvatar(playerName, links) {
+let linkedUid = (links || playerLinks)[playerName];
 if(linkedUid && cachedUsersData[linkedUid]) {
 let userData = cachedUsersData[linkedUid];
 if(userData.photoURL) {
@@ -223,10 +220,10 @@ return { url: defaultUrl, isVerified: !!linkedUid };
 
 let matches = [];
 
-function generateMatches() {
-    matches = [];
+function buildSchedule(list, double) {
+    let matches = [];
 
-    let arr = [...players].sort(() => Math.random() - 0.5);
+    let arr = [...list].sort(() => Math.random() - 0.5);
     let n = arr.length;
 
     if (n % 2 !== 0) {
@@ -238,7 +235,7 @@ function generateMatches() {
     const half = n / 2;
 
     const homeAwayHistory = {};
-    players.forEach(player => {
+    list.forEach(player => {
         homeAwayHistory[player.name] = [];
     });
 
@@ -311,7 +308,7 @@ function generateMatches() {
     }
 
     const firstLegRounds = totalRounds;
-    for (let r = 1; r <= firstLegRounds; r++) {
+    for (let r = 1; double !== false && r <= firstLegRounds; r++) {
         let leg1Matches = matches.filter(m => m.round === r);
         let leg2Matches = leg1Matches.map(m => ({
             p1: m.p2,
@@ -324,6 +321,11 @@ function generateMatches() {
         leg2Matches.sort(() => Math.random() - 0.5);
         matches.push(...leg2Matches);
     }
+    return matches;
+}
+
+function generateMatches() {
+    matches = buildSchedule(players);
 }
 
 function addNewPlayerPrompt() {
@@ -384,7 +386,6 @@ function renderLeagueAll() {
 renderTrialUI();
 table();
 renderMatches();
-renderPredictions();
 renderFullAccountPage();
 renderLeagueSummary();
 }

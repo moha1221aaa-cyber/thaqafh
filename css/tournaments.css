@@ -1,0 +1,167 @@
+/* تبويبي البطولات والمجلس (8 نوفمبر 2026): أزرار التبديل، بطاقات البطولات الرسمية، البطولات الخاصة، والجلسة.
+   يستخدم متغيرات design.css (--surface و --brand و --gold ...). */
+
+/* ===== أزرار التبديل (الرسمية/الخاصة، الترتيب/المواجهات، الغرفة/الجلسة) ===== */
+.tn-seg{
+  display: flex; gap: 4px; padding: 4px; margin: 4px auto 14px; max-width: 520px;
+  background: var(--bg-2); border: 1px solid var(--line); border-radius: 14px;
+}
+.tn-seg button{
+  flex: 1; margin: 0; padding: 10px 8px; border: 0; border-radius: 10px;
+  background: transparent !important; color: var(--text-3); box-shadow: none !important;
+  font-weight: 700; font-size: 13.5px;
+  display: flex; align-items: center; justify-content: center; gap: 6px; position: relative;
+}
+.tn-seg button .ic{ width: 16px; height: 16px; }
+.tn-seg button.active{
+  color: #fff; background: var(--surface-3) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.08) inset, 0 4px 14px -4px rgba(0,0,0,.6) !important;
+}
+.tn-top button{ font-size: 14.5px; padding: 12px 8px; }
+.tn-seg button.has-live::after{
+  content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--success);
+  box-shadow: 0 0 0 3px rgba(34,197,94,.2);
+}
+
+/* ===== البطولات الرسمية ===== */
+.tn-cards{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 520px; margin: 0 auto 14px; }
+.tn-card{
+  margin: 0; padding: 14px 12px; border-radius: var(--r-lg); text-align: center;
+  background: var(--surface) !important; border: 1px solid var(--line); color: var(--text);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transition: border-color .2s, background .2s, transform .2s var(--ease);
+}
+.tn-card.active{
+  border-color: rgba(245,197,66,.55); background: linear-gradient(180deg, var(--gold-soft), var(--surface)) !important;
+  box-shadow: 0 10px 28px -14px rgba(245,197,66,.5) !important;
+}
+.tn-card-ic{ width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-3); color: var(--text-2); }
+.tn-card.active .tn-card-ic{ background: var(--gold-grad); color: #1c1403; }
+.tn-card-ic .ic{ width: 20px; height: 20px; }
+.tn-card-t{ font-size: 14px; font-weight: 800; line-height: 1.35; }
+.tn-card-s{ font-size: 11.5px; color: var(--text-3); }
+.tn-card-n{ font-size: 11.5px; color: var(--text-2); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+.tn-admin{ display: flex; gap: 8px; flex-wrap: wrap; max-width: 520px; margin: 0 auto 12px; }
+.tn-admin button{ flex: 1; min-width: 130px; margin: 0; font-size: 13px; padding: 10px; background: var(--surface-3) !important; }
+
+/* ===== جدول الترتيب (كان #table) ===== */
+#tnStand, #tnMatches{ max-width: 520px; margin: 0 auto; }
+#tnStand .share-btn-wa{ margin-inline: auto 0; }
+
+/* ===== البطولات الخاصة ===== */
+.tn-intro{
+  max-width: 520px; margin: 0 auto 12px; padding: 16px; border-radius: var(--r-lg);
+  background: var(--surface); border: 1px solid var(--line);
+}
+.tn-intro h3{ margin: 0 0 6px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.tn-intro p{ margin: 0 0 12px; color: var(--text-2); font-size: 13.5px; line-height: 1.8; }
+.tn-primary{ width: 100%; margin: 0; padding: 13px; font-weight: 800; background: var(--brand-grad) !important; }
+.tn-join{ display: flex; gap: 8px; max-width: 520px; margin: 0 auto 14px; }
+.tn-join input{
+  flex: 1; min-width: 0; margin: 0; padding: 12px 14px; border-radius: 12px;
+  background: var(--bg-2); border: 1px solid var(--line-2); color: var(--text); font-size: 15px; letter-spacing: 1px;
+}
+.tn-join input:focus{ outline: none; box-shadow: var(--ring); }
+.tn-join button{ margin: 0; padding: 0 20px; font-weight: 800; background: var(--surface-3) !important; }
+.tn-h{ max-width: 520px; margin: 18px auto 8px; font-size: 13px; color: var(--text-3); font-weight: 700; }
+.tn-item{
+  display: flex; align-items: center; gap: 12px; width: 100%; max-width: 520px; margin: 0 auto 8px; padding: 12px 14px;
+  background: var(--surface) !important; border: 1px solid var(--line); border-radius: var(--r); text-align: right; color: var(--text);
+}
+.tn-item-ic{ width: 38px; height: 38px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); }
+.tn-item-b{ flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tn-item-b b{ font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tn-item-b small{ font-size: 11.5px; color: var(--text-3); }
+.tn-item-go{ color: var(--text-3); transform: scaleX(-1); display: grid; }
+.tn-login{
+  max-width: 520px; margin: 0 auto 12px; padding: 14px; border-radius: var(--r); font-size: 13px; line-height: 1.8;
+  background: var(--gold-soft); border: 1px solid rgba(245,197,66,.25); color: var(--text-2);
+}
+.tn-login button{ display: block; margin: 8px 0 0; padding: 9px 16px; font-size: 13px; }
+
+.tn-phead{
+  display: flex; align-items: center; gap: 10px; max-width: 520px; margin: 0 auto 12px; padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+}
+.tn-back{ margin: 0; padding: 8px 10px; font-size: 12.5px; background: var(--surface-3) !important; flex: none; }
+.tn-ptitle{ flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tn-ptitle b{ font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tn-ptitle small{ font-size: 11px; color: var(--text-3); }
+.tn-code{ color: var(--gold); font-weight: 800; letter-spacing: 1.5px; unicode-bidi: isolate; }
+.tn-pact{ display: flex; gap: 6px; flex: none; }
+.tn-pact button{ margin: 0; width: 38px; height: 38px; padding: 0; display: grid; place-items: center; background: var(--surface-3) !important; }
+.tn-pact button.danger, .sj-hostbar button.danger{ color: #fca5a5; }
+
+/* ===== المجلس ===== */
+.mj-hint{ max-width: 520px; margin: 0 auto 10px; text-align: center; color: var(--text-3); font-size: 12.5px; }
+.mj-form{ display: flex; flex-direction: column; gap: 8px; padding: 6px 4px 12px; }
+.mj-form label{ font-size: 12.5px; color: var(--text-2); font-weight: 700; margin-top: 4px; }
+.mj-form input, .mj-form textarea, .mj-form select{
+  width: 100%; box-sizing: border-box; margin: 0; padding: 12px 14px; border-radius: 12px;
+  background: var(--bg-2); border: 1px solid var(--line-2); color: var(--text); font-size: 15px; resize: vertical;
+}
+.mj-form input:focus, .mj-form textarea:focus, .mj-form select:focus{ outline: none; box-shadow: var(--ring); }
+.mj-form button{ margin: 8px 0 0; padding: 13px; font-weight: 800; background: var(--brand-grad) !important; }
+
+/* ===== الجلسة ===== */
+.sj-head{
+  display: flex; align-items: center; gap: 10px; max-width: 520px; margin: 0 auto 10px; padding: 10px 12px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+}
+.sj-title{ flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sj-title b{ font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sj-title small{ font-size: 11px; color: var(--text-3); }
+.sj-state{ flex: none; font-size: 12px; font-weight: 800; color: var(--success); display: flex; align-items: center; gap: 5px; }
+.sj-state .dot{ width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: sjPulse 1.6s ease-in-out infinite; }
+.sj-head.ended .sj-state{ color: var(--text-3); }
+@keyframes sjPulse{ 50%{ opacity: .35; } }
+.sj-code{
+  display: flex; align-items: center; gap: 10px; max-width: 520px; margin: 0 auto 10px; padding: 10px 14px;
+  background: var(--gold-soft); border: 1px solid rgba(245,197,66,.25); border-radius: var(--r);
+}
+.sj-code span{ font-size: 12px; color: var(--text-2); }
+.sj-code b{ flex: 1; font-size: 22px; letter-spacing: 4px; color: var(--gold); text-align: center; unicode-bidi: isolate; }
+.sj-code button{ margin: 0; padding: 8px 12px; font-size: 12.5px; background: var(--surface-3) !important; }
+.sj-winner{
+  max-width: 520px; margin: 0 auto 10px; padding: 12px 14px; border-radius: var(--r); text-align: center;
+  background: var(--gold-grad); color: #1c1403; font-weight: 700;
+}
+.sj-board{ max-width: 520px; margin: 0 auto 12px; display: flex; flex-direction: column; gap: 6px; }
+.sj-row{
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--line); font-variant-numeric: tabular-nums;
+}
+.sj-row.me{ border-color: rgba(59,130,246,.5); background: var(--brand-soft); }
+.sj-row.first{ border-color: rgba(245,197,66,.5); }
+.sj-rank{ width: 26px; text-align: center; font-weight: 800; color: var(--text-3); flex: none; }
+.sj-row.first .sj-rank{ color: var(--gold); }
+.sj-name{ flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sj-name small{ color: var(--text-3); font-weight: 500; }
+.sj-pts{ font-size: 20px; font-weight: 800; min-width: 34px; text-align: center; }
+.sj-ctl{ display: flex; gap: 5px; flex: none; }
+.sj-ctl button{ margin: 0; min-width: 40px; height: 38px; padding: 0 8px; font-weight: 800; background: var(--surface-3) !important; }
+.sj-ctl button.plus{ background: rgba(34,197,94,.18) !important; color: #86efac; }
+.sj-ctl button.rm{ color: var(--text-3); min-width: 34px; }
+.sj-add{ margin-bottom: 10px; }
+.sj-hostbar{ display: flex; gap: 8px; max-width: 520px; margin: 0 auto 14px; }
+.sj-hostbar button{ flex: 1; margin: 0; padding: 12px; background: var(--surface-3) !important; }
+
+@media (max-width: 380px){
+  .tn-cards{ gap: 8px; }
+  .sj-ctl button{ min-width: 34px; padding: 0 5px; }
+}
+@media (prefers-reduced-motion: reduce){ .sj-state .dot{ animation: none; } }
+
+/* ألعاب الجلسة */
+.sj-games{ max-width: 520px; margin: 0 auto 12px; }
+.sj-games h4{ margin: 0 0 8px; font-size: 13px; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+.sj-games .som-pill{ margin: 0 0 8px; }
+.sj-gbtns{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sj-gbtns button{
+  margin: 0; padding: 14px 10px; border-radius: var(--r); background: var(--surface) !important; border: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text);
+}
+.sj-gbtns button .ic{ width: 24px; height: 24px; color: var(--gold); }
+.sj-gbtns button b{ font-size: 14px; }
+.sj-gbtns button small{ font-size: 11px; color: var(--text-3); }
