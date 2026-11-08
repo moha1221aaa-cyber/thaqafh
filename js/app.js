@@ -358,7 +358,9 @@ function groupsValid(groups, names) {
 }
 
 let leagueGroups = null;   /* league/current.groups لو الدوري مجموعات */
+let leagueKo = null;       /* league/current.ko: الأدوار الإقصائية (js/knockout.js) */
 function generateMatches(groupCount) {
+    leagueKo = null;   /* قرعة جديدة تمسح النتايج، فالإقصائيات بعد */
     if (groupCount !== undefined) leagueGroups = drawGroups(players.map(p => p.name), groupCount);
     else if (leagueGroups && !groupsValid(leagueGroups, players.map(p => p.name))) leagueGroups = null;
     matches = buildSchedule(players, true, leagueGroups);
@@ -425,6 +427,7 @@ const o = { p1:p1Obj, p2:p2Obj, s1:m.s1, s2:m.s2, round:m.round }; if(m.g != nul
 });
 }
 leagueGroups = groupsValid(data.groups, players.map(p => p.name)) ? data.groups : null;
+leagueKo = koValid(data.ko, players.map(p => p.name)) ? data.ko : null;
 playerLinks = data.playerLinks || {};
 leagueTrial = data.trial || null;
 }
@@ -452,7 +455,7 @@ if(doc.exists) {
 let data = doc.data();
 isInitialLoad = false;
 applyLeagueData(data);
-try { localStorage.setItem(LEAGUE_CACHE_KEY, JSON.stringify({ playersList: data.playersList || [], matches: data.matches || [], playerLinks: data.playerLinks || {}, groups: data.groups || null })); } catch(e) {}
+try { localStorage.setItem(LEAGUE_CACHE_KEY, JSON.stringify({ playersList: data.playersList || [], matches: data.matches || [], playerLinks: data.playerLinks || {}, groups: data.groups || null, ko: data.ko || null })); } catch(e) {}
 } else {
 generateMatches();
 }
@@ -475,7 +478,7 @@ playerLinks: playerLinks,
 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
 };
 /* وقت التجربة ما نلمس مجموعات الدوري الأصلي (تنرجع مع الأصلي) */
-if(!leagueTrial) doc.groups = leagueGroups || firebase.firestore.FieldValue.delete();
+if(!leagueTrial) { doc.groups = leagueGroups || firebase.firestore.FieldValue.delete(); doc.ko = leagueKo || firebase.firestore.FieldValue.delete(); }
 firebaseDB.collection("league").doc("current").set(doc, { merge: true })
 .catch(error => {
 console.log(error);

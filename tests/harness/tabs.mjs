@@ -54,7 +54,7 @@ try {
     host.removeAllListeners("dialog");
     let asked = 0;
     host.on("dialog", d => { asked++; d.type() === "prompt" ? d.accept("متسابق " + asked) : d.accept(); });
-    check("admin actions live in the ⋮ menu, not loose on the page", await host.evaluate(() => !document.querySelector(".tn-admin") && document.querySelectorAll("#tnMenu button").length === 3));
+    check("admin actions live in the ⋮ menu, not loose on the page", await host.evaluate(() => !document.querySelector(".tn-admin") && document.querySelectorAll("#tnMenu button").length === 4));
     for (let i = 0; i < 3; i++) { await host.click(".tn-more-btn"); await host.click("#tnMenu button:nth-child(1)"); await sleep(250); }
     const q = await until(() => { const d = db.data("league/qualifiers"); return d && d.playersList.length === 3 ? d : null; }, 5000);
     check("qualifiers doc created with 3 players and a double round robin (6 matches)", q && q.matches.length === 6, q && q.matches.length);

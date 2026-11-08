@@ -238,7 +238,8 @@ service cloud.firestore {
     // صاحبها بس يكتب النتايج ويحذف، وما يتغيّر المالك.
     function privTValid() {
       let d = request.resource.data;
-      return d.keys().hasOnly(['name', 'ownerUid', 'ownerName', 'playersList', 'matches', 'double', 'groups', 'createdAt', 'updatedAt'])
+      return d.keys().hasOnly(['name', 'ownerUid', 'ownerName', 'playersList', 'matches', 'double', 'groups', 'ko', 'createdAt', 'updatedAt'])
+        && d.get('ko', []) is list && d.get('ko', []).size() <= 15
         && d.get('groups', []) is list && d.get('groups', []).size() <= 8
         && d.name is string && d.name.size() > 0 && d.name.size() <= 50
         && d.ownerName is string && d.ownerName.size() <= 60

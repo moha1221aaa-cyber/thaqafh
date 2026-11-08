@@ -425,6 +425,18 @@ await ok("ptour groups: owner enters a score (groups unchanged)", ctx.p1.doc(GT)
 await no("ptour groups: owner changes the groups after the draw", ctx.p1.doc(GT).set({ groups: [{ n: "أ", p: ["ج"] }, { n: "ب", p: ["أ"] }] }, { merge: true }));
 await no("ptour groups: owner removes the groups", ctx.p1.doc(GT).set({ groups: DEL() }, { merge: true }));
 
+/* ===== الأدوار الإقصائية في البطولة الخاصة (8 نوفمبر 2026) ===== */
+const KT = "privateTournaments/KNOK2345";
+const koTies = [{ r: 0, i: 0, a: "أ", b: "ب", sa: "", sb: "", pa: "", pb: "", bye: false }, { r: 1, i: 0, a: "", b: "", sa: "", sb: "", pa: "", pb: "", bye: false }];
+await ok("ptour ko: owner creates", ctx.p1.doc(KT).set(ptData()));
+await ok("ptour ko: owner saves the knockout", ctx.p1.doc(KT).set({ ko: koTies, updatedAt: TS() }, { merge: true }));
+await ok("ptour ko: owner enters a knockout score", ctx.p1.doc(KT).set({ ko: [Object.assign({}, koTies[0], { sa: "3", sb: "1" }), koTies[1]], updatedAt: TS() }, { merge: true }));
+await ok("ptour ko: owner deletes the knockout", ctx.p1.doc(KT).set({ ko: DEL(), updatedAt: TS() }, { merge: true }));
+await no("ptour ko: another user writes the knockout", ctx.p2.doc(KT).set({ ko: koTies, updatedAt: TS() }, { merge: true }));
+await no("ptour ko: more than 15 ties", ctx.p1.doc(KT).set({ ko: Array.from({ length: 16 }, (_, i) => ({ r: 0, i })), updatedAt: TS() }, { merge: true }));
+await no("ptour ko: not a list", ctx.p1.doc(KT).set({ ko: "x", updatedAt: TS() }, { merge: true }));
+await ok("ptour ko: guest reads it", ctx.guest.doc(KT).get());
+
 await env.cleanup();
 if (failed) { console.log(failed + " failed"); process.exit(1); }
 console.log("all passed");

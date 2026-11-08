@@ -158,11 +158,14 @@
 <div class="tn-seg tn-sub" id="tnSub" role="tablist">
 <button type="button" class="active" data-k="stand" onclick="tnSetPane('stand')"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg> الترتيب</button>
 <button type="button" data-k="matches" onclick="tnSetPane('matches')"><svg class="ic" aria-hidden="true"><use href="#i-ball"/></svg> المواجهات</button>
+<button type="button" data-k="ko" onclick="tnSetPane('ko')" style="display:none;"><svg class="ic" aria-hidden="true"><use href="#i-crown"/></svg> الإقصاء</button>
 </div>
 
 <div id="tnStand">
 <div id="standingsBox"></div>
 </div>
+
+<div id="tnKo" style="display:none;"></div>
 
 <div id="tnMatches" style="display:none;">
 <div id="liveMatchesBar"></div>
@@ -478,6 +481,7 @@
 <script src="js/notifications.js"></script>
 <script src="js/users.js"></script>
 <script src="js/league.js"></script>
+<script src="js/knockout.js"></script>
 <script src="js/tournaments.js"></script>
 <script src="js/majlis.js"></script>
 <script src="js/account.js"></script>

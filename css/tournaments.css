@@ -214,3 +214,39 @@
 
 .sj-menu-fix{ position: relative; }
 .sj-head .tn-menu{ min-width: 200px; }
+
+/* الأدوار الإقصائية */
+.tn-seg.tn-sub button{ font-size: 13px; padding: 10px 4px; }
+#tnKo{ max-width: 520px; margin: 0 auto; }
+.ko-rt{ margin: 18px 0 8px; font-size: 14px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.ko-rt::before{ content: ""; width: 4px; height: 16px; border-radius: 2px; background: var(--gold-grad); }
+.ko-round{ display: flex; flex-direction: column; gap: 10px; }
+.ko-tie{ background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.ko-tie.done{ border-color: rgba(245,197,66,.35); }
+.ko-side{ display: flex; align-items: center; gap: 10px; padding: 11px 14px; }
+.ko-side + .ko-side{ border-top: 1px solid var(--line); }
+.ko-n{ flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); }
+.ko-side.w .ko-n{ color: var(--text); }
+.ko-side.w{ background: linear-gradient(270deg, rgba(245,197,66,.10), transparent 70%); }
+.ko-wait{ color: var(--text-3); font-weight: 500; }
+.ko-s, .ko-tb input{
+  width: 56px; margin: 0; padding: 8px 4px; text-align: center; font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums;
+  border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line-2); color: var(--text);
+}
+.ko-s:disabled, .ko-tb input:disabled{ opacity: .85; border-color: transparent; background: transparent; }
+.ko-note{ padding: 6px 14px 10px; font-size: 12px; color: var(--text-3); }
+.ko-tb{ display: flex; align-items: center; gap: 8px; padding: 8px 14px 12px; border-top: 1px dashed var(--line-2); font-size: 12.5px; color: var(--gold); }
+.ko-tb span{ flex: 1; }
+.ko-tb i{ color: var(--text-3); font-style: normal; }
+.ko-tb input{ width: 48px; font-size: 15px; }
+.ko-champ{
+  display: flex; align-items: center; gap: 10px; justify-content: center; padding: 14px; margin-bottom: 6px; border-radius: var(--r-lg);
+  background: var(--gold-grad); color: #1c1403; font-size: 15px;
+}
+.ko-champ .ic{ width: 24px; height: 24px; }
+.ko-champ b{ font-size: 18px; font-weight: 900; }
+.ko-empty{ text-align: center; padding: 22px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.ko-empty-ic{ width: 48px; height: 48px; margin: 0 auto 8px; border-radius: 14px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); }
+.ko-empty-ic .ic{ width: 26px; height: 26px; }
+.ko-empty h4{ margin: 0 0 6px; font-size: 16px; }
+.ko-empty p{ margin: 0 0 14px; color: var(--text-2); font-size: 13.5px; line-height: 1.8; }

@@ -82,7 +82,7 @@ try {
     check("private: standings in 2 group tables", await until(() => p1.evaluate(() => document.querySelectorAll("#standingsBox .tn-gt").length === 2), 5000));
     check("private: header says 2 groups, with ⋮ menu and share icon", await p1.evaluate(() => /2 مجموعات/.test(document.querySelector(".tn-ptitle small").textContent) && !!document.querySelector(".tn-more-btn") && !!document.querySelector(".tn-ic-btn")));
     await p1.click(".tn-more-btn");
-    check("⋮ menu opens with 3 items (share standings, reset, delete)", await p1.evaluate(() => { const m = document.getElementById("tnMenu"); return !m.hidden && m.querySelectorAll("button").length === 3; }));
+    check("⋮ menu opens with 4 items (share standings, start knockout, reset, delete)", await p1.evaluate(() => { const m = document.getElementById("tnMenu"); return !m.hidden && m.querySelectorAll("button").length === 4; }));
     await shot(p1, "2-private-menu");
     await p1.evaluate(() => document.body.click());
     check("tapping elsewhere closes the menu", await p1.evaluate(() => document.getElementById("tnMenu").hidden));
