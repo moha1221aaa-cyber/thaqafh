@@ -165,3 +165,12 @@
 .sj-gbtns button .ic{ width: 24px; height: 24px; color: var(--gold); }
 .sj-gbtns button b{ font-size: 14px; }
 .sj-gbtns button small{ font-size: 11px; color: var(--text-3); }
+
+/* قائمة البطولات (مثل تطبيقات الكرة: صفوف، وكل بطولة تفتح صفحتها) */
+.tn-sec{
+  max-width: 520px; margin: 18px auto 10px; font-size: 15px; color: var(--text); font-weight: 800;
+  display: flex; align-items: center; gap: 8px;
+}
+.tn-sec .ic{ width: 18px; height: 18px; color: var(--gold); }
+#tnList .tn-sec:first-child{ margin-top: 4px; }
+.tn-item.gold .tn-item-ic{ background: var(--gold-grad); color: #1c1403; }

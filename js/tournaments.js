@@ -8,13 +8,13 @@ const ELITE_TITLE = "أبطال النخبة الثقافي";
 const QUAL_TITLE = "تصفيات أبطال النخبة الثقافي";
 const TN_PRIV_MAX_OWNED = 5;
 const TN_JOINED_KEY = "thq:joined";
-const TN_STATE_KEY = "thq:tn";
 
-const tn = { mode: "official", official: "elite", pane: "stand", priv: null };
+const tn = { mode: "official", official: "elite", pane: "stand", open: false };   /* open: داخل صفحة بطولة (وإلا القائمة) */
 let qual = { players: [], matches: [], links: {}, exists: false };
 let privDoc = null;          /* البطولة الخاصة المفتوحة: { id, name, ownerUid, ownerName, double, players, matches } */
 let privUnsub = null;
 let privOwned = [];          /* بطولاتي: [{id, name, n, played}] */
+let privListUid = null;      /* مين حمّلنا له قوائم البطولات الخاصة */
 let privJoined = {};         /* اللي انضميت لها: id → { name, ownerName, n } */
 let privOwnedUnsub = null;
 let tnDeepLink = (() => { try { return new URLSearchParams(location.search).get("t"); } catch (e) { return null; } })();
@@ -45,6 +45,7 @@ function tnPlayedCount(list) {
 
 /* ===== السياق: وش المعروض الحين (الترتيب والمواجهات يرسمون منه) ===== */
 function tCtx() {
+    if (!tn.open) return { kind: "none", players: [], matches: [], links: {}, canEdit: false, save: function () {}, live: false, profile: false, title: "", empty: "" };
     if (tn.mode === "private") {
         if (privDoc) {
             return {
@@ -70,12 +71,8 @@ function tCtx() {
 
 /* ===== التصفيات (league/qualifiers) ===== */
 function initTournaments() {
-    const st = tnStore(TN_STATE_KEY);
-    if (st && (st.mode === "official" || st.mode === "private")) tn.mode = st.mode;
-    if (st && (st.official === "elite" || st.official === "qual")) tn.official = st.official;
     /* الرابط المشارك يفتح البطولة الخاصة مباشرة */
     if (tnDeepLink && /^[A-Z0-9]{8}$/.test(tnDeepLink.toUpperCase())) {
-        tn.mode = "private";
         setTimeout(() => {
             showTabNow(document.querySelector('.bottom-nav .tab[data-sec="tournaments"]'), "tournaments");
             tnOpenPrivate(tnDeepLink.toUpperCase(), true);
@@ -90,10 +87,8 @@ function initTournaments() {
         } else {
             qual = { players: [], matches: [], links: {}, exists: false };
         }
-        if (tn.mode === "official" && tn.official === "qual") renderTournamentsPage();
-        else renderTournamentCards();
+        renderTournamentsPage();
     }, () => {});
-    if (tn.mode === "private") loadPrivateLists();
     renderTournamentsPage();
 }
 
@@ -130,17 +125,23 @@ function qualRebuild(names) {
     renderTournamentsPage();
 }
 
-/* ===== التنقل والرسم ===== */
-function tnSetMode(k) {
-    tn.mode = k === "private" ? "private" : "official";
-    tnStore(TN_STATE_KEY, { mode: tn.mode, official: tn.official });
-    if (tn.mode === "private") loadPrivateLists();
-    renderTournamentsPage();
-}
-function tnPickOfficial(k) {
+/* ===== التنقل والرسم: قائمة بطولات، ونضغط على بطولة تفتح صفحتها (الترتيب والمواجهات داخلها) ===== */
+function tnOpenOfficial(k) {
+    if (privUnsub) { privUnsub(); privUnsub = null; }
+    privDoc = null;
+    tn.mode = "official";
     tn.official = k === "qual" ? "qual" : "elite";
-    tnStore(TN_STATE_KEY, { mode: tn.mode, official: tn.official });
+    tn.pane = "stand";
+    tn.open = true;
     renderTournamentsPage();
+    window.scrollTo(0, 0);
+}
+function tnBack() {
+    if (privUnsub) { privUnsub(); privUnsub = null; }
+    privDoc = null;
+    tn.open = false;
+    renderTournamentsPage();
+    window.scrollTo(0, 0);
 }
 function tnSetPane(k) {
     tn.pane = k === "matches" ? "matches" : "stand";
@@ -155,58 +156,85 @@ function paintTnPane() {
     if (lb) lb.style.display = tn.mode === "official" && tn.official === "elite" ? "" : "none";
 }
 
-function renderTournamentCards() {
-    const box = document.getElementById("tnPicker");
-    if (!box) return;
-    const eliteDone = tnPlayedCount(matches);
-    const card = (k, title, sub, icon, n, played, total) => `
-<button type="button" class="tn-card ${tn.official === k ? "active" : ""}" onclick="tnPickOfficial(${jsArg(k)})">
-<span class="tn-card-ic">${ic(icon)}</span>
-<span class="tn-card-t">${escapeHTML(title)}</span>
-<span class="tn-card-s">${escapeHTML(sub)}</span>
-<span class="tn-card-n">${n ? `${n} متسابق · ${played}/${total} مواجهة` : "لم تبدأ بعد"}</span>
+function tnRowHTML(icon, title, sub, action, cls) {
+    return `<button type="button" class="tn-item ${cls || ""}" onclick="${action}">
+<span class="tn-item-ic">${ic(icon)}</span>
+<span class="tn-item-b"><b>${escapeHTML(title)}</b><small>${escapeHTML(sub)}</small></span>
+<span class="tn-item-go">${ic("chevron-right")}</span>
 </button>`;
-    box.innerHTML =
-        card("elite", ELITE_TITLE, "البطولة الرئيسية للمنصة", "trophy", players.length, eliteDone, matches.length) +
-        card("qual", QUAL_TITLE, "طريقك لأبطال النخبة", "target", qual.players.length, tnPlayedCount(qual.matches), qual.matches.length);
+}
+
+/* قائمة البطولات: الرسمية فوق، والخاصة تحتها (إنشاء، رمز، بطولاتي، اللي أتابعها) */
+function renderTnList() {
+    const box = document.getElementById("tnList");
+    if (!box) return;
+    const sub = (n, played, total) => n ? `${n} متسابق · ${played}/${total} مواجهة` : "لم تبدأ بعد";
+    const joinedIds = Object.keys(privJoined).filter(id => !privOwned.some(o => o.id === id));
+    box.innerHTML = `
+<h4 class="tn-sec">${ic("trophy")} البطولات الرسمية</h4>
+${tnRowHTML("trophy", ELITE_TITLE, sub(players.length, tnPlayedCount(matches), matches.length), "tnOpenOfficial('elite')", "gold")}
+${tnRowHTML("target", QUAL_TITLE, sub(qual.players.length, tnPlayedCount(qual.matches), qual.matches.length), "tnOpenOfficial('qual')")}
+
+<h4 class="tn-sec">${ic("users")} البطولات الخاصة</h4>
+<div class="tn-intro">
+<p>سوّ مسابقة ثقافية بينك وبين أصحابك: تكتب أسماءهم، والموقع يسوي القرعة والترتيب، وتدخل النتايج من جوالك. وأصحابك يتابعونها بالرمز أو الرابط.</p>
+<button type="button" class="tn-primary" onclick="tnOpenCreate()">${ic("plus")} بطولة خاصة جديدة</button>
+</div>
+<div class="tn-join">
+<input type="text" id="tnJoinCode" maxlength="8" dir="ltr" autocapitalize="characters" placeholder="رمز بطولة (8 أحرف)" onkeydown="if(event.key==='Enter')tnJoin()">
+<button type="button" onclick="tnJoin()">افتح</button>
+</div>
+${currentUser ? (privOwned.length ? `<h4 class="tn-h">بطولاتي</h4>${privOwned.map(o => tnRowHTML("trophy", o.name, `${o.n} متسابق · ${o.played}/${o.total} مواجهة · الرمز ${o.id}`, `tnOpenPrivate(${jsArg(o.id)})`)).join("")}` : "") : `
+<div class="tn-login">${ic("lock")} سجّل دخولك من تبويب "الحساب" عشان تنشئ بطولة خاصة. المشاهدة بالرمز بدون حساب.
+<button type="button" onclick="showTab(null,'accountTab')">الذهاب للحساب</button></div>`}
+${joinedIds.length ? `<h4 class="tn-h">بطولات أتابعها</h4>${joinedIds.map(id => tnRowHTML("trophy", privJoined[id].name, `المنظم: ${privJoined[id].ownerName || "-"} · ${privJoined[id].n} متسابق`, `tnOpenPrivate(${jsArg(id)})`)).join("")}` : ""}`;
+}
+
+function tnHeadHTML(back, title, small, extra) {
+    return `
+<div class="tn-phead">
+<button type="button" class="tn-back" onclick="tnBack()">${ic("chevron-right")} ${back}</button>
+<div class="tn-ptitle"><b>${escapeHTML(title)}</b><small>${small}</small></div>
+${extra || ""}
+</div>`;
 }
 
 function renderTournamentsPage() {
     const sec = document.getElementById("tournaments");
     if (!sec) return;
-    const official = tn.mode === "official";
-    document.querySelectorAll("#tnTop button").forEach(b => b.classList.toggle("active", b.dataset.k === tn.mode));
-    document.getElementById("tnOfficialHead").style.display = official ? "" : "none";
-    document.getElementById("tnPrivateHome").style.display = !official && !privDoc ? "" : "none";
-    const showBody = official || !!privDoc;
-    document.getElementById("tnBody").style.display = showBody ? "" : "none";
-
+    const list = document.getElementById("tnList"), detail = document.getElementById("tnDetail");
+    list.style.display = tn.open ? "none" : "";
+    detail.style.display = tn.open ? "" : "none";
+    if (!tn.open) {
+        /* قوائم الخاصة تتحمل مرة لكل حساب */
+        const uid = currentUser ? currentUser.uid : "";
+        if (privListUid !== uid) { privListUid = uid; loadPrivateLists(); }
+        renderTnList();
+        return;
+    }
     const head = document.getElementById("tnBodyHead");
-    if (official) {
-        renderTournamentCards();
-        head.innerHTML = "";
-    } else if (privDoc) {
-        head.innerHTML = privHeadHTML();
+    if (tn.mode === "private") {
+        head.innerHTML = privDoc ? privHeadHTML() : "";
     } else {
-        head.innerHTML = "";
-        renderPrivateHome();
+        const q = tn.official === "qual";
+        head.innerHTML = tnHeadHTML("البطولات", q ? QUAL_TITLE : ELITE_TITLE, q ? "طريقك لأبطال النخبة" : "البطولة الرئيسية للمنصة");
     }
 
     const adm = document.getElementById("tnAdminBox");
     if (adm) {
         const ctx = tCtx();
-        if (official && isAdmin) {
+        if (tn.mode === "official" && isAdmin) {
             adm.innerHTML = `<div class="tn-admin">
 <button type="button" onclick="${tn.official === "qual" ? "qualAddPlayer()" : "addNewPlayerPrompt()"}">${ic("plus")} إضافة متسابق</button>
 <button type="button" onclick="${tn.official === "qual" ? "qualRedraw()" : "reDrawMatches()"}">${ic("dice")} إعادة القرعة</button>
 </div>`;
-        } else if (!official && privDoc && ctx.canEdit) {
+        } else if (tn.mode === "private" && privDoc && ctx.canEdit) {
             adm.innerHTML = `<div class="tn-admin">
 <button type="button" onclick="privResetScores()">${ic("hourglass")} تصفير النتائج</button>
 </div>`;
         } else adm.innerHTML = "";
     }
-    if (showBody) { table(); renderMatches(); }
+    table(); renderMatches();
     paintTnPane();
 }
 
@@ -235,7 +263,7 @@ function loadPrivateLists() {
             } else {
                 tnStore(TN_JOINED_KEY, (tnStore(TN_JOINED_KEY) || []).filter(k => k !== id));
             }
-            if (tn.mode === "private" && !privDoc) renderPrivateHome();
+            if (!tn.open) renderTnList();
         }).catch(() => {});
     });
     /* بطولاتي */
@@ -247,53 +275,18 @@ function loadPrivateLists() {
                 const x = d.data();
                 return { id: d.id, name: x.name, n: (x.playersList || []).length, played: tnPlayedCount(x.matches), total: (x.matches || []).length, at: x.createdAt && x.createdAt.toMillis ? x.createdAt.toMillis() : 0 };
             }).sort((a, b) => b.at - a.at);
-            if (tn.mode === "private" && !privDoc) renderPrivateHome();
+            if (!tn.open) renderTnList();
         }, () => {});
     }
 }
 
-function renderPrivateHome() {
-    const box = document.getElementById("tnPrivateHome");
-    if (!box) return;
-    const item = (id, name, sub) => `
-<button type="button" class="tn-item" onclick="tnOpenPrivate(${jsArg(id)})">
-<span class="tn-item-ic">${ic("trophy")}</span>
-<span class="tn-item-b"><b>${escapeHTML(name)}</b><small>${escapeHTML(sub)}</small></span>
-<span class="tn-item-go">${ic("chevron-right")}</span>
-</button>`;
-    const joinedIds = Object.keys(privJoined).filter(id => !privOwned.some(o => o.id === id));
-    box.innerHTML = `
-<div class="tn-intro">
-<h3>${ic("users")} بطولتك الخاصة</h3>
-<p>سوّ مسابقة ثقافية بينك وبين أصحابك: تكتب أسماءهم، والموقع يسوي القرعة والترتيب، وتدخل النتايج من جوالك. وأصحابك يتابعونها بالرمز أو الرابط.</p>
-<button type="button" class="tn-primary" onclick="tnOpenCreate()">${ic("plus")} بطولة خاصة جديدة</button>
-</div>
-<div class="tn-join">
-<input type="text" id="tnJoinCode" maxlength="8" dir="ltr" autocapitalize="characters" placeholder="رمز البطولة (8 أحرف)" onkeydown="if(event.key==='Enter')tnJoin()">
-<button type="button" onclick="tnJoin()">انضم</button>
-</div>
-${currentUser ? `
-<h4 class="tn-h">بطولاتي</h4>
-${privOwned.length ? privOwned.map(o => item(o.id, o.name, `${o.n} متسابق · ${o.played}/${o.total} مواجهة · الرمز ${o.id}`)).join("") : `<div class="empty-state">ما أنشأت أي بطولة للحين</div>`}` : `
-<div class="tn-login">${ic("lock")} سجّل دخولك من تبويب "الحساب" عشان تنشئ بطولة خاصة. المشاهدة بالرمز بدون حساب.
-<button type="button" onclick="showTab(null,'accountTab')">الذهاب للحساب</button></div>`}
-${joinedIds.length ? `<h4 class="tn-h">بطولات تتابعها</h4>${joinedIds.map(id => item(id, privJoined[id].name, `المنظم: ${privJoined[id].ownerName || "-"} · ${privJoined[id].n} متسابق`)).join("")}` : ""}`;
-}
-
 function privHeadHTML() {
     const mine = currentUser && currentUser.uid === privDoc.ownerUid;
-    return `
-<div class="tn-phead">
-<button type="button" class="tn-back" onclick="tnClosePrivate()">${ic("chevron-right")} بطولاتي</button>
-<div class="tn-ptitle">
-<b>${escapeHTML(privDoc.name)}</b>
-<small>المنظم: ${escapeHTML(privDoc.ownerName || "-")}${mine ? " (أنت)" : ""} · الرمز <span class="tn-code" dir="ltr">${escapeHTML(privDoc.id)}</span></small>
-</div>
-<div class="tn-pact">
+    const small = `المنظم: ${escapeHTML(privDoc.ownerName || "-")}${mine ? " (أنت)" : ""} · الرمز <span class="tn-code" dir="ltr">${escapeHTML(privDoc.id)}</span>`;
+    return tnHeadHTML("البطولات", privDoc.name, small, `<div class="tn-pact">
 <button type="button" onclick="privShare()" title="مشاركة">${ic("share")}</button>
 ${mine ? `<button type="button" class="danger" onclick="privDelete()" title="حذف البطولة">${ic("trash")}</button>` : ""}
-</div>
-</div>`;
+</div>`);
 }
 
 function tnOpenCreate() {
@@ -354,6 +347,7 @@ function tnOpenPrivate(id, fromLink) {
     id = String(id || "").toUpperCase();
     if (privUnsub) { privUnsub(); privUnsub = null; }
     tn.mode = "private";
+    tn.open = true;
     let first = true;
     privUnsub = privCol().doc(id).onSnapshot(doc => {
         if (!doc.exists) {
@@ -383,11 +377,7 @@ function tnForget(id) {
     tnStore(TN_JOINED_KEY, (tnStore(TN_JOINED_KEY) || []).filter(k => k !== id));
     delete privJoined[id];
 }
-function tnClosePrivate() {
-    if (privUnsub) { privUnsub(); privUnsub = null; }
-    privDoc = null;
-    renderTournamentsPage();
-}
+function tnClosePrivate() { tnBack(); }
 
 function privSave() {
     if (!privDoc || !currentUser || currentUser.uid !== privDoc.ownerUid) return;

@@ -69,7 +69,6 @@ window.addEventListener('DOMContentLoaded', () => {
             renderFullAccountPage();
             renderLeagueSummary();
             renderRoomUI();
-            if (typeof loadPrivateLists === "function" && tn.mode === "private") loadPrivateLists();
             if (typeof renderTournamentsPage === "function") renderTournamentsPage();
             if (typeof renderMajlis === "function") renderMajlis();
             renderLiveBars();

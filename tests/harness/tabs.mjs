@@ -26,19 +26,27 @@ try {
     check("side menu pages follow the new tabs", await host.evaluate(() => MENU_PAGES.map(p => p.label).join(",") === "الرئيسية,البطولات,المجلس,الحساب"));
     await shot(host, "01-home");
 
-    /* ===== البطولات الرسمية ===== */
+    /* ===== البطولات: قائمة، والترتيب والمواجهات داخل كل بطولة ===== */
     await host.click('.bottom-nav .tab[data-sec="tournaments"]');
     check("tournaments section active", await until(() => host.evaluate(() => document.getElementById("tournaments").classList.contains("active")), 3000));
-    check("two official cards with the right names", await host.evaluate(() => { const t = [...document.querySelectorAll("#tnPicker .tn-card-t")].map(x => x.textContent.trim()); return t.length === 2 && t[0] === "أبطال النخبة الثقافي" && t[1] === "تصفيات أبطال النخبة الثقافي"; }));
+    check("opens on a LIST of tournaments (no standings / matches outside)", await host.evaluate(() => document.getElementById("tnList").offsetParent !== null && document.getElementById("tnDetail").offsetParent === null && document.getElementById("standings").offsetParent === null));
+    check("official section: two rows with the right names", await host.evaluate(() => { const t = [...document.querySelectorAll("#tnList .tn-item-b b")].slice(0, 2).map(x => x.textContent.trim()); return t[0] === "أبطال النخبة الثقافي" && t[1] === "تصفيات أبطال النخبة الثقافي"; }));
+    check("private section on the same list (create + join)", await host.evaluate(() => !!document.querySelector("#tnList .tn-primary") && !!document.getElementById("tnJoinCode")));
+    await shot(host, "02a-list");
+    await host.click("#tnList .tn-item:nth-of-type(1)");
+    check("tap the row → tournament page with title and back button", await until(() => host.evaluate(() => document.getElementById("tnDetail").offsetParent !== null && document.querySelector(".tn-ptitle b").textContent === "أبطال النخبة الثقافي" && !!document.querySelector(".tn-back")), 3000));
     const n = await host.evaluate(() => players.length);
-    check("standings shows the league players", await host.evaluate(n => document.querySelectorAll("#standings tr").length === n, n), n);
+    check("standings inside the tournament page", await host.evaluate(n => document.querySelectorAll("#standings tr").length === n, n), n);
     check("matches pane hidden, then shown by the sub tab", await host.evaluate(() => document.getElementById("tnMatches").style.display === "none"));
     await host.click('#tnSub button[data-k="matches"]');
-    check("matches pane shows round cards", await until(() => host.evaluate(() => document.getElementById("tnMatches").style.display !== "none" && document.querySelectorAll("#upcoming .match").length > 0), 3000));
+    check("matches inside the tournament page", await until(() => host.evaluate(() => document.getElementById("tnMatches").style.display !== "none" && document.querySelectorAll("#upcoming .match").length > 0), 3000));
     check("admin can edit scores on elite", await host.evaluate(() => !document.querySelector("#upcoming .match input").disabled));
     await shot(host, "02-elite-matches");
+    await host.click(".tn-back");
+    check("back → the list again", await until(() => host.evaluate(() => document.getElementById("tnList").offsetParent !== null && document.getElementById("tnDetail").offsetParent === null), 3000));
     /* التصفيات */
-    await host.click('#tnPicker .tn-card:nth-child(2)');
+    await host.click("#tnList .tn-item:nth-of-type(2)");
+    check("qualifiers page title", await until(() => host.evaluate(() => document.querySelector(".tn-ptitle b").textContent === "تصفيات أبطال النخبة الثقافي"), 3000));
     check("qualifiers: empty state before it starts", await until(() => host.evaluate(() => /ما بدأت/.test(document.getElementById("standings").innerText)), 3000));
     host.removeAllListeners("dialog");
     let asked = 0;
@@ -58,10 +66,9 @@ try {
 
     /* ===== البطولات الخاصة ===== */
     const p1 = await device(browser, db, "p1", { live: "none" });
-    await until(() => p1.evaluate(() => typeof tnSetMode === "function" && document.querySelectorAll("#standings tr").length > 0), 10000);
+    await until(() => p1.evaluate(() => typeof tnOpenOfficial === "function" && document.querySelectorAll("#standings tr").length > 0), 10000);
     await p1.click('.bottom-nav .tab[data-sec="tournaments"]');
-    await p1.click('#tnTop button[data-k="private"]');
-    check("private: intro + create + join visible, official cards hidden", await p1.evaluate(() => document.getElementById("tnPrivateHome").offsetParent !== null && document.getElementById("tnOfficialHead").offsetParent === null && !!document.getElementById("tnJoinCode")));
+    check("private: create + join live on the list page", await p1.evaluate(() => document.getElementById("tnList").offsetParent !== null && !!document.getElementById("tnJoinCode") && !!document.querySelector("#tnList .tn-primary")));
     await shot(p1, "04-private-home");
     await p1.evaluate(() => tnOpenCreate());
     await p1.fill("#tnName", "بطولة الشلة");
@@ -92,7 +99,7 @@ try {
     check("friend's board updates live", await until(() => fan.evaluate(() => document.querySelectorAll("#past .match").length === 2), 5000));
     /* الحد الأقصى للأسماء */
     await p1.evaluate(() => tnOpenPrivate("ZZZZZZZZ"));
-    check("unknown code → back to the list, no crash", await until(() => p1.evaluate(() => document.getElementById("tnPrivateHome").offsetParent !== null), 4000));
+    check("unknown code → back to the list, no crash", await until(() => p1.evaluate(() => document.getElementById("tnList").offsetParent !== null), 4000));
 
     /* ===== المجلس ===== */
     await p1.click('.bottom-nav .tab[data-sec="majlis"]');
@@ -115,8 +122,8 @@ try {
     /* حاضر ينضم من جواله */
     const fan2 = await device(browser, db, "p2", { live: "none", query: "s=" + sid });
     check("attendee opens the session link", await until(() => fan2.evaluate(s => document.getElementById("majlis").classList.contains("active") && document.querySelector(".sj-code b") && document.querySelector(".sj-code b").textContent === s, sid), 8000));
-    check("attendee has no point buttons, only join", await fan2.evaluate(() => !document.querySelector(".sj-ctl") && !!document.querySelector(".tn-primary")));
-    await fan2.click(".tn-primary");
+    check("attendee has no point buttons, only join", await fan2.evaluate(() => !document.querySelector(".sj-ctl") && !!document.querySelector("#mjSession .tn-primary")));
+    await fan2.click("#mjSession .tn-primary");
     check("attendee joined with 0 points", !!(await until(() => db.data(sk + "/members/u_p2"), 4000)) && db.data(sk + "/members/u_p2").pts === 0);
     /* المضيف يعطي نقاط */
     check("host sees 2 rows", await until(() => p1.evaluate(() => document.querySelectorAll(".sj-row").length === 2), 4000));
