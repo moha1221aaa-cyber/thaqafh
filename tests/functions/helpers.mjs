@@ -18,7 +18,7 @@ export async function setupAuth() {
     async function token(uid, email) {
         const now = Math.floor(Date.now() / 1000);
         const h = b64u(JSON.stringify({ alg: "RS256", kid: "k1", typ: "JWT" }));
-        const p = b64u(JSON.stringify({ iss: "https://securetoken.google.com/masro7league", aud: "masro7league", sub: uid, email: email || uid + "@t", iat: now, exp: now + 3600, auth_time: now }));
+        const p = b64u(JSON.stringify({ iss: "https://securetoken.google.com/feekaro-7fecf", aud: "feekaro-7fecf", sub: uid, email: email || uid + "@t", iat: now, exp: now + 3600, auth_time: now }));
         const sig = await subtle.sign("RSASSA-PKCS1-v1_5", kp.privateKey, new TextEncoder().encode(h + "." + p));
         return h + "." + p + "." + b64u(sig);
     }

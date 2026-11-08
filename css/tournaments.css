@@ -152,3 +152,16 @@
   .sj-ctl button{ min-width: 34px; padding: 0 5px; }
 }
 @media (prefers-reduced-motion: reduce){ .sj-state .dot{ animation: none; } }
+
+/* ألعاب الجلسة */
+.sj-games{ max-width: 520px; margin: 0 auto 12px; }
+.sj-games h4{ margin: 0 0 8px; font-size: 13px; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+.sj-games .som-pill{ margin: 0 0 8px; }
+.sj-gbtns{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sj-gbtns button{
+  margin: 0; padding: 14px 10px; border-radius: var(--r); background: var(--surface) !important; border: 1px solid var(--line);
+  display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text);
+}
+.sj-gbtns button .ic{ width: 24px; height: 24px; color: var(--gold); }
+.sj-gbtns button b{ font-size: 14px; }
+.sj-gbtns button small{ font-size: 11px; color: var(--text-3); }

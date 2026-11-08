@@ -389,6 +389,32 @@ await no("member: host gives points after it ended", ctx.p1.doc(MEM("JKLM23", "u
 await no("session: other user deletes", ctx.p2.doc(SS).delete());
 await ok("session: host deletes", ctx.p1.doc(SS).delete());
 
+/* ===== ألعاب الجلسة: السوم وبرا السالفة (8 نوفمبر 2026) ===== */
+await seed("sessions/GAME23", { title: "ج", place: "استراحة", hostUid: "u_p1", hostName: "سعد", status: "open" });
+const SG = (g) => "sessions/GAME23/games/" + g;
+const somG = extra => Object.assign({ active: true, gid: "sgame0001", hostUid: "u_p1", hostName: "سعد", phase: "lobby", round: 0, maxRounds: 10, seats: [], starter: "", shown: [], deal: "", pids: ["u_p1"], players: [{ uid: "u_p1", name: "سعد", av: "", bal: 10000 }] }, extra || {});
+await ok("sgame som: session host (not admin) opens the table", ctx.p1.doc(SG("som")).set(somG()));
+await no("sgame som: other user opens the table", ctx.p2.doc("sessions/GAME23/games/som2").set(somG()));
+await ok("sgame som: attendee joins the lobby", ctx.p2.doc(SG("som")).set(somG({ pids: ["u_p1", "u_p2"], players: [{ uid: "u_p1", name: "سعد", av: "", bal: 10000 }, { uid: "u_p2", name: "فهد", av: "", bal: 10000 }] })));
+await no("sgame som: attendee changes the round", ctx.p2.doc(SG("som")).set(somG({ round: 3, pids: ["u_p1", "u_p2"], players: [{ uid: "u_p1", name: "سعد", av: "", bal: 10000 }, { uid: "u_p2", name: "فهد", av: "", bal: 10000 }] })));
+await ok("sgame som: anyone reads", ctx.guest.doc(SG("som")).get());
+await ok("sgame som: platform admin keeps full access (catch-all rule)", ctx.admin.doc(SG("som")).set(somG({ phase: "bid" })));
+const baraG = extra => Object.assign({ active: true, gid: "bgame0001", hostUid: "u_p1", hostName: "سعد", phase: "lobby", rounds: 5, round: 0, pids: ["u_p1"], players: { u_p1: { name: "سعد", av: "", score: 0 } } }, extra || {});
+await ok("sgame bara: session host opens the table", ctx.p1.doc(SG("bara")).set(baraG()));
+await ok("sgame bara: attendee joins the lobby", ctx.p2.doc(SG("bara")).set(baraG({ pids: ["u_p1", "u_p2"], players: { u_p1: { name: "سعد", av: "", score: 0 }, u_p2: { name: "فهد", av: "", score: 0 } } })));
+await no("sgame bara: attendee gives himself score", ctx.p2.doc(SG("bara")).set(baraG({ pids: ["u_p1", "u_p2"], players: { u_p1: { name: "سعد", av: "", score: 0 }, u_p2: { name: "فهد", av: "", score: 500 } } })));
+await seed(SG("bara"), baraG({ phase: "vote", round: 1, pids: ["u_p1", "u_p2", "u_fan"], players: { u_p1: { name: "a", av: "", score: 0 }, u_p2: { name: "b", av: "", score: 0 }, u_fan: { name: "c", av: "", score: 0 } } }));
+const SV = u => "sessions/GAME23/baraVotes/" + u;
+await ok("sgame bara vote: attendee votes for another", ctx.p2.doc(SV("u_p2")).set({ gid: "bgame0001", round: 1, target: "u_fan" }));
+await no("sgame bara vote: for himself", ctx.p2.doc(SV("u_p2")).set({ gid: "bgame0001", round: 1, target: "u_p2" }));
+await no("sgame bara vote: in someone else's name", ctx.fan.doc(SV("u_p2")).set({ gid: "bgame0001", round: 1, target: "u_p1" }));
+await no("sgame bara vote: not at the table", ctx.guest.doc(SV("u_guest")).set({ gid: "bgame0001", round: 1, target: "u_p1" }));
+await ok("sgame bara vote: owner reads his vote", ctx.p2.doc(SV("u_p2")).get());
+await ok("sgame bara vote: session host reads it", ctx.p1.doc(SV("u_p2")).get());
+await no("sgame bara vote: another attendee reads it (secret)", ctx.fan.doc(SV("u_p2")).get());
+await ok("sgame bara vote: platform admin keeps full access (catch-all rule)", ctx.admin.doc(SV("u_p2")).get());
+await ok("sgame bara vote: session host deletes votes", ctx.p1.doc(SV("u_p2")).delete());
+
 await env.cleanup();
 if (failed) { console.log(failed + " failed"); process.exit(1); }
 console.log("all passed");

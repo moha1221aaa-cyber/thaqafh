@@ -23,6 +23,17 @@ const json = (status, obj) => new Response(JSON.stringify(obj), {
 });
 const isAdmin = u => !!u && String(u.email || "").toLowerCase() === ADMIN_EMAIL;
 
+/* داخل جلسة (sid = رمز الجلسة، 6 أحرف): اللعبة في sessions/<sid>/games/<اللعبة> والمضيف هو مضيف الجلسة (مو منظم المنصة) */
+const SID_RE = /^[A-Z0-9]{6}$/;
+const GAME = "som";
+const sidOf = b => (b && typeof b.sid === "string" && SID_RE.test(b.sid)) ? b.sid : "";
+const docPath = sid => sid ? "sessions/" + sid + "/games/" + GAME : DOC;
+async function isHost(user, id) {
+  if (!id.sid) return isAdmin(user);
+  const s = await readPublicDoc("sessions/" + id.sid);
+  return !!(s && user && s.hostUid === user.uid);
+}
+
 async function overLimit(url, action, who) {
   const slot = Math.floor(Date.now() / 60000);
   const key = new Request(url.origin + "/som-rl/" + action + "/" + encodeURIComponent(who) + "/" + slot);
@@ -56,25 +67,26 @@ async function openDeal(env, gid, round, sealed) {
 function ids(b) {
   const gid = String(b.gid || ""), round = Number(b.round);
   if (!GID_RE.test(gid) || !(Number.isInteger(round) && round >= 1 && round <= 200)) return null;
-  return { gid, round };
+  const sid = sidOf(b);
+  return { gid, round, sid, key: sid ? sid + "_" + gid : gid };
 }
 
 async function doDeal(env, b, user) {
-  if (!isAdmin(user)) return json(403, { error: "للمنظم بس" });
   const id = ids(b);
   if (!id) return json(400, { error: "bad id" });
+  if (!(await isHost(user, id))) return json(403, { error: "للمنظم بس" });
   const uids = Array.isArray(b.uids) ? b.uids.map(String) : [];
   if (uids.length < 2 || uids.length > MAX_P || new Set(uids).size !== uids.length || !uids.every(u => UID_RE.test(u))) return json(400, { error: "bad players" });
   const key = await sealKey(env);
   if (!key) return json(503, { error: "الختم مو مضبوط في السيرفر" });
   const deck = shuffledDeck(), h = {};
   uids.forEach((u, i) => { h[u] = deck.slice(i * PER, i * PER + PER); });
-  const deal = await seal(key, sealId(id.gid), sealText(id.round), JSON.stringify({ h, by: user.uid }));
+  const deal = await seal(key, sealId(id.key), sealText(id.round), JSON.stringify({ h, by: user.uid }));
   return json(200, { deal, hand: h[user.uid] || null });
 }
 
 async function gameDoc(id) {
-  const d = await readPublicDoc(DOC);
+  const d = await readPublicDoc(docPath(id.sid));
   if (!d || d.gid !== id.gid || Number(d.round) !== id.round || typeof d.deal !== "string") return null;
   return d;
 }
@@ -84,7 +96,7 @@ async function doHand(env, b, user) {
   if (!id) return json(400, { error: "bad id" });
   const d = await gameDoc(id);
   if (!d) return json(409, { error: "مو هذي الجولة" });
-  const o = await openDeal(env, id.gid, id.round, d.deal);
+  const o = await openDeal(env, id.key, id.round, d.deal);
   if (!o) return json(500, { error: "ما قدرت أفتح الأوراق" });
   const hand = o.h[user.uid];
   if (!hand) return json(403, { error: "ما أنت في هالجولة" });
@@ -92,13 +104,13 @@ async function doHand(env, b, user) {
 }
 
 async function doReveal(env, b, user) {
-  if (!isAdmin(user)) return json(403, { error: "للمنظم بس" });
   const id = ids(b);
   if (!id) return json(400, { error: "bad id" });
+  if (!(await isHost(user, id))) return json(403, { error: "للمنظم بس" });
   const d = await gameDoc(id);
   if (!d) return json(409, { error: "مو هذي الجولة" });
   if (d.phase !== "showdown") return json(409, { error: "مو وقت الكشف" });
-  const o = await openDeal(env, id.gid, id.round, d.deal);
+  const o = await openDeal(env, id.key, id.round, d.deal);
   if (!o) return json(500, { error: "ما قدرت أفتح الأوراق" });
   const show = Array.isArray(d.show) ? d.show.map(String) : [];
   if (show.length < 2 || !show.every(u => o.h[u])) return json(409, { error: "قائمة الكشف غلط" });

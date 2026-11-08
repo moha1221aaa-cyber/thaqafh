@@ -90,6 +90,14 @@ function renderSession() {
             ? `<button type="button" class="tn-primary" onclick="sessJoin()">${ic("plus")} انضم للجلسة</button>`
             : `<div class="tn-login">${ic("lock")} سجّل دخولك من تبويب "الحساب" عشان تنضم وتظهر في اللوحة.<button type="button" onclick="showTab(null,'accountTab')">الذهاب للحساب</button></div>`;
     }
+    /* الألعاب: الطاولة المفتوحة تطلع للكل، والمضيف يفتح لعبة جديدة */
+    const pills = (typeof somRoomPill === "function" ? somRoomPill() : "") + (typeof baraRoomPill === "function" ? baraRoomPill() : "");
+    const somOn = typeof somActiveGame === "function" && somActiveGame(), baraOn = typeof baraActiveGame === "function" && baraActiveGame();
+    const gameBtns = host && open ? `<div class="sj-gbtns">
+${somOn ? "" : `<button type="button" onclick="somCreate()">${ic("dice")}<b>السوم</b><small>أوراق وسوم ومفاوضة</small></button>`}
+${baraOn ? "" : `<button type="button" onclick="baraCreate()">${ic("users")}<b>برا السالفة</b><small>مين برا السالفة؟</small></button>`}
+</div>` : "";
+    const games = open && (pills || gameBtns) ? `<div class="sj-games"><h4>${ic("gamepad")} الألعاب</h4>${pills}${gameBtns}</div>` : "";
     const winner = !open && ranked.length && ranked[0].pts > 0 ? ranked[0] : null;
 
     box.innerHTML = `
@@ -104,6 +112,7 @@ function renderSession() {
 </div>
 ${winner ? `<div class="sj-winner">${ic("crown")} الفائز: <b>${escapeHTML(winner.name)}</b> بـ ${winner.pts} نقطة</div>` : ""}
 ${action}
+${games}
 <div class="sj-board">${rows || `<div class="empty-state">${open ? "ما فيه حاضرين للحين. شارك الرمز، أو أضفهم بالاسم." : "ما كان فيه حاضرين"}</div>`}</div>
 ${host && open ? `
 <div class="tn-join sj-add">
@@ -197,7 +206,12 @@ function sessOpen(id, quiet) {
             return;
         }
         sess = Object.assign({ id: id }, doc.data());
-        if (first) { first = false; try { localStorage.setItem(SESS_KEY, id); } catch (e) {} }
+        if (first) {
+            first = false; try { localStorage.setItem(SESS_KEY, id); } catch (e) {}
+            /* ألعاب الجلسة (السوم وبرا السالفة): تشتغل على sessions/<الرمز>/games */
+            if (typeof somSetSession === "function") somSetSession(id);
+            if (typeof baraSetSession === "function") baraSetSession(id);
+        }
         renderMajlis();
     }, () => { sessLeave(); });
     sessMembersUnsub = sessCol().doc(id).collection("members").onSnapshot(snap => {
@@ -207,6 +221,8 @@ function sessOpen(id, quiet) {
     if (!quiet) renderMajlis();
 }
 function sessDetach() {
+    if (typeof somSetSession === "function") somSetSession(null);
+    if (typeof baraSetSession === "function") baraSetSession(null);
     if (sessUnsub) { sessUnsub(); sessUnsub = null; }
     if (sessMembersUnsub) { sessMembersUnsub(); sessMembersUnsub = null; }
 }

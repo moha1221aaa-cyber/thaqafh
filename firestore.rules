@@ -188,6 +188,20 @@ service cloud.firestore {
               && n.get('target', null) == (sameRound ? resource.data.get('target', null) : null)));
     }
 
+    // نفس الصوت السري، بس للعبة داخل جلسة (sessions/<sid>/games/bara)
+    function sessBaraVoteOk(sid, uid) {
+      let s = get(/databases/$(database)/documents/sessions/$(sid)/games/bara).data;
+      let n = request.resource.data;
+      let sameRound = resource != null && resource.data.get('gid', '') == s.get('gid', '') && resource.data.get('round', -1) == s.get('round', 0);
+      return n.keys().hasOnly(['gid', 'round', 'target', 'g'])
+        && s.get('active', false) == true && uid in s.get('pids', [])
+        && n.get('gid', '') == s.get('gid', '') && n.get('round', -1) == s.get('round', 0)
+        && ((s.get('phase', '') == 'vote' && n.get('target', '') is string && n.get('target', '') in s.get('pids', [])
+              && n.get('target', '') != uid && !('g' in n))
+          || (s.get('phase', '') == 'guess' && n.get('g', '') is string && n.get('g', '').size() > 0 && n.get('g', '').size() <= 4000
+              && n.get('target', null) == (sameRound ? resource.data.get('target', null) : null)));
+    }
+
     // جدول الدوري (المتسابقين والمواجهات والنتائج): الكل يقرا، والمنظم بس يكتب.
     // نتيجة البث (bcApplyResults) تنكتب من جهاز المنظم؛ لو كان غايب تنتظر لين يفتح الموقع.
     match /league/{doc} {
@@ -258,6 +272,20 @@ service cloud.firestore {
         && request.resource.data.status == 'open' && sessValid();
       allow update: if signedIn() && resource.data.hostUid == request.auth.uid && request.resource.data.hostUid == resource.data.hostUid && sessValid();
       allow delete: if isAdmin() || (signedIn() && resource.data.hostUid == request.auth.uid);
+
+      // ألعاب الجلسة (السوم وبرا السالفة، 8 نوفمبر 2026): نفس قواعد الغرفة، بس المنظم = مضيف الجلسة
+      match /games/{g} {
+        allow read: if true;
+        allow write: if signedIn() && (sessHost(sid)
+          || (g == 'som' && somPlayerUpdate())
+          || (g == 'bara' && baraPlayerUpdate()));
+      }
+      // أصوات برا السالفة داخل الجلسة: سرية، يقراها صاحبها ومضيف الجلسة بس
+      match /baraVotes/{uid} {
+        allow read: if signedIn() && (request.auth.uid == uid || sessHost(sid));
+        allow create, update: if signedIn() && request.auth.uid == uid && sessBaraVoteOk(sid, uid);
+        allow delete: if sessHost(sid);
+      }
 
       match /members/{mid} {
         allow read: if true;
