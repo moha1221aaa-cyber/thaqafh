@@ -107,22 +107,22 @@ function qualSave() {
     }, { merge: true }).catch(err => { console.log(err); alert("ما انحفظ: " + authErrAr(err)); });
 }
 /* كم مجموعة؟ (1 = دوري واحد). الحد: 3 متسابقين على الأقل في المجموعة */
-function tnAskGroups(count, cur) {
+async function tnAskGroups(count, cur) {
     const max = Math.max(1, Math.min(GROUP_NAMES.length, Math.floor(count / 3)));
     if (max < 2) return 1;
-    const ans = prompt(`كم مجموعة؟ اكتب 1 لدوري واحد، أو رقم من 2 لين ${max} لنظام المجموعات (مثل دوري أبطال أوروبا).`, String(cur || 1));
+    const ans = await uiPrompt(`كم مجموعة؟ اكتب 1 لدوري واحد، أو رقم من 2 لين ${max} لنظام المجموعات (مثل دوري أبطال أوروبا).`, String(cur || 1));
     if (ans === null) return null;
     const n = parseInt(ans, 10);
     if (!(n >= 1 && n <= max)) { alert(`اكتب رقم من 1 لين ${max}`); return null; }
     return n;
 }
-function qualAddPlayer() {
+async function qualAddPlayer() {
     if (!isAdmin) return;
-    let name = prompt("اسم المتسابق الجديد في التصفيات:");
+    let name = await uiPrompt("اسم المتسابق الجديد في التصفيات:");
     if (!name || !name.trim()) return;
     name = name.trim().replace(/\s+/g, " ").slice(0, 40);
     if (qual.players.some(p => p.name === name)) return alert("المتسابق موجود بنفس الاسم");
-    if (qual.matches.some(m => m.s1 !== "" && m.s2 !== "") && !confirm("فيه نتايج مسجلة، وإضافة متسابق تعيد القرعة وتمسحها. نكمل؟")) return;
+    if (qual.matches.some(m => m.s1 !== "" && m.s2 !== "") && !await uiConfirm("فيه نتايج مسجلة، وإضافة متسابق تعيد القرعة وتمسحها. نكمل؟")) return;
     const list = qual.players.map(p => p.name).concat([name]);
     let groups = null;
     if (qual.groups) { /* ينضاف لأصغر مجموعة */
@@ -131,13 +131,13 @@ function qualAddPlayer() {
     }
     qualRebuild(list, groups);
 }
-function qualRedraw() {
+async function qualRedraw() {
     if (!isAdmin) return;
     if (!qual.players.length) return alert("أضف متسابقين أول");
     const names = qual.players.map(p => p.name);
-    const n = tnAskGroups(names.length, qual.groups ? qual.groups.length : 1);
+    const n = await tnAskGroups(names.length, qual.groups ? qual.groups.length : 1);
     if (n === null) return;
-    if (!confirm(`نعيد القرعة ${n > 1 ? "بـ " + n + " مجموعات" : "بدوري واحد"} ونمسح نتايج التصفيات؟`)) return;
+    if (!await uiConfirm(`نعيد القرعة ${n > 1 ? "بـ " + n + " مجموعات" : "بدوري واحد"} ونمسح نتايج التصفيات؟`)) return;
     qualRebuild(names, drawGroups(names, n));
 }
 function qualRebuild(names, groups) {
@@ -453,15 +453,15 @@ function privSave() {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).catch(err => alert("ما انحفظت النتيجة: " + authErrAr(err)));
 }
-function privResetScores() {
-    if (!privDoc || !confirm("نصفّر كل نتايج البطولة؟")) return;
+async function privResetScores() {
+    if (!privDoc || !await uiConfirm("نصفّر كل نتايج البطولة؟")) return;
     privDoc.matches.forEach(m => { m.s1 = ""; m.s2 = ""; });
     privDoc.ko = null;
     privSave();
     renderTournamentsPage();
 }
-function privDelete() {
-    if (!privDoc || !confirm(`نحذف بطولة "${privDoc.name}" نهائياً؟`)) return;
+async function privDelete() {
+    if (!privDoc || !await uiConfirm(`نحذف بطولة "${privDoc.name}" نهائياً؟`)) return;
     const id = privDoc.id;
     privCol().doc(id).delete().then(() => { tnForget(id); roomToast("انحذفت البطولة", "check-circle"); }).catch(err => alert("ما انحذفت: " + authErrAr(err)));
 }
@@ -471,5 +471,5 @@ async function privShare() {
     const text = `تابع بطولة "${privDoc.name}" على منصة فيكارو الثقافية\nالرمز: ${privDoc.id}\n${url}`;
     if (navigator.share) { try { await navigator.share({ title: privDoc.name, text: text, url: url }); } catch (e) {} return; }
     try { await navigator.clipboard.writeText(text); roomToast("اننسخ رابط البطولة", "check-circle"); }
-    catch (e) { window.prompt("انسخ الرابط:", url); }
+    catch (e) { await uiPrompt("انسخ الرابط:", url); }
 }

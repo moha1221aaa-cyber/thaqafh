@@ -80,13 +80,13 @@ function koValid(ko, names) {
 }
 
 /* ===== البدء: المتأهلين من الترتيب الحالي ===== */
-function koStart() {
+async function koStart() {
     const ctx = tCtx();
     if (!ctx.canEdit || ctx.kind === "none") return;
-    if (ctx.ko && !confirm("فيه أدوار إقصائية شغالة، نعيد بناءها ونمسح نتايجها؟")) return;
+    if (ctx.ko && !await uiConfirm("فيه أدوار إقصائية شغالة، نعيد بناءها ونمسح نتايجها؟")) return;
     if (ctx.players.length < 3) return alert("لازم 3 متسابقين على الأقل");
     const left = ctx.matches.filter(m => m.s1 === "" || m.s2 === "" || m.s1 == null || m.s2 == null).length;
-    if (left && !confirm(`باقي ${left} مواجهة ما انلعبت في ${ctx.groups ? "دور المجموعات" : "الدوري"}، والمتأهلين يتحددون من الترتيب الحالي. نكمل؟`)) return;
+    if (left && !await uiConfirm(`باقي ${left} مواجهة ما انلعبت في ${ctx.groups ? "دور المجموعات" : "الدوري"}، والمتأهلين يتحددون من الترتيب الحالي. نكمل؟`)) return;
     tableStats(ctx.players, ctx.matches);
     let ko;
     const groups = ctx.groups && ctx.groups.length > 1 ? ctx.groups : null;
@@ -101,7 +101,7 @@ function koStart() {
         }
     } else {
         const opts = [2, 4, 8].filter(n => n <= ctx.players.length);
-        const ans = prompt(`كم متأهل للأدوار الإقصائية؟ (${opts.join(" أو ")}). يتأهل الأعلى ترتيباً.`, String(opts.indexOf(4) !== -1 ? 4 : opts[opts.length - 1]));
+        const ans = await uiPrompt(`كم متأهل للأدوار الإقصائية؟ (${opts.join(" أو ")}). يتأهل الأعلى ترتيباً.`, String(opts.indexOf(4) !== -1 ? 4 : opts[opts.length - 1]));
         if (ans === null) return;
         const n = parseInt(ans, 10);
         if (opts.indexOf(n) === -1) return alert("اكتب " + opts.join(" أو "));
@@ -111,9 +111,9 @@ function koStart() {
     tn.pane = "ko";
     renderTournamentsPage();
 }
-function koDelete() {
+async function koDelete() {
     const ctx = tCtx();
-    if (!ctx.canEdit || !ctx.ko || !confirm("نحذف الأدوار الإقصائية ونتايجها؟")) return;
+    if (!ctx.canEdit || !ctx.ko || !await uiConfirm("نحذف الأدوار الإقصائية ونتايجها؟")) return;
     ctx.saveKo(null);
     tn.pane = "stand";
     renderTournamentsPage();

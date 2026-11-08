@@ -246,10 +246,10 @@ function releaseMicSlot(index) {
     roomReleaseMySeat(index);
 }
 
-function adminKickMic(index) {
+async function adminKickMic(index) {
     if (!isAdmin) return;
     if (!roomState.mics[index]) return;
-    if (!confirm("هل تريد إخراج هذا المستخدم من المايك؟")) return;
+    if (!await uiConfirm("هل تريد إخراج هذا المستخدم من المايك؟")) return;
     roomState.mics[index] = null; // سيقوم جهاز المستخدم نفسه بإيقاف مايكه تلقائيًا عند وصول هذا التحديث
     saveRoomState(["mics"]);
 }

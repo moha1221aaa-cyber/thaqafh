@@ -95,9 +95,9 @@ container.innerHTML = html;
 });
 }
 
-function deleteVideo(docId) {
+async function deleteVideo(docId) {
 if(!isAdmin) return;
-if(!confirm("هل أنت متأكد من حذف هذا الفيديو؟")) return;
+if(!await uiConfirm("هل أنت متأكد من حذف هذا الفيديو؟")) return;
 
 firebaseDB.collection("videos").doc(docId).delete()
 .then(() => alert("تم حذف الفيديو بنجاح"))

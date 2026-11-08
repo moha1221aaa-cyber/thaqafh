@@ -88,11 +88,11 @@ document.addEventListener("focusout", e => {
     [0, 120, 350, 800].forEach(ms => setTimeout(bcFitViewport, ms));
 }, true);
 
-function closeLiveScreen(fromPop) {
+async function closeLiveScreen(fromPop) {
     if (!openLiveId) return;
     { const ub = document.getElementById("bcUnlock"); if (ub) ub.remove(); }
     const d = liveMatchesCache[openLiveId];
-    if (!fromPop && bcTrack && d && d.status === "live" && !confirm("مايكك مفتوح في البث، إذا طلعت بيتقفل. متأكد؟")) return;
+    if (!fromPop && bcTrack && d && d.status === "live" && !await uiConfirm("مايكك مفتوح في البث، إذا طلعت بيتقفل. متأكد؟")) return;
     if (!fromPop && window.history.state && window.history.state.liveOpen) {
         window.history.back();
         return;

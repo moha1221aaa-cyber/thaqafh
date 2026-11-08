@@ -468,11 +468,11 @@ async function somHostReveal() {
         roomToast("ما قدرت أكشف الأوراق: " + e.message, "alert");
     } finally { somHostBusy = false; somRender(); }
 }
-function somHostSkip() {
+async function somHostSkip() {
     const s = somState;
     if (!s) return;
     const who = s.phase === "respond" ? "اللي ما ردوا (ينحسب قبول)" : somName(s, s.phase === "offer" ? s.leader : s.turn);
-    if (confirm("تتخطى " + who + "؟")) somDo({ t: "skip" });
+    if (await uiConfirm("تتخطى " + who + "؟")) somDo({ t: "skip" });
 }
 
 /* ===== الحركات من الأزرار ===== */
@@ -488,14 +488,14 @@ function somJoin() {
     somDo({ t: "join", name: somMyName(), av });
 }
 function somLeave() { somDo({ t: "leave" }); }
-function somKick(uid) { if (confirm("تطلّع " + somName(somState, uid) + " من الطاولة؟")) somDo({ t: "leave", uid }); }
+async function somKick(uid) { if (await uiConfirm("تطلّع " + somName(somState, uid) + " من الطاولة؟")) somDo({ t: "leave", uid }); }
 function somBid() { somDo({ t: "bid", amt: somDraft.bid }); }
 function somHold() { somDo({ t: "hold" }); }
 function somFold() { somDo({ t: "fold" }); }
 function somReply(v) { somDo({ t: "reply", v: v === "refuse" ? "refuse" : "accept" }); }
 function somSendOffers() { somDo({ t: "offer", offers: Object.assign({}, somDraft.offers) }); }
-function somEnd() { if (confirm("تنهي اللعبة الحين؟ الترتيب يطلع على الفلوس اللي معهم")) somDo({ t: "end" }); }
-function somCloseTable() { if (confirm("تسكّر الطاولة؟")) somDo({ t: "close" }); }
+async function somEnd() { if (await uiConfirm("تنهي اللعبة الحين؟ الترتيب يطلع على الفلوس اللي معهم")) somDo({ t: "end" }); }
+async function somCloseTable() { if (await uiConfirm("تسكّر الطاولة؟")) somDo({ t: "close" }); }
 async function somNewTable() {
     const r = await somDo({ t: "close" }, true);
     if (r && r.s) { somState = r.s; await somCreate(); }

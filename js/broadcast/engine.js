@@ -644,19 +644,19 @@ function liveAdvanceIfDue() {
 }
 
 /* ===== تحكم المنظم ===== */
-function bcNext(skip) {
+async function bcNext(skip) {
     const id = openLiveId;
     const d = liveMatchesCache[id];
     if (!d || !isAdmin) return;
-    if (skip && !confirm(`تخطي مواجهة ${livePlayerName(d, 1)} ضد ${livePlayerName(d, 2)}؟\nما بتنسجل لها نتيجة وتقدرون تلعبونها بعدين.`)) return;
+    if (skip && !await uiConfirm(`تخطي مواجهة ${livePlayerName(d, 1)} ضد ${livePlayerName(d, 2)}؟\nما بتنسجل لها نتيجة وتقدرون تلعبونها بعدين.`)) return;
     bcOpenNext(id, skip).then(() => liveTx(id, (x, now) => bcNextUpd(x, now, skip))).catch(err => alert("تعذّر: " + err.message));
 }
 
 /* البث المجدول: يبدأ الافتتاح بضغطة المنظم بس (قبل الموعد أو بعده). العداد للعرض، وما يبدأ البث لحاله */
-function bcGoLive() {
+async function bcGoLive() {
     const d = liveMatchesCache[openLiveId];
     if (!d || d.status !== "scheduled" || !isAdmin) return;
-    if (bcNow() < (Number(d.startAt) || 0) && !confirm("تبدأ البث الحين قبل الموعد؟")) return;
+    if (bcNow() < (Number(d.startAt) || 0) && !await uiConfirm("تبدأ البث الحين قبل الموعد؟")) return;
     liveTx(openLiveId, (x, now) => x.status === "scheduled" ? { status: "live", scene: "opening", sceneAt: now, startedAt: now, hostUid: currentUser.uid, hostName: (currentUserDocData && currentUserDocData.name) || x.hostName } : null)
         .catch(err => roomToast("تعذّر بدء البث: " + err.message, "alert"));
 }
@@ -786,13 +786,13 @@ function bcForceStart() {
         .catch(err => alert("تعذّر: " + err.message));
 }
 
-function bcEnd() {
+async function bcEnd() {
     const d = liveMatchesCache[openLiveId];
     if (!d || !isAdmin) return;
     const left = (d.order || []).filter(o => o.state === "pending").length;
     const q = d.status === "scheduled" ? "إلغاء البث المجدول؟"
         : (left && d.scene !== "closing" ? `إنهاء بث الجولة؟ باقي ${left} مواجهات ما تلعبت، وتقدر تبدأ لها بث ثاني بعدين.` : "إنهاء بث الجولة؟");
-    if (!confirm(q)) return;
+    if (!await uiConfirm(q)) return;
     liveTx(openLiveId, (x, now) => isLiveActive(x) ? { status: "ended", phase: "done", endedAt: now } : null)
         .catch(err => alert("تعذّر: " + err.message));
 }
@@ -1035,9 +1035,9 @@ async function bcStartRehearsal() {
     const snap = await liveRef(BC_REH).get().catch(() => null);
     const old = snap && snap.exists ? snap.data() : null;
     if (old && isLiveActive(old)) {
-        if (confirm("عندك بث خاص شغال. تكمّله؟\n(إلغاء = تبدأ واحد جديد)")) { liveMatchesCache[BC_REH] = old; return openLiveScreen(BC_REH); }
+        if (await uiConfirm("عندك بث خاص شغال. تكمّله، أو تبدأ واحد جديد؟", { title: "بث خاص شغال", ok: "كمّله", cancel: "ابدأ جديد", danger: false })) { liveMatchesCache[BC_REH] = old; return openLiveScreen(BC_REH); }
     }
-    const ans = prompt("بث خاص لك بس، بمتسابقين وهميين (محد يشوفه ولا يوصله إشعار، والنتيجة ما تنكتب في الدوري).\nكم مواجهة تبي؟ (1 لين 6)", "2");
+    const ans = await uiPrompt("بث خاص لك بس، بمتسابقين وهميين (محد يشوفه ولا يوصله إشعار، والنتيجة ما تنكتب في الدوري).\nكم مواجهة تبي؟ (1 لين 6)", "2");
     if (ans === null) return;   /* إلغاء */
     const n = Math.max(1, Math.min(6, parseInt(String(ans).replace(/[٠-٩]/g, c => "٠١٢٣٤٥٦٧٨٩".indexOf(c)), 10) || 2));
     await Promise.all([bcLoadQHistory(), bcLoadHard()]).catch(() => {});
