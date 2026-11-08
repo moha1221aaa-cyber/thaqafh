@@ -138,33 +138,44 @@ else { m.p1.d++; m.p2.d++; m.p1.pts += 1; m.p2.pts += 1; }
 ps.sort((a,b) => b.pts - a.pts || ((b.gf-b.ga) - (a.gf-a.ga)) || b.gf - a.gf);
 }
 
+/* جدول واحد (مجموعة أو الدوري كله): الأول والثاني من كل مجموعة يتأهلون */
+function buildStandTable(title, list, links, ctx, grouped) {
+let wrap = document.createElement("div");
+wrap.className = "tn-gt";
+let rows = list.map((p, i) => {
+let avatarData = getPlayerAvatar(p.name, links);
+let verifiedBadge = avatarData.isVerified ? `<span class="verified-badge" title="حساب موثوق"><svg class="ic" aria-hidden="true"><use href="#i-verified"/></svg></span>` : '';
+let cell = `
+<div class="table-player-cell ${ctx.profile ? "clickable-profile" : ""}" ${ctx.profile ? `onclick="openUserProfile(${jsArg(links[p.name] || '')}, ${jsArg(p.name)})"` : ""}>
+<img loading="lazy" decoding="async" src="${safeSrc(avatarData.url)}" class="table-player-img" alt="${escapeHTML(p.name)}">
+<span style="font-weight:bold;">${escapeHTML(p.name)}</span>${verifiedBadge}
+</div>`;
+let cls = grouped ? (i < 2 ? "adv" : "") : (i < 3 ? `top-${i+1}` : "");
+return `<tr class="${cls}"><td class="rank-cell">${i+1}</td><td>${cell}</td><td>${p.w}</td><td>${p.d}</td><td>${p.l}</td><td>${p.gf}</td><td>${p.ga}</td><td class="pts-cell"><b>${p.pts}</b></td></tr>`;
+}).join("");
+wrap.innerHTML = `${title ? `<h4 class="tn-gt-t">${escapeHTML(title)}</h4>` : ""}
+<table><thead><tr><th>#</th><th>المتسابق</th><th>ف</th><th>ت</th><th>خ</th><th>+</th><th>-</th><th>ن</th></tr></thead><tbody>${rows}</tbody></table>`;
+return wrap;
+}
+
 function table() {
 tableStats();
 renderLeagueSummary();
 let ctx = tCtx();
 if(ctx.players !== players) tableStats(ctx.players, ctx.matches);
-let tbody = document.getElementById("standings");
-if(!tbody) return;
-tbody.innerHTML = "";
-if(!ctx.players.length) tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${ctx.empty || "لا يوجد متسابقين"}</td></tr>`;
+let box = document.getElementById("standingsBox");
+if(!box) return;
+box.innerHTML = "";
+if(!ctx.players.length) { box.innerHTML = `<div class="empty-state">${ctx.empty || "لا يوجد متسابقين"}</div>`; return; }
 let links = ctx.links || {};
-
-ctx.players.forEach((p,i) => {
-let row = document.createElement("tr");
-let avatarData = getPlayerAvatar(p.name, links);
-let verifiedBadge = avatarData.isVerified ? `<span class="verified-badge" title="حساب موثوق"><svg class="ic" aria-hidden="true"><use href="#i-verified"/></svg></span>` : '';
-
-let playerCellHTML = `
-<div class="table-player-cell ${ctx.profile ? "clickable-profile" : ""}" ${ctx.profile ? `onclick="openUserProfile(${jsArg(links[p.name] || '')}, ${jsArg(p.name)})"` : ""}>
-<img loading="lazy" decoding="async" src="${safeSrc(avatarData.url)}" class="table-player-img" alt="${escapeHTML(p.name)}">
-<span style="font-weight:bold;">${escapeHTML(p.name)}</span>${verifiedBadge}
-</div>
-`;
-
-if(i < 3) row.className = `top-${i+1}`;
-row.innerHTML = `<td class="rank-cell">${i+1}</td><td>${playerCellHTML}</td><td>${p.w}</td><td>${p.d}</td><td>${p.l}</td><td>${p.gf}</td><td>${p.ga}</td><td class="pts-cell"><b>${p.pts}</b></td>`;
-tbody.appendChild(row);
-});
+let groups = ctx.groups && ctx.groups.length > 1 ? ctx.groups : null;
+if(groups) {
+groups.forEach(g => box.appendChild(buildStandTable("المجموعة " + g.n, ctx.players.filter(p => g.p.indexOf(p.name) !== -1), links, ctx, true)));
+let note = document.createElement("div");
+note.className = "tn-legend";
+note.innerHTML = `<i></i> يتأهل الأول والثاني من كل مجموعة`;
+box.appendChild(note);
+} else box.appendChild(buildStandTable("", ctx.players, links, ctx, false));
 }
 
 function renderLeagueSummary() {
@@ -264,6 +275,12 @@ d.innerHTML = `
 `;
 return d;
 };
+if (ctx.groups && ctx.groups.length > 1 && m.g != null && ctx.groups[m.g]) {
+let chip = document.createElement("div");
+chip.className = "match-grp";
+chip.textContent = "المجموعة " + ctx.groups[m.g].n;
+div.appendChild(chip);
+}
 let player1Div = mkSide(m.p1, av1);
 
 let scoreDiv = document.createElement("div");

@@ -9,8 +9,8 @@ const QUAL_TITLE = "تصفيات أبطال النخبة الثقافي";
 const TN_PRIV_MAX_OWNED = 5;
 const TN_JOINED_KEY = "thq:joined";
 
-const tn = { mode: "official", official: "elite", pane: "stand", open: false };   /* open: داخل صفحة بطولة (وإلا القائمة) */
-let qual = { players: [], matches: [], links: {}, exists: false };
+const tn = { mode: "official", official: "elite", pane: "stand", open: false, list: "official" };   /* open: داخل صفحة بطولة (وإلا القائمة) */
+let qual = { players: [], matches: [], links: {}, groups: null, exists: false };
 let privDoc = null;          /* البطولة الخاصة المفتوحة: { id, name, ownerUid, ownerName, double, players, matches } */
 let privUnsub = null;
 let privOwned = [];          /* بطولاتي: [{id, name, n, played}] */
@@ -33,11 +33,11 @@ function tnHydrate(playersList, matchList) {
     const byName = {};
     ps.forEach(p => { byName[p.name] = p; });
     const get = n => byName[n] || (byName[n] = { name: n, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 });
-    const ms = (matchList || []).map(m => ({ p1: get(m.p1), p2: get(m.p2), s1: m.s1 == null ? "" : m.s1, s2: m.s2 == null ? "" : m.s2, round: m.round }));
+    const ms = (matchList || []).map(m => { const o = { p1: get(m.p1), p2: get(m.p2), s1: m.s1 == null ? "" : m.s1, s2: m.s2 == null ? "" : m.s2, round: m.round }; if (m.g != null) o.g = m.g; return o; });
     return { players: ps, matches: ms };
 }
 function tnSerialize(ms) {
-    return ms.map(m => ({ p1: m.p1.name, p2: m.p2.name, s1: m.s1, s2: m.s2, round: m.round }));
+    return ms.map(m => { const o = { p1: m.p1.name, p2: m.p2.name, s1: m.s1, s2: m.s2, round: m.round }; if (m.g != null) o.g = m.g; return o; });
 }
 function tnPlayedCount(list) {
     return (list || []).filter(m => m.s1 !== "" && m.s2 !== "" && m.s1 != null && m.s2 != null).length;
@@ -49,7 +49,7 @@ function tCtx() {
     if (tn.mode === "private") {
         if (privDoc) {
             return {
-                kind: "private", players: privDoc.players, matches: privDoc.matches, links: {},
+                kind: "private", players: privDoc.players, matches: privDoc.matches, links: {}, groups: privDoc.groups,
                 canEdit: !!(currentUser && currentUser.uid === privDoc.ownerUid), save: privSave,
                 live: false, profile: false, title: privDoc.name, empty: "ما فيه متسابقين"
             };
@@ -58,13 +58,13 @@ function tCtx() {
     }
     if (tn.official === "qual") {
         return {
-            kind: "qual", players: qual.players, matches: qual.matches, links: qual.links,
+            kind: "qual", players: qual.players, matches: qual.matches, links: qual.links, groups: qual.groups,
             canEdit: isAdmin, save: qualSave, live: false, profile: false, title: QUAL_TITLE,
             empty: qual.exists ? "ما فيه متسابقين" : "التصفيات ما بدأت للحين"
         };
     }
     return {
-        kind: "elite", players: players, matches: matches, links: playerLinks,
+        kind: "elite", players: players, matches: matches, links: playerLinks, groups: leagueGroups,
         canEdit: isAdmin, save: save, live: true, profile: true, title: ELITE_TITLE, empty: "ما فيه متسابقين"
     };
 }
@@ -83,9 +83,9 @@ function initTournaments() {
         if (doc.exists) {
             const d = doc.data();
             const h = tnHydrate(d.playersList, d.matches);
-            qual = { players: h.players, matches: h.matches, links: d.playerLinks || {}, exists: true };
+            qual = { players: h.players, matches: h.matches, links: d.playerLinks || {}, groups: groupsValid(d.groups, h.players.map(p => p.name)) ? d.groups : null, exists: true };
         } else {
-            qual = { players: [], matches: [], links: {}, exists: false };
+            qual = { players: [], matches: [], links: {}, groups: null, exists: false };
         }
         renderTournamentsPage();
     }, () => {});
@@ -98,8 +98,19 @@ function qualSave() {
         matches: tnSerialize(qual.matches),
         playersList: qual.players.map(p => p.name),
         playerLinks: qual.links || {},
+        groups: qual.groups || firebase.firestore.FieldValue.delete(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).catch(err => { console.log(err); alert("ما انحفظ: " + authErrAr(err)); });
+}
+/* كم مجموعة؟ (1 = دوري واحد). الحد: 3 متسابقين على الأقل في المجموعة */
+function tnAskGroups(count, cur) {
+    const max = Math.max(1, Math.min(GROUP_NAMES.length, Math.floor(count / 3)));
+    if (max < 2) return 1;
+    const ans = prompt(`كم مجموعة؟ اكتب 1 لدوري واحد، أو رقم من 2 لين ${max} لنظام المجموعات (مثل دوري أبطال أوروبا).`, String(cur || 1));
+    if (ans === null) return null;
+    const n = parseInt(ans, 10);
+    if (!(n >= 1 && n <= max)) { alert(`اكتب رقم من 1 لين ${max}`); return null; }
+    return n;
 }
 function qualAddPlayer() {
     if (!isAdmin) return;
@@ -109,18 +120,26 @@ function qualAddPlayer() {
     if (qual.players.some(p => p.name === name)) return alert("المتسابق موجود بنفس الاسم");
     if (qual.matches.some(m => m.s1 !== "" && m.s2 !== "") && !confirm("فيه نتايج مسجلة، وإضافة متسابق تعيد القرعة وتمسحها. نكمل؟")) return;
     const list = qual.players.map(p => p.name).concat([name]);
-    qualRebuild(list);
+    let groups = null;
+    if (qual.groups) { /* ينضاف لأصغر مجموعة */
+        const small = qual.groups.reduce((a, g) => g.p.length < a.p.length ? g : a, qual.groups[0]);
+        groups = qual.groups.map(g => ({ n: g.n, p: g === small ? g.p.concat([name]) : g.p.slice() }));
+    }
+    qualRebuild(list, groups);
 }
 function qualRedraw() {
     if (!isAdmin) return;
     if (!qual.players.length) return alert("أضف متسابقين أول");
-    if (!confirm("نعيد القرعة ونمسح نتايج التصفيات؟")) return;
-    qualRebuild(qual.players.map(p => p.name));
+    const names = qual.players.map(p => p.name);
+    const n = tnAskGroups(names.length, qual.groups ? qual.groups.length : 1);
+    if (n === null) return;
+    if (!confirm(`نعيد القرعة ${n > 1 ? "بـ " + n + " مجموعات" : "بدوري واحد"} ونمسح نتايج التصفيات؟`)) return;
+    qualRebuild(names, drawGroups(names, n));
 }
-function qualRebuild(names) {
+function qualRebuild(names, groups) {
     const ps = names.map(n => ({ name: n, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }));
-    const ms = names.length >= 2 ? buildSchedule(ps, true) : [];
-    qual = { players: ps, matches: ms, links: qual.links || {}, exists: true };
+    const ms = names.length >= 2 ? buildSchedule(ps, true, groups) : [];
+    qual = { players: ps, matches: ms, links: qual.links || {}, groups: groups || null, exists: true };
     qualSave();
     renderTournamentsPage();
 }
@@ -130,6 +149,7 @@ function tnOpenOfficial(k) {
     if (privUnsub) { privUnsub(); privUnsub = null; }
     privDoc = null;
     tn.mode = "official";
+    tn.list = "official";
     tn.official = k === "qual" ? "qual" : "elite";
     tn.pane = "stand";
     tn.open = true;
@@ -164,20 +184,52 @@ function tnRowHTML(icon, title, sub, action, cls) {
 </button>`;
 }
 
-/* قائمة البطولات: الرسمية فوق، والخاصة تحتها (إنشاء، رمز، بطولاتي، اللي أتابعها) */
+/* قائمة الثلاث نقاط (⋮): الأزرار الثانوية فيها بدل ما تنتشر في الصفحة. items: [{ icon, label, action, danger }] */
+function moreMenuHTML(id, items) {
+    items = items.filter(Boolean);
+    if (!items.length) return "";
+    return `<div class="tn-more">
+<button type="button" class="tn-more-btn" onclick="tnMenuToggle(event, ${jsArg(id)})" aria-haspopup="menu" aria-label="المزيد">${ic("dots")}</button>
+<div class="tn-menu" id="${id}" role="menu" hidden>${items.map(it => `<button type="button" role="menuitem" class="${it.danger ? "danger" : ""}" onclick="tnMenuClose(); ${it.action}">${ic(it.icon)}<span>${escapeHTML(it.label)}</span></button>`).join("")}</div>
+</div>`;
+}
+function tnMenuClose() { document.querySelectorAll(".tn-menu").forEach(m => { m.hidden = true; }); }
+function tnMenuToggle(ev, id) {
+    ev.stopPropagation();
+    const m = document.getElementById(id);
+    if (!m) return;
+    const open = m.hidden;
+    tnMenuClose();
+    m.hidden = !open;
+}
+document.addEventListener("click", e => { if (!e.target.closest || !e.target.closest(".tn-more")) tnMenuClose(); });
+
+function tnSetList(k) {
+    tn.list = k === "private" ? "private" : "official";
+    renderTournamentsPage();
+}
+
+/* قائمة البطولات: قسمين منفصلين، الرسمية والخاصة */
 function renderTnList() {
     const box = document.getElementById("tnList");
     if (!box) return;
-    const sub = (n, played, total) => n ? `${n} متسابق · ${played}/${total} مواجهة` : "لم تبدأ بعد";
+    const seg = `<div class="tn-seg tn-top" role="tablist">
+<button type="button" class="${tn.list === "official" ? "active" : ""}" onclick="tnSetList('official')">${ic("trophy")} الرسمية</button>
+<button type="button" class="${tn.list === "private" ? "active" : ""}" onclick="tnSetList('private')">${ic("users")} الخاصة</button>
+</div>`;
+    const sub = (n, played, total, g) => n ? `${n} متسابق${g ? " · " + g + " مجموعات" : ""} · ${played}/${total} مواجهة` : "لم تبدأ بعد";
+    if (tn.list === "official") {
+        box.innerHTML = seg + `
+<div class="tn-note">بطولات ينظمها منظم المنصة.</div>
+${tnRowHTML("trophy", ELITE_TITLE, sub(players.length, tnPlayedCount(matches), matches.length, leagueGroups && leagueGroups.length), "tnOpenOfficial('elite')", "gold")}
+${tnRowHTML("target", QUAL_TITLE, sub(qual.players.length, tnPlayedCount(qual.matches), qual.matches.length, qual.groups && qual.groups.length), "tnOpenOfficial('qual')")}`;
+        return;
+    }
     const joinedIds = Object.keys(privJoined).filter(id => !privOwned.some(o => o.id === id));
-    box.innerHTML = `
-<h4 class="tn-sec">${ic("trophy")} البطولات الرسمية</h4>
-${tnRowHTML("trophy", ELITE_TITLE, sub(players.length, tnPlayedCount(matches), matches.length), "tnOpenOfficial('elite')", "gold")}
-${tnRowHTML("target", QUAL_TITLE, sub(qual.players.length, tnPlayedCount(qual.matches), qual.matches.length), "tnOpenOfficial('qual')")}
-
-<h4 class="tn-sec">${ic("users")} البطولات الخاصة</h4>
+    box.innerHTML = seg + `
 <div class="tn-intro">
-<p>سوّ مسابقة ثقافية بينك وبين أصحابك: تكتب أسماءهم، والموقع يسوي القرعة والترتيب، وتدخل النتايج من جوالك. وأصحابك يتابعونها بالرمز أو الرابط.</p>
+<h3>${ic("users")} بطولتك الخاصة</h3>
+<p>سوّ مسابقة ثقافية بينك وبين أصحابك: تكتب أسماءهم، والموقع يسوي القرعة والترتيب (دوري أو مجموعات)، وتدخل النتايج من جوالك. وأصحابك يتابعونها بالرمز أو الرابط.</p>
 <button type="button" class="tn-primary" onclick="tnOpenCreate()">${ic("plus")} بطولة خاصة جديدة</button>
 </div>
 <div class="tn-join">
@@ -190,12 +242,13 @@ ${currentUser ? (privOwned.length ? `<h4 class="tn-h">بطولاتي</h4>${privO
 ${joinedIds.length ? `<h4 class="tn-h">بطولات أتابعها</h4>${joinedIds.map(id => tnRowHTML("trophy", privJoined[id].name, `المنظم: ${privJoined[id].ownerName || "-"} · ${privJoined[id].n} متسابق`, `tnOpenPrivate(${jsArg(id)})`)).join("")}` : ""}`;
 }
 
-function tnHeadHTML(back, title, small, extra) {
+/* رأس صفحة البطولة: رجوع، العنوان، وأزرار (مشاركة ظاهرة + ⋮ للباقي) */
+function tnHeadHTML(title, small, actions) {
     return `
 <div class="tn-phead">
-<button type="button" class="tn-back" onclick="tnBack()">${ic("chevron-right")} ${back}</button>
+<button type="button" class="tn-back" onclick="tnBack()" aria-label="رجوع للبطولات">${ic("chevron-right")}</button>
 <div class="tn-ptitle"><b>${escapeHTML(title)}</b><small>${small}</small></div>
-${extra || ""}
+<div class="tn-pact">${actions || ""}</div>
 </div>`;
 }
 
@@ -217,22 +270,14 @@ function renderTournamentsPage() {
         head.innerHTML = privDoc ? privHeadHTML() : "";
     } else {
         const q = tn.official === "qual";
-        head.innerHTML = tnHeadHTML("البطولات", q ? QUAL_TITLE : ELITE_TITLE, q ? "طريقك لأبطال النخبة" : "البطولة الرئيسية للمنصة");
-    }
-
-    const adm = document.getElementById("tnAdminBox");
-    if (adm) {
-        const ctx = tCtx();
-        if (tn.mode === "official" && isAdmin) {
-            adm.innerHTML = `<div class="tn-admin">
-<button type="button" onclick="${tn.official === "qual" ? "qualAddPlayer()" : "addNewPlayerPrompt()"}">${ic("plus")} إضافة متسابق</button>
-<button type="button" onclick="${tn.official === "qual" ? "qualRedraw()" : "reDrawMatches()"}">${ic("dice")} إعادة القرعة</button>
-</div>`;
-        } else if (tn.mode === "private" && privDoc && ctx.canEdit) {
-            adm.innerHTML = `<div class="tn-admin">
-<button type="button" onclick="privResetScores()">${ic("hourglass")} تصفير النتائج</button>
-</div>`;
-        } else adm.innerHTML = "";
+        const sm = q ? "طريقك لأبطال النخبة" : "البطولة الرئيسية للمنصة";
+        const items = [];
+        if (isAdmin) {
+            items.push({ icon: "plus", label: "إضافة متسابق", action: q ? "qualAddPlayer()" : "addNewPlayerPrompt()" });
+            items.push({ icon: "dice", label: "إعادة القرعة (دوري أو مجموعات)", action: q ? "qualRedraw()" : "reDrawMatches()" });
+        }
+        items.push({ icon: "message", label: "مشاركة الترتيب عبر واتساب", action: "shareStandingsToWhatsApp()" });
+        head.innerHTML = tnHeadHTML(q ? QUAL_TITLE : ELITE_TITLE, sm, moreMenuHTML("tnMenu", items));
     }
     table(); renderMatches();
     paintTnPane();
@@ -282,11 +327,14 @@ function loadPrivateLists() {
 
 function privHeadHTML() {
     const mine = currentUser && currentUser.uid === privDoc.ownerUid;
-    const small = `المنظم: ${escapeHTML(privDoc.ownerName || "-")}${mine ? " (أنت)" : ""} · الرمز <span class="tn-code" dir="ltr">${escapeHTML(privDoc.id)}</span>`;
-    return tnHeadHTML("البطولات", privDoc.name, small, `<div class="tn-pact">
-<button type="button" onclick="privShare()" title="مشاركة">${ic("share")}</button>
-${mine ? `<button type="button" class="danger" onclick="privDelete()" title="حذف البطولة">${ic("trash")}</button>` : ""}
-</div>`);
+    const grp = privDoc.groups ? ` · ${privDoc.groups.length} مجموعات` : "";
+    const small = `${escapeHTML(privDoc.ownerName || "-")}${mine ? " (أنت)" : ""}${grp} · <span class="tn-code" dir="ltr">${escapeHTML(privDoc.id)}</span>`;
+    const items = [
+        { icon: "message", label: "مشاركة الترتيب عبر واتساب", action: "shareStandingsToWhatsApp()" },
+        mine ? { icon: "hourglass", label: "تصفير النتائج", action: "privResetScores()" } : null,
+        mine ? { icon: "trash", label: "حذف البطولة", action: "privDelete()", danger: true } : null
+    ];
+    return tnHeadHTML(privDoc.name, small, `<button type="button" class="tn-ic-btn" onclick="privShare()" title="مشاركة الرابط" aria-label="مشاركة الرابط">${ic("share")}</button>` + moreMenuHTML("tnMenu", items));
 }
 
 function tnOpenCreate() {
@@ -306,19 +354,23 @@ async function tnCreatePrivate() {
     const name = (document.getElementById("tnName").value || "").trim().replace(/\s+/g, " ").slice(0, 50);
     const names = tnParseNames(document.getElementById("tnPlayers").value);
     const dbl = document.getElementById("tnFormat").value !== "single";
+    const gcount = parseInt(document.getElementById("tnGroups").value, 10) || 1;
     if (!name) return alert("اكتب اسم البطولة");
     if (names.length < 2) return alert("اكتب اسمين على الأقل");
     if (names.length > 12) return alert("الحد الأعلى 12 متسابق");
+    if (gcount > 1 && names.length < gcount * 3) return alert(`نظام ${gcount} مجموعات يحتاج ${gcount * 3} متسابقين على الأقل (3 في كل مجموعة)`);
     const btn = document.getElementById("tnCreateBtn");
     btn.disabled = true;
     const ps = names.map(n => ({ name: n, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }));
+    const groups = drawGroups(names, gcount);
     const data = {
         name: name,
         ownerUid: currentUser.uid,
         ownerName: ((currentUserDocData && currentUserDocData.name) || currentUser.displayName || "مستخدم").slice(0, 60),
         playersList: names,
-        matches: tnSerialize(buildSchedule(ps, dbl)),
+        matches: tnSerialize(buildSchedule(ps, dbl, groups)),
         double: dbl,
+        ...(groups ? { groups: groups } : {}),
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -347,6 +399,7 @@ function tnOpenPrivate(id, fromLink) {
     id = String(id || "").toUpperCase();
     if (privUnsub) { privUnsub(); privUnsub = null; }
     tn.mode = "private";
+    tn.list = "private";
     tn.open = true;
     let first = true;
     privUnsub = privCol().doc(id).onSnapshot(doc => {
@@ -358,7 +411,7 @@ function tnOpenPrivate(id, fromLink) {
         }
         const d = doc.data();
         const h = tnHydrate(d.playersList, d.matches);
-        privDoc = { id: id, name: d.name, ownerUid: d.ownerUid, ownerName: d.ownerName, double: d.double !== false, players: h.players, matches: h.matches };
+        privDoc = { id: id, name: d.name, ownerUid: d.ownerUid, ownerName: d.ownerName, double: d.double !== false, players: h.players, matches: h.matches, groups: groupsValid(d.groups, h.players.map(p => p.name)) ? d.groups : null };
         if (first) {
             first = false;
             tn.pane = "stand";

@@ -415,6 +415,16 @@ await no("sgame bara vote: another attendee reads it (secret)", ctx.fan.doc(SV("
 await ok("sgame bara vote: platform admin keeps full access (catch-all rule)", ctx.admin.doc(SV("u_p2")).get());
 await ok("sgame bara vote: session host deletes votes", ctx.p1.doc(SV("u_p2")).delete());
 
+/* ===== مجموعات البطولة الخاصة (8 نوفمبر 2026) ===== */
+const GT = "privateTournaments/GRPS2345";
+const grp = [{ n: "أ", p: ["أ", "ب", "ج"] }, { n: "ب", p: ["د", "هـ", "و"] }];
+await ok("ptour groups: owner creates with 2 groups", ctx.p1.doc(GT).set(ptData({ playersList: ["أ", "ب", "ج", "د", "هـ", "و"], groups: grp, matches: [{ p1: "أ", p2: "ب", s1: "", s2: "", round: 1, g: 0 }] })));
+await no("ptour groups: more than 8 groups", ctx.p1.doc("privateTournaments/GRPS2346").set(ptData({ groups: Array.from({ length: 9 }, (_, i) => ({ n: "g" + i, p: ["x"] })) })));
+await no("ptour groups: groups not a list", ctx.p1.doc("privateTournaments/GRPS2347").set(ptData({ groups: "x" })));
+await ok("ptour groups: owner enters a score (groups unchanged)", ctx.p1.doc(GT).set({ matches: [{ p1: "أ", p2: "ب", s1: "2", s2: "0", round: 1, g: 0 }], updatedAt: TS() }, { merge: true }));
+await no("ptour groups: owner changes the groups after the draw", ctx.p1.doc(GT).set({ groups: [{ n: "أ", p: ["ج"] }, { n: "ب", p: ["أ"] }] }, { merge: true }));
+await no("ptour groups: owner removes the groups", ctx.p1.doc(GT).set({ groups: DEL() }, { merge: true }));
+
 await env.cleanup();
 if (failed) { console.log(failed + " failed"); process.exit(1); }
 console.log("all passed");
