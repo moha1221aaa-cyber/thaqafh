@@ -109,7 +109,7 @@
     window.firebase = {
         apps: [],
         initializeApp() { this.apps.push({}); },
-        firestore: Object.assign(() => firestore, { FieldValue: { serverTimestamp: () => SENT.ts, delete: () => SENT.del } }),
+        firestore: Object.assign(() => firestore, { FieldValue: { serverTimestamp: () => SENT.ts, delete: () => SENT.del, increment: n => ({ __fv: "inc", n: n }) } }),
         auth: () => auth
     };
 })();

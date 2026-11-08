@@ -64,7 +64,11 @@ export class FakeDB {
             if (!cur) { const e = new Error("not-found"); e.code = "not-found"; throw e; }
             const d = JSON.parse(JSON.stringify(cur.data));
             const upd = w.data;
-            for (const k in upd) FakeDB.setPath(d, k, upd[k] && upd[k].__fv === "del" ? upd[k] : FakeDB.fv(upd[k]));
+            for (const k in upd) {
+                /* FieldValue.increment: يضيف على القيمة الحالية */
+                if (upd[k] && upd[k].__fv === "inc") { const old = k.split(".").reduce((o, x) => (o == null ? o : o[x]), d); FakeDB.setPath(d, k, (Number(old) || 0) + upd[k].n); continue; }
+                FakeDB.setPath(d, k, upd[k] && upd[k].__fv === "del" ? upd[k] : FakeDB.fv(upd[k]));
+            }
             this.docs.set(w.path, { data: d, ver: cur.ver + 1 });
         }
         this.log.push({ at: Date.now(), path: w.path, op: w.op, keys: Object.keys(w.data || {}) });

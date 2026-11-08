@@ -325,6 +325,70 @@ await no("bara guess: empty receipt", ctx.p2.doc(V("u_p2")).set(vote(null, { g: 
 await no("bara guess: in someone else's name", ctx.p2.doc(V("u_fan")).set(vote(null, { g: "v1.r" })));
 await no("bara vote: player deletes his vote", ctx.p1.doc(V("u_p1")).delete());
 
+/* ===== البطولات الخاصة (8 نوفمبر 2026) ===== */
+const PT = "privateTournaments/ABCD2345";
+const ptData = extra => Object.assign({
+    name: "بطولة الشلة", ownerUid: "u_p1", ownerName: "سعد", playersList: ["أ", "ب", "ج"],
+    matches: [{ p1: "أ", p2: "ب", s1: "", s2: "", round: 1 }], double: true, createdAt: TS(), updatedAt: TS()
+}, extra || {});
+await no("ptour: guest creates", ctx.guest.doc(PT).set(ptData()));
+await ok("ptour: user creates his own", ctx.p1.doc(PT).set(ptData()));
+await no("ptour: user creates in someone else's name", ctx.p2.doc("privateTournaments/WXYZ2345").set(ptData()));
+await no("ptour: bad code", ctx.p1.doc("privateTournaments/abc").set(ptData()));
+await no("ptour: 1 player", ctx.p1.doc("privateTournaments/QQQQ2345").set(ptData({ playersList: ["أ"] })));
+await no("ptour: 13 players", ctx.p1.doc("privateTournaments/QQQQ2346").set(ptData({ playersList: Array.from({ length: 13 }, (_, i) => "p" + i) })));
+await no("ptour: extra field", ctx.p1.doc("privateTournaments/QQQQ2347").set(ptData({ admin: true })));
+await no("ptour: empty name", ctx.p1.doc("privateTournaments/QQQQ2348").set(ptData({ name: "" })));
+await ok("ptour: anyone gets it by code (guest)", ctx.guest.doc(PT).get());
+await no("ptour: guest lists all", ctx.guest.collection("privateTournaments").get());
+await no("ptour: other user lists all", ctx.p2.collection("privateTournaments").get());
+await ok("ptour: owner lists his own", ctx.p1.collection("privateTournaments").where("ownerUid", "==", "u_p1").get());
+await no("ptour: owner lists someone else's", ctx.p1.collection("privateTournaments").where("ownerUid", "==", "u_p2").get());
+await ok("ptour: owner enters scores", ctx.p1.doc(PT).set({ matches: [{ p1: "أ", p2: "ب", s1: "3", s2: "1", round: 1 }], updatedAt: TS() }, { merge: true }));
+await no("ptour: other user enters scores", ctx.p2.doc(PT).set({ matches: [{ p1: "أ", p2: "ب", s1: "9", s2: "0", round: 1 }], updatedAt: TS() }, { merge: true }));
+await no("ptour: guest enters scores", ctx.guest.doc(PT).set({ matches: [], updatedAt: TS() }, { merge: true }));
+await no("ptour: owner transfers it", ctx.p1.doc(PT).set({ ownerUid: "u_p2" }, { merge: true }));
+await no("ptour: owner changes the players after the draw", ctx.p1.doc(PT).set({ playersList: ["أ", "ب"] }, { merge: true }));
+await no("ptour: other user deletes", ctx.p2.doc(PT).delete());
+await ok("ptour: owner deletes", ctx.p1.doc(PT).delete());
+
+/* ===== الجلسات الحضورية (8 نوفمبر 2026) ===== */
+const SS = "sessions/JKLM23";
+const sessData = extra => Object.assign({ title: "ليلة ثقافة", place: "استراحة", hostUid: "u_p1", hostName: "سعد", status: "open", createdAt: TS() }, extra || {});
+const MEM = (sid, uid) => "sessions/" + sid + "/members/" + uid;
+const memData = extra => Object.assign({ name: "فهد", pts: 0, joinedAt: TS() }, extra || {});
+await no("session: guest opens", ctx.guest.doc(SS).set(sessData()));
+await ok("session: user opens his own", ctx.p1.doc(SS).set(sessData()));
+await no("session: opens in someone else's name", ctx.p2.doc("sessions/NNNN23").set(sessData()));
+await no("session: bad code", ctx.p1.doc("sessions/abc").set(sessData()));
+await no("session: opens already ended", ctx.p1.doc("sessions/NNNN24").set(sessData({ status: "ended" })));
+await no("session: extra field", ctx.p1.doc("sessions/NNNN25").set(sessData({ vip: true })));
+await ok("session: anyone gets it by code", ctx.guest.doc(SS).get());
+await no("session: guest lists all", ctx.guest.collection("sessions").get());
+await ok("session: host lists his own", ctx.p1.collection("sessions").where("hostUid", "==", "u_p1").get());
+await ok("member: attendee joins himself with 0 points", ctx.p2.doc(MEM("JKLM23", "u_p2")).set(memData()));
+await no("member: attendee joins with points", ctx.fan.doc(MEM("JKLM23", "u_fan")).set(memData({ pts: 50 })));
+await no("member: attendee joins in someone else's name", ctx.fan.doc(MEM("JKLM23", "u_p2")).set(memData()));
+await no("member: guest joins", ctx.guest.doc(MEM("JKLM23", "u_guest")).set(memData()));
+await ok("member: host adds a guest attendee", ctx.p1.doc(MEM("JKLM23", "g_AB23CD45")).set(memData({ name: "ضيف" })));
+await no("member: non-host adds a guest attendee", ctx.p2.doc(MEM("JKLM23", "g_ZZ23CD45")).set(memData({ name: "ضيف" })));
+await no("member: extra field", ctx.p1.doc(MEM("JKLM23", "g_XX23CD45")).set(memData({ admin: true })));
+await ok("member: host gives points", ctx.p1.doc(MEM("JKLM23", "u_p2")).update({ pts: 3 }));
+await no("member: attendee gives himself points", ctx.p2.doc(MEM("JKLM23", "u_p2")).update({ pts: 99 }));
+await no("member: host sets absurd points", ctx.p1.doc(MEM("JKLM23", "u_p2")).update({ pts: 1000000 }));
+await ok("member: attendee renames himself", ctx.p2.doc(MEM("JKLM23", "u_p2")).update({ name: "فهد 2" }));
+await ok("member: anyone reads the board", ctx.guest.collection("sessions/JKLM23/members").get());
+await no("member: other attendee deletes him", ctx.fan.doc(MEM("JKLM23", "u_p2")).delete());
+await ok("member: attendee leaves", ctx.p2.doc(MEM("JKLM23", "u_p2")).delete());
+await ok("member: host removes a guest", ctx.p1.doc(MEM("JKLM23", "g_AB23CD45")).delete());
+await no("session: other user ends it", ctx.p2.doc(SS).update({ status: "ended" }));
+await no("session: host transfers it", ctx.p1.doc(SS).update({ hostUid: "u_p2" }));
+await ok("session: host ends it", ctx.p1.doc(SS).update({ status: "ended", endedAt: TS() }));
+await no("member: joins after it ended", ctx.fan.doc(MEM("JKLM23", "u_fan")).set(memData()));
+await no("member: host gives points after it ended", ctx.p1.doc(MEM("JKLM23", "u_p1")).set(memData({ pts: 1 })));
+await no("session: other user deletes", ctx.p2.doc(SS).delete());
+await ok("session: host deletes", ctx.p1.doc(SS).delete());
+
 await env.cleanup();
 if (failed) { console.log(failed + " failed"); process.exit(1); }
 console.log("all passed");

@@ -44,10 +44,6 @@ let photoUrl = (userData && userData.photoURL) ? userData.photoURL : av.url;
 let pStat = players.find(p => p.name === displayName);
 let pRank = pStat ? (players.indexOf(pStat) + 1) : "-";
 
-// إحصائيات التوقعات تحتاج توقعات الكل: لو ما تحمّلت للحين، نرسم الملف ونعيده أول ما توصل (لو الملف للحين مفتوح)
-ensurePredictionRanking(() => { if (activeModalId === "viewProfileModal") openUserProfile(uid, playerName); });
-let predStats = getUserPredictionStats(uid, userEmail);
-
 let statsHTML = "";
 if(pStat) {
 statsHTML = `
@@ -64,18 +60,6 @@ statsHTML = `
 </div>
 `;
 }
-
-let predStatsHTML = `
-<div style="margin-top:15px; text-align:right;">
-<div style="font-size:13px; font-weight:bold; color:#facc15; margin-bottom:8px; border-bottom:1px solid #334155; padding-bottom:4px;"><svg class="ic" aria-hidden="true"><use href="#i-target"/></svg> إحصائيات التوقعات</div>
-<div class="stats-grid-box">
-<div class="stat-box-item"><div class="stat-box-value" style="color:#facc15;">#${predStats.rank}</div><div class="stat-box-label">ترتيب التوقعات</div></div>
-<div class="stat-box-item"><div class="stat-box-value" style="color:#38bdf8;">${predStats.points}</div><div class="stat-box-label">نقاط التوقعات</div></div>
-<div class="stat-box-item"><div class="stat-box-value" style="color:#4ade80;">${predStats.exact}</div><div class="stat-box-label">توقع دقيق (5 ن)</div></div>
-<div class="stat-box-item"><div class="stat-box-value" style="color:#a7f3d0;">${predStats.correct}</div><div class="stat-box-label">نتيجة صحيحة (3 ن)</div></div>
-</div>
-</div>
-`;
 
 let playerMatchesHTML = "";
 if(displayName) {
@@ -124,7 +108,6 @@ ${escapeHTML(displayName)} ${av.isVerified ? '<span class="verified-badge" title
 ${userEmail && (isAdmin || (currentUser && currentUser.uid === uid)) ? `<div style="font-size:12px; color:#94a3b8; direction:ltr; margin-top:3px;">${escapeHTML(userEmail)}</div>` : ''}
 ${statsHTML}
 ${pStat ? playerFormHTML(displayName) : ''}
-${predStatsHTML}
 ${playerMatchesHTML}
 ${adminButton}
 </div>
@@ -134,11 +117,12 @@ openModal("viewProfileModal");
 }
 
 /* الحساب بس (بدون رسم): البث يحتاج الترتيب حتى لو رسم الجدول متأجل (bcDeferPage) */
-function tableStats() {
-players.forEach(p => { p.w = 0; p.d = 0; p.l = 0; p.gf = 0; p.ga = 0; p.pts = 0; });
+function tableStats(ps, ms) {
+ps = ps || players; ms = ms || matches;
+ps.forEach(p => { p.w = 0; p.d = 0; p.l = 0; p.gf = 0; p.ga = 0; p.pts = 0; });
 
-matches.forEach(m => {
-if(m.s1 === "" || m.s2 === "") return;
+ms.forEach(m => {
+if(m.s1 === "" || m.s2 === "" || m.s1 == null || m.s2 == null) return;
 let a = Number(m.s1);
 let b = Number(m.s2);
 if(isNaN(a) || isNaN(b)) return;
@@ -151,22 +135,27 @@ else if(a < b) { m.p2.w++; m.p2.pts += 3; m.p1.l++; }
 else { m.p1.d++; m.p2.d++; m.p1.pts += 1; m.p2.pts += 1; }
 });
 
-players.sort((a,b) => b.pts - a.pts || ((b.gf-b.ga) - (a.gf-a.ga)) || b.gf - a.gf);
+ps.sort((a,b) => b.pts - a.pts || ((b.gf-b.ga) - (a.gf-a.ga)) || b.gf - a.gf);
 }
 
 function table() {
 tableStats();
+renderLeagueSummary();
+let ctx = tCtx();
+if(ctx.players !== players) tableStats(ctx.players, ctx.matches);
 let tbody = document.getElementById("standings");
 if(!tbody) return;
 tbody.innerHTML = "";
+if(!ctx.players.length) tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${ctx.empty || "لا يوجد متسابقين"}</td></tr>`;
+let links = ctx.links || {};
 
-players.forEach((p,i) => {
+ctx.players.forEach((p,i) => {
 let row = document.createElement("tr");
-let avatarData = getPlayerAvatar(p.name);
+let avatarData = getPlayerAvatar(p.name, links);
 let verifiedBadge = avatarData.isVerified ? `<span class="verified-badge" title="حساب موثوق"><svg class="ic" aria-hidden="true"><use href="#i-verified"/></svg></span>` : '';
 
 let playerCellHTML = `
-<div class="table-player-cell clickable-profile" onclick="openUserProfile(${jsArg(playerLinks[p.name] || '')}, ${jsArg(p.name)})">
+<div class="table-player-cell ${ctx.profile ? "clickable-profile" : ""}" ${ctx.profile ? `onclick="openUserProfile(${jsArg(links[p.name] || '')}, ${jsArg(p.name)})"` : ""}>
 <img loading="lazy" decoding="async" src="${safeSrc(avatarData.url)}" class="table-player-img" alt="${escapeHTML(p.name)}">
 <span style="font-weight:bold;">${escapeHTML(p.name)}</span>${verifiedBadge}
 </div>
@@ -176,8 +165,6 @@ if(i < 3) row.className = `top-${i+1}`;
 row.innerHTML = `<td class="rank-cell">${i+1}</td><td>${playerCellHTML}</td><td>${p.w}</td><td>${p.d}</td><td>${p.l}</td><td>${p.gf}</td><td>${p.ga}</td><td class="pts-cell"><b>${p.pts}</b></td>`;
 tbody.appendChild(row);
 });
-
-renderLeagueSummary();
 }
 
 function renderLeagueSummary() {
@@ -206,18 +193,19 @@ container.innerHTML = `
 }
 
 function shareStandingsToWhatsApp() {
-let text = `🏆 *جدول ترتيب منصة فيكارو الثقافية* 🏆\n\n`;
-players.forEach((p, idx) => {
+let ctx = tCtx();
+let text = `🏆 *جدول ترتيب ${ctx.title || "منصة فيكارو الثقافية"}* 🏆\n\n`;
+ctx.players.forEach((p, idx) => {
 let medal = idx === 0 ? "🥇" : (idx === 1 ? "🥈" : (idx === 2 ? "🥉" : `${idx + 1}.`));
 text += `${medal} *${p.name}* - ${p.pts} نقطة (ف:${p.w} | ت:${p.d} | خ:${p.l} | له:${p.gf})\n`;
 });
-text += `\n🏆 لمتابعة نتائج الدوري وتوقعات المواجهات عبر التطبيق!`;
+text += `\n🏆 لمتابعة النتائج عبر منصة فيكارو الثقافية: https://thaqafah.pages.dev`;
 let url = `https://wa.me/?text=${encodeURIComponent(text)}`;
 window.open(url, '_blank');
 }
 
 /* بطاقة نتيجة المواجهة (صورة 1080×1080) تنرسل في الواتساب. الصور الشخصية من مواقع ثانية تقفل الحفظ من canvas، فنرسم أول حرف بدالها */
-async function shareMatchCard(m) {
+async function shareMatchCard(m, title) {
     const W = 1080, c = document.createElement("canvas");
     c.width = W; c.height = W;
     const x = c.getContext("2d");
@@ -230,7 +218,7 @@ async function shareMatchCard(m) {
     const logo = await new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = "logo.png"; });
     if (logo) x.drawImage(logo, W / 2 - 90, 70, 180, 180);
     x.fillStyle = "#ffffff"; x.font = F(800, 54); x.fillText("منصة فيكارو الثقافية", W / 2, 310);
-    x.fillStyle = "#60a5fa"; x.font = F(700, 38); x.fillText(`الجولة ${m.round}`, W / 2, 375);
+    x.fillStyle = "#60a5fa"; x.font = F(700, 38); x.fillText((title ? title + " · " : "") + `الجولة ${m.round}`, W / 2, 375, 960);
     const s1 = Number(m.s1), s2 = Number(m.s2);
     const side = (name, cx, win) => {
         x.beginPath(); x.arc(cx, 560, 105, 0, Math.PI * 2);
@@ -257,20 +245,26 @@ async function shareMatchCard(m) {
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
 }
 
-function createMatchCard(m) {
+function createMatchCard(m, ctx) {
+ctx = ctx || tCtx();
+let links = ctx.links || {};
 let div = document.createElement("div");
 div.className = "match";
 
-let av1 = getPlayerAvatar(m.p1.name);
-let av2 = getPlayerAvatar(m.p2.name);
+let av1 = getPlayerAvatar(m.p1.name, links);
+let av2 = getPlayerAvatar(m.p2.name, links);
 
-let player1Div = document.createElement("div");
-player1Div.className = "match-player clickable-profile";
-player1Div.onclick = () => openUserProfile(playerLinks[m.p1.name] || '', m.p1.name);
-player1Div.innerHTML = `
-<img loading="lazy" decoding="async" src="${safeSrc(av1.url)}" class="match-player-img" alt="${escapeHTML(m.p1.name)}">
-<div class="match-player-name">${escapeHTML(m.p1.name)}</div>
+let mkSide = (p, av) => {
+let d = document.createElement("div");
+d.className = "match-player" + (ctx.profile ? " clickable-profile" : "");
+if(ctx.profile) d.onclick = () => openUserProfile(links[p.name] || '', p.name);
+d.innerHTML = `
+<img loading="lazy" decoding="async" src="${safeSrc(av.url)}" class="match-player-img" alt="${escapeHTML(p.name)}">
+<div class="match-player-name">${escapeHTML(p.name)}</div>
 `;
+return d;
+};
+let player1Div = mkSide(m.p1, av1);
 
 let scoreDiv = document.createElement("div");
 scoreDiv.className = "match-score-box";
@@ -279,7 +273,7 @@ let in1 = document.createElement("input");
 in1.type = "number";
 in1.min = "0";
 in1.value = m.s1;
-in1.disabled = !isAdmin;
+in1.disabled = !ctx.canEdit;
 
 let separator = document.createElement("span");
 separator.className = "match-sep";
@@ -289,14 +283,14 @@ let in2 = document.createElement("input");
 in2.type = "number";
 in2.min = "0";
 in2.value = m.s2;
-in2.disabled = !isAdmin;
+in2.disabled = !ctx.canEdit;
 
-if (isAdmin) {
+if (ctx.canEdit) {
     let updateScore = () => {
         m.s1 = in1.value;
         m.s2 = in2.value;
         table();
-        save();
+        ctx.save();
     };
     in1.onchange = updateScore;
     in2.onchange = updateScore;
@@ -306,19 +300,13 @@ scoreDiv.appendChild(in1);
 scoreDiv.appendChild(separator);
 scoreDiv.appendChild(in2);
 
-let player2Div = document.createElement("div");
-player2Div.className = "match-player clickable-profile";
-player2Div.onclick = () => openUserProfile(playerLinks[m.p2.name] || '', m.p2.name);
-player2Div.innerHTML = `
-<img loading="lazy" decoding="async" src="${safeSrc(av2.url)}" class="match-player-img" alt="${escapeHTML(m.p2.name)}">
-<div class="match-player-name">${escapeHTML(m.p2.name)}</div>
-`;
+let player2Div = mkSide(m.p2, av2);
 
 div.appendChild(player1Div);
 div.appendChild(scoreDiv);
 div.appendChild(player2Div);
 
-let liveRow = buildMatchLiveRow(m);
+let liveRow = ctx.live ? buildMatchLiveRow(m) : null;
 if (liveRow) div.appendChild(liveRow);
 
 if (m.s1 !== "" && m.s2 !== "" && m.s1 != null && m.s2 != null) {
@@ -327,7 +315,7 @@ if (m.s1 !== "" && m.s2 !== "" && m.s1 != null && m.s2 != null) {
     shareBtn.type = "button";
     shareBtn.className = "match-share-btn";
     shareBtn.innerHTML = `${ic("share")} شارك النتيجة`;
-    shareBtn.onclick = (e) => { e.stopPropagation(); shareMatchCard(m); };
+    shareBtn.onclick = (e) => { e.stopPropagation(); shareMatchCard(m, ctx.title); };
     div.appendChild(shareBtn);
 }
 
@@ -354,30 +342,19 @@ ${board.length ? `<div class="rs-line">${ic("target")} أفضل المتوقعي
 return box;
 }
 
-function renderMatches() {
-let upDiv = document.getElementById("upcoming");
-let pastDiv = document.getElementById("past");
-let homeUpDiv = document.getElementById("homeUpcoming");
-
-if(!upDiv || !pastDiv) return;
-
-upDiv.innerHTML = "";
-pastDiv.innerHTML = "";
-if(homeUpDiv) homeUpDiv.innerHTML = "";
-
-let filterText = (document.getElementById("matchSearchInput") ? document.getElementById("matchSearchInput").value : "").trim().toLowerCase();
-
+/* قائمة المواجهات (القادمة والسابقة) لبطولة وحدة: الرسمية أو الخاصة */
+function fillMatchLists(ctx, upDiv, pastDiv, filterText) {
 let upcomingGroup = {};
 let pastGroup = {};
 
-matches.forEach(m => {
+ctx.matches.forEach(m => {
 if(filterText) {
 let p1Match = m.p1.name.toLowerCase().includes(filterText);
 let p2Match = m.p2.name.toLowerCase().includes(filterText);
 if(!p1Match && !p2Match) return;
 }
 
-if(m.s1 === "" || m.s2 === "") {
+if(m.s1 === "" || m.s2 === "" || m.s1 == null || m.s2 == null) {
 if(!upcomingGroup[m.round]) upcomingGroup[m.round] = [];
 upcomingGroup[m.round].push(m);
 } else {
@@ -395,11 +372,11 @@ let rHeader = document.createElement("h3");
 rHeader.className = "round-head";
 rHeader.textContent = `الجولة ${r}`;
 upDiv.appendChild(rHeader);
-let rLive = buildRoundLiveRow(r);
+let rLive = ctx.live ? buildRoundLiveRow(r) : null;
 if (rLive) upDiv.appendChild(rLive);
 
 upcomingGroup[r].forEach(m => {
-upDiv.appendChild(createMatchCard(m));
+upDiv.appendChild(createMatchCard(m, ctx));
 });
 });
 }
@@ -413,28 +390,48 @@ let rHeader = document.createElement("h3");
 rHeader.className = "round-head past";
 rHeader.textContent = `الجولة ${r}`;
 pastDiv.appendChild(rHeader);
-let rSum = buildRoundSummary(r);
+let rSum = ctx.live ? buildRoundSummary(r) : null;
 if (rSum) pastDiv.appendChild(rSum);
 
 pastGroup[r].forEach(m => {
-pastDiv.appendChild(createMatchCard(m));
+pastDiv.appendChild(createMatchCard(m, ctx));
 });
 });
 }
+return upRounds.length ? upcomingGroup[upRounds[0]] : null;
+}
 
-if(homeUpDiv && upRounds.length > 0) {
-let nextRound = upRounds[0];
+/* الرئيسية: مواجهات الجولة الجاية في البطولة الرئيسية (أبطال النخبة) */
+function renderHomeUpcoming() {
+let homeUpDiv = document.getElementById("homeUpcoming");
+if(!homeUpDiv) return;
+homeUpDiv.innerHTML = "";
+let elite = { players: players, matches: matches, links: playerLinks, canEdit: isAdmin, save: save, live: true, profile: true, title: ELITE_TITLE };
+let rounds = [...new Set(matches.filter(m => m.s1 === "" || m.s2 === "").map(m => Number(m.round)))].sort((a,b) => a - b);
+if(!rounds.length) return;
+let nextRound = rounds[0];
 let rHeader = document.createElement("h3");
 rHeader.className = "round-head home";
 rHeader.innerHTML = ic("ball") + ` المواجهات القادمة (الجولة ${nextRound})`;
 homeUpDiv.appendChild(rHeader);
 let hLive = buildRoundLiveRow(nextRound);
 if (hLive) homeUpDiv.appendChild(hLive);
-
-upcomingGroup[nextRound].forEach(m => {
-homeUpDiv.appendChild(createMatchCard(m));
+matches.filter(m => Number(m.round) === nextRound && (m.s1 === "" || m.s2 === "")).forEach(m => {
+homeUpDiv.appendChild(createMatchCard(m, elite));
 });
 }
+
+function renderMatches() {
+renderHomeUpcoming();
+let upDiv = document.getElementById("upcoming");
+let pastDiv = document.getElementById("past");
+if(!upDiv || !pastDiv) return;
+
+upDiv.innerHTML = "";
+pastDiv.innerHTML = "";
+
+let filterText = (document.getElementById("matchSearchInput") ? document.getElementById("matchSearchInput").value : "").trim().toLowerCase();
+fillMatchLists(tCtx(), upDiv, pastDiv, filterText);
 }
 
 function showMiniTab(evt, tabName) {
@@ -474,20 +471,16 @@ document.getElementById("mainHeader").classList.toggle("hdr-compact", sectionId 
 if(tabEl) {
 tabEl.classList.add("active");
 } else {
-let navTabs = document.querySelectorAll(".bottom-nav .tab");
-if(sectionId === 'home') navTabs[0].classList.add("active");
-else if(sectionId === 'table') navTabs[1].classList.add("active");
-else if(sectionId === 'matches') navTabs[2].classList.add("active");
-else if(sectionId === 'predictions') navTabs[3].classList.add("active");
-else if(sectionId === 'accountTab') navTabs[4].classList.add("active");
-else if(sectionId === 'room') navTabs[5].classList.add("active");
+let t = document.querySelector('.bottom-nav .tab[data-sec="' + sectionId + '"]');
+if(t) t.classList.add("active");
 }
 
-if(sectionId === 'room') {
+if(sectionId === 'majlis') {
     startPresenceListener();
-    renderRoomCard();
+    renderMajlis();
 }
-document.body.classList.toggle('room-tab', sectionId === 'room');
+if(sectionId === 'tournaments') renderTournamentsPage();
+document.body.classList.toggle('room-tab', sectionId === 'majlis');
 document.documentElement.style.setProperty('--hdr-h', document.getElementById('mainHeader').offsetHeight + 'px');
 window.scrollTo(0, 0);
 }

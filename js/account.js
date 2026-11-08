@@ -65,8 +65,6 @@ let email = currentUser.email || "";
 let photoURL = (currentUserDocData && currentUserDocData.photoURL) ? currentUserDocData.photoURL : "";
 let avatarSrc = photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(name.charAt(0))}&background=2563eb&color=fff&bold=true`;
 
-let predStats = getUserPredictionStats(currentUser.uid, email);
-
 container.innerHTML = `
 <div class="profile-full-page">
 <div class="profile-header-card">
@@ -84,24 +82,6 @@ container.innerHTML = `
 <div class="profile-email-text">${escapeHTML(email)}</div>
 </div>
 
-<div class="stats-grid-box">
-<div class="stat-box-item">
-<div class="stat-box-value" style="color:#facc15;">#${predStats.rank}</div>
-<div class="stat-box-label">ترتيب التوقعات</div>
-</div>
-<div class="stat-box-item">
-<div class="stat-box-value" style="color:#60a5fa;">${predStats.points}</div>
-<div class="stat-box-label">مجموع النقاط</div>
-</div>
-<div class="stat-box-item">
-<div class="stat-box-value" style="color:#4ade80;">${predStats.exact}</div>
-<div class="stat-box-label">توقع دقيق (5 ن)</div>
-</div>
-<div class="stat-box-item">
-<div class="stat-box-value" style="color:#38bdf8;">${predStats.correct}</div>
-<div class="stat-box-label">نتيجة صحيحة (3 ن)</div>
-</div>
-</div>
 </div>
 `;
 }
