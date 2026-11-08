@@ -219,7 +219,7 @@ return { url: defaultUrl, isVerified: !!linkedUid };
 
 let matches = [];
 
-function buildSchedule(list, double) {
+function buildScheduleSingle(list, double) {
     let matches = [];
 
     let arr = [...list].sort(() => Math.random() - 0.5);
@@ -323,8 +323,45 @@ function buildSchedule(list, double) {
     return matches;
 }
 
-function generateMatches() {
-    matches = buildSchedule(players);
+/* مجموعات مثل دوري أبطال أوروبا وكأس العالم: groups = [{ n: "أ", p: ["اسم", ...] }]، كل مجموعة دوري لحالها (ذهاب وإياب لو double)،
+   والجولة r فيها مواجهات كل المجموعات (m.g = رقم المجموعة). بدون groups يرجع دوري واحد زي قبل */
+const GROUP_NAMES = ["أ", "ب", "ج", "د", "هـ", "و", "ز", "ح"];
+function buildSchedule(list, double, groups) {
+    if (!groups || groups.length < 2) return buildScheduleSingle(list, double);
+    const byName = {}; list.forEach(p => { byName[p.name] = p; });
+    let out = [], span = 0;
+    groups.forEach((g, gi) => {
+        const ms = buildScheduleSingle(g.p.map(n => byName[n]).filter(Boolean), false);
+        ms.forEach(m => { m.g = gi; span = Math.max(span, m.round); });
+        out = out.concat(ms);
+    });
+    if (double !== false) {
+        const leg1 = out.slice();
+        leg1.forEach(m => out.push({ p1: m.p2, p2: m.p1, s1: "", s2: "", round: m.round + span, g: m.g }));
+    }
+    return out;
+}
+/* قرعة المجموعات: نخلط الأسماء ونوزعها واحد واحد على المجموعات */
+function drawGroups(names, n) {
+    n = Math.max(1, Math.min(GROUP_NAMES.length, Math.floor(n) || 1));
+    if (n < 2) return null;
+    const arr = names.slice().sort(() => Math.random() - 0.5);
+    const gs = Array.from({ length: n }, (_, i) => ({ n: GROUP_NAMES[i], p: [] }));
+    arr.forEach((name, i) => gs[i % n].p.push(name));
+    return gs;
+}
+/* المجموعات المحفوظة تنفع بس لو تطابق المتسابقين الحاليين (التجربة ورجوع الأصلي يغيّرون الأسماء) */
+function groupsValid(groups, names) {
+    if (!Array.isArray(groups) || groups.length < 2) return false;
+    const all = [].concat.apply([], groups.map(g => g && g.p || []));
+    return all.length === names.length && new Set(all).size === all.length && names.every(n => all.indexOf(n) !== -1);
+}
+
+let leagueGroups = null;   /* league/current.groups لو الدوري مجموعات */
+function generateMatches(groupCount) {
+    if (groupCount !== undefined) leagueGroups = drawGroups(players.map(p => p.name), groupCount);
+    else if (leagueGroups && !groupsValid(leagueGroups, players.map(p => p.name))) leagueGroups = null;
+    matches = buildSchedule(players, true, leagueGroups);
 }
 
 function addNewPlayerPrompt() {
@@ -338,6 +375,10 @@ return alert("المتسابق موجود بالفعل بنفس الاسم!");
 }
 
 players.push({ name: name, w:0, d:0, l:0, gf:0, ga:0, pts:0 });
+if(leagueGroups) { /* المتسابق الجديد ينضاف لأصغر مجموعة */
+let small = leagueGroups.reduce((a, g) => g.p.length < a.p.length ? g : a, leagueGroups[0]);
+leagueGroups = leagueGroups.map(g => ({ n: g.n, p: g === small ? g.p.concat([name]) : g.p.slice() }));
+}
 generateMatches();
 table();
 renderMatches();
@@ -347,9 +388,14 @@ alert(`تم إضافة المتسابق "${name}" وإعادة بناء جدول
 
 function reDrawMatches() {
 if(!isAdmin) return;
-if(!confirm("هل أنت متأكد من إعادة خلط وسحب القرعة من جديد؟ سيتم مسح أي نتائج سابقة.")) return;
+let max = Math.max(1, Math.min(GROUP_NAMES.length, Math.floor(players.length / 3)));
+let ans = prompt(`كم مجموعة؟ اكتب 1 لدوري واحد، أو رقم من 2 لين ${max} لنظام المجموعات (مثل دوري أبطال أوروبا، 3 متسابقين على الأقل في المجموعة).`, String(leagueGroups ? leagueGroups.length : 1));
+if(ans === null) return;
+let n = parseInt(ans, 10);
+if(!(n >= 1 && n <= max)) return alert(`اكتب رقم من 1 لين ${max}`);
+if(!confirm(`هل أنت متأكد من إعادة القرعة ${n > 1 ? "بـ " + n + " مجموعات" : "بدوري واحد"}؟ سيتم مسح أي نتائج سابقة.`)) return;
 
-generateMatches();
+generateMatches(n);
 table();
 renderMatches();
 save();
@@ -357,7 +403,7 @@ alert("تمت إعادة القرعة بنجاح!");
 }
 
 function serializeMatches() {
-return matches.map(m => ({ p1:m.p1.name, p2:m.p2.name, s1:m.s1, s2:m.s2, round:m.round }));
+return matches.map(m => { const o = { p1:m.p1.name, p2:m.p2.name, s1:m.s1, s2:m.s2, round:m.round }; if(m.g != null) o.g = m.g; return o; });
 }
 
 function getMatchId(m) {
@@ -375,9 +421,10 @@ if(data.matches) {
 matches = data.matches.map(m => {
 let p1Obj = players.find(p => p.name === m.p1) || { name:m.p1, w:0,d:0,l:0,gf:0,ga:0,pts:0 };
 let p2Obj = players.find(p => p.name === m.p2) || { name:m.p2, w:0,d:0,l:0,gf:0,ga:0,pts:0 };
-return { p1:p1Obj, p2:p2Obj, s1:m.s1, s2:m.s2, round:m.round };
+const o = { p1:p1Obj, p2:p2Obj, s1:m.s1, s2:m.s2, round:m.round }; if(m.g != null) o.g = m.g; return o;
 });
 }
+leagueGroups = groupsValid(data.groups, players.map(p => p.name)) ? data.groups : null;
 playerLinks = data.playerLinks || {};
 leagueTrial = data.trial || null;
 }
@@ -405,7 +452,7 @@ if(doc.exists) {
 let data = doc.data();
 isInitialLoad = false;
 applyLeagueData(data);
-try { localStorage.setItem(LEAGUE_CACHE_KEY, JSON.stringify({ playersList: data.playersList || [], matches: data.matches || [], playerLinks: data.playerLinks || {} })); } catch(e) {}
+try { localStorage.setItem(LEAGUE_CACHE_KEY, JSON.stringify({ playersList: data.playersList || [], matches: data.matches || [], playerLinks: data.playerLinks || {}, groups: data.groups || null })); } catch(e) {}
 } else {
 generateMatches();
 }
@@ -421,12 +468,15 @@ function save() {
 localStorage.setItem("m", JSON.stringify(serializeMatches()));
 if(!firebaseReady || !firebaseDB) return;
 
-firebaseDB.collection("league").doc("current").set({
+let doc = {
 matches: serializeMatches(),
 playersList: players.map(p => p.name),
 playerLinks: playerLinks,
 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-}, { merge: true })
+};
+/* وقت التجربة ما نلمس مجموعات الدوري الأصلي (تنرجع مع الأصلي) */
+if(!leagueTrial) doc.groups = leagueGroups || firebase.firestore.FieldValue.delete();
+firebaseDB.collection("league").doc("current").set(doc, { merge: true })
 .catch(error => {
 console.log(error);
 });

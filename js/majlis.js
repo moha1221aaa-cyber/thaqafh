@@ -102,9 +102,14 @@ ${baraOn ? "" : `<button type="button" onclick="baraCreate()">${ic("users")}<b>�
 
     box.innerHTML = `
 <div class="sj-head ${open ? "" : "ended"}">
-<button type="button" class="tn-back" onclick="sessLeave()">${ic("chevron-right")} الجلسات</button>
+<button type="button" class="tn-back" onclick="sessLeave()" aria-label="رجوع للجلسات">${ic("chevron-right")}</button>
 <div class="sj-title"><b>${escapeHTML(sess.title)}</b><small>${escapeHTML(sess.place)} · المضيف: ${escapeHTML(sess.hostName || "-")}</small></div>
 <span class="sj-state">${open ? `<i class="dot"></i> مباشرة` : "انتهت"}</span>
+${moreMenuHTML("sjMenu", [
+    host && open ? { icon: "check-circle", label: "إنهاء الجلسة", action: "sessEnd()" } : null,
+    me && !host && open ? { icon: "x", label: "مغادرة الجلسة", action: "sessQuit()" } : null,
+    host ? { icon: "trash", label: "حذف الجلسة", action: "sessDelete()", danger: true } : null
+])}
 </div>
 <div class="sj-code">
 <span>رمز الجلسة</span><b dir="ltr">${escapeHTML(sess.id)}</b>
@@ -118,12 +123,7 @@ ${host && open ? `
 <div class="tn-join sj-add">
 <input type="text" id="sessGuestName" maxlength="30" placeholder="أضف حاضر بالاسم (بدون جوال)" onkeydown="if(event.key==='Enter')sessAddGuest()">
 <button type="button" onclick="sessAddGuest()">إضافة</button>
-</div>
-<div class="sj-hostbar">
-<button type="button" onclick="sessEnd()">${ic("check-circle")} إنهاء الجلسة</button>
-</div>` : ""}
-${host && !open ? `<div class="sj-hostbar"><button type="button" class="danger" onclick="sessDelete()">${ic("trash")} حذف الجلسة</button></div>` : ""}
-${me && !host && open ? `<div class="sj-hostbar"><button type="button" onclick="sessQuit()">مغادرة الجلسة</button></div>` : ""}`;
+</div>` : ""}`;
 }
 
 function renderSessionHome(box) {
