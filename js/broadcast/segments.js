@@ -11,19 +11,22 @@
    كل أزرار المقدم في لوحة تحت الشاشة (#sgDock) خارج الرسم الجزئي، فخانة التخمين ما تنمسح مع تحديثات الشاشة. */
 const SG_ROUNDS = 3;
 const SG_TURN2_MS = 10000;   /* وقت كل دور في فقرة الحروف */
-const SG_TURN3_MS = 25000;   /* وقت كل دور في فقرة الكلمات */
+const SG_TURN3_MS = 10000;   /* وقت كل دور في فقرة الكلمات (طلب محمد 9 نوفمبر: 10 ث) */
+const SG_LEN = 3;            /* الكلمة دايم 3 حروف */
 let SG_SPIN_MS = 4800;       /* مدة لفة العجلة (let: الاختبار يقصرها) */
 const SG_STRIKES = 3;
 const SG_CATS2 = ["أكلات", "مدن", "دول", "جمادات", "حيوانات", "نباتات", "أسماء أندية"];
 const SG_CATS3 = ["اسم إنسان", "اسم حيوان", "جماد", "فعل", "كلمات معنوية أو أخرى"];
 const SG_LETTERS = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي".split("");
 const SG_WORDS = {
-    "اسم إنسان": ["علي", "عمر", "سعد", "فهد", "ريم", "منى", "هند", "نوف", "خالد", "ماجد", "نايف", "تركي", "بندر", "فيصل", "سلمى", "ليلى", "هدى", "لجين", "رغد", "سلطان", "وليد", "يوسف", "موسى", "ناصر", "راشد", "صالح", "عادل", "هاني", "سلمان", "جابر"],
-    "اسم حيوان": ["أسد", "نمر", "ذئب", "فيل", "قرد", "ضبع", "جمل", "حصان", "ثعلب", "غزال", "حمار", "خروف", "كلب", "فأر", "صقر", "نسر", "ديك", "حوت", "وعل", "ظبي", "أرنب", "تمساح", "ثعبان", "جاموس", "غراب", "حمام", "عصفور", "قنفذ", "خفاش", "دلفين", "هدهد", "بقرة", "زرافة"],
-    "جماد": ["كرسي", "باب", "قلم", "كتاب", "جوال", "مفتاح", "مقص", "سرير", "صحن", "كوب", "سكين", "شباك", "جدار", "سقف", "بساط", "مصباح", "تلفاز", "مكيف", "مسمار", "حذاء", "قميص", "ثوب", "خاتم", "هاتف", "حجر", "طبق", "حبل", "سلم", "طاولة", "سيارة", "ساعة", "ملعقة", "نافذة", "ثلاجة", "حقيبة", "مروحة"],
-    "فعل": ["كتب", "أكل", "شرب", "ركض", "قفز", "جلس", "نام", "لعب", "فتح", "غسل", "سمع", "رمى", "مشى", "بكى", "ضحك", "وقف", "سبح", "رسم", "قرأ", "طبخ", "خرج", "دخل", "حمل", "كسر", "نظر", "قفل", "سقط", "صعد", "نزل", "طار", "ذهب", "جاء", "أخذ", "يكتب", "يلعب", "يأكل", "يركض", "يجلس", "ينام", "يقفز", "يسبح", "يرسم", "يطبخ"],
-    "كلمات معنوية أو أخرى": ["حلم", "أمل", "صبر", "عدل", "سلام", "حرية", "كرم", "وفاء", "صدق", "أمان", "ذكاء", "فرح", "حزن", "خوف", "غضب", "شوق", "ألم", "سعادة", "نجاح", "علم", "عقل", "وقت", "زمن", "قدر", "رحمة", "ثقة", "حكمة", "صداقة", "طموح", "خيال", "حياة", "شجاعة"]
+    "اسم إنسان": ["علي", "عمر", "سعد", "فهد", "ريم", "منى", "هند", "نوف", "هدى", "نور", "جود", "لين", "رند", "سما", "ياسر", "وعد", "ضحى", "سلا", "غيد", "لمى", "حمد", "زيد", "أحمد"],
+    "اسم حيوان": ["أسد", "نمر", "ذئب", "فيل", "قرد", "ضبع", "جمل", "كلب", "فأر", "صقر", "نسر", "ديك", "حوت", "وعل", "ظبي", "نمل", "نحل", "بط", "غنم", "ثور", "حمل", "بوم", "قطه", "هرة", "فرس", "بغل", "دجاج", "ضفدع"],
+    "جماد": ["باب", "قلم", "مقص", "صحن", "كوب", "سقف", "ثوب", "حجر", "طبق", "حبل", "سلم", "لوح", "قدر", "ورق", "كأس", "بيت", "كيس", "سيف", "مرآة", "شمع", "سجاد", "علم", "رمح", "عصا", "قفل", "دلو", "جرس", "نار", "مال", "ساعة", "كتاب"],
+    "فعل": ["كتب", "أكل", "شرب", "ركض", "قفز", "جلس", "نام", "لعب", "فتح", "غسل", "سمع", "رمى", "مشى", "بكى", "ضحك", "وقف", "سبح", "رسم", "قرأ", "طبخ", "خرج", "دخل", "حمل", "كسر", "نظر", "قفل", "سقط", "صعد", "نزل", "طار", "ذهب", "جاء", "أخذ"],
+    "كلمات معنوية أو أخرى": ["حلم", "أمل", "صبر", "عدل", "كرم", "صدق", "فرح", "حزن", "خوف", "غضب", "شوق", "ألم", "علم", "عقل", "وقت", "زمن", "قدر", "ثقة", "حظ", "سر", "حب", "أمن", "سلم", "نور", "ظل", "شك", "عزم", "هدف", "رأي"]
 };
+/* الكلمة دايم 3 حروف: أي كلمة بغير هالطول تنشال */
+Object.keys(SG_WORDS).forEach(k => { SG_WORDS[k] = SG_WORDS[k].filter(w => sgNorm(w).length === SG_LEN); });
 const SG = { words: {}, secTried: {}, prevKey: "", prevSnap: null, wheelAt: 0, lastSec: -1, dockSig: "" };
 
 /* ===== أدوات صافية (تنختبر بدون واجهة) ===== */
@@ -31,18 +34,6 @@ const SG = { words: {}, secTried: {}, prevKey: "", prevSnap: null, wheelAt: 0, l
 function sgNorm(s) {
     return String(s || "").replace(/[ً-ٰٟـ]/g, "").replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي")
         .replace(/ة/g, "ه").replace(/ؤ/g, "و").replace(/ئ/g, "ي").replace(/[^ء-غف-ي]/g, "");
-}
-/* b = حروف صحيحة في مكانها، c = حروف صحيحة في مكان غلط (مثل لعبة الأرقام والأحرف، مع حساب الحرف المكرر صح). الطولين لازم يتساون */
-function sgFeedback(word, guess) {
-    const w = Array.from(sgNorm(word)), g = Array.from(sgNorm(guess));
-    let b = 0; const wr = {}, gr = [];
-    for (let i = 0; i < g.length; i++) {
-        if (g[i] === w[i]) b++;
-        else { gr.push(g[i]); wr[w[i]] = (wr[w[i]] || 0) + 1; }
-    }
-    let c = 0;
-    gr.forEach(ch => { if (wr[ch] > 0) { c++; wr[ch]--; } });
-    return { b, c };
 }
 function sgLS(k, v) {
     try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || "null"); localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
@@ -128,7 +119,7 @@ function sgAct(build) {
       .catch(err => { sgBusyOff(); roomToast("تعذّر: " + (err && err.message), "alert"); bcRedrawAll(); });
 }
 function sgBusyOff() { const dock = document.getElementById("sgDock"); if (dock) dock.classList.remove("busy"); }
-function sgToastWait() { roomToast("انتظر العجلة تقف", "hourglass"); }
+function sgToastWait() { roomToast("انتظر الاختيار يخلص", "hourglass"); }
 
 /* لفّ العجلة الأولى (التصنيف) */
 async function sgSpin() {
@@ -139,7 +130,7 @@ async function sgSpin() {
         /* الكلمة تنختار وتنحفظ عند المنظم قبل ما تنكتب نتيجة العجلة */
         const word = sgNewWord(cat);
         if (word) await sgSetWord(d0, word);
-        return sgAct((x, now) => sgUpd(x, { wheel: sgWheelObj("cat", x.sg.items, i, now), cat: cat, len: sgNorm(word).length }, null, now));
+        return sgAct((x, now) => sgUpd(x, { wheel: sgWheelObj("cat", x.sg.items, i, now), cat: cat, len: SG_LEN }, null, now));
     }
     return sgAct((x, now) => sgUpd(x, { wheel: sgWheelObj("cat", x.sg.items, i, now), cat: cat }, null, now));
 }
@@ -244,7 +235,7 @@ async function sgReword() {
     const word = sgNewWord(d0.sg.cat, sgWordOf(d0));
     if (!word) return roomToast("ما فيه كلمات جاهزة لهذا التصنيف، اكتب كلمتك", "alert");
     await sgSetWord(d0, word);
-    sgAct((x, now) => sgUpd(x, { len: sgNorm(word).length }, null, now));
+    sgAct((x, now) => sgUpd(x, { len: SG_LEN }, null, now));
 }
 async function sgCustomWord() {
     const d0 = sgCur();
@@ -256,62 +247,45 @@ async function sgCustomWord() {
     const w = String(t || "").trim().replace(/\s+/g, "");
     const n = sgNorm(w).length;
     if (!w) return;
-    if (n < 2 || n > 8) return roomToast("الكلمة من 2 إلى 8 حروف", "alert");
+    if (n !== SG_LEN) return roomToast("الكلمة لازم 3 حروف", "alert");
     await sgSetWord(d0, w);
     sgAct((x, now) => sgUpd(x, { len: n }, null, now));
 }
-/* ----- التخمين ----- */
-function sgGuessVal() { const el = document.getElementById("sgGuess"); return el ? el.value : ""; }
-function sgGuess() {
+/* ----- التخمين: المتسابق يقول كلمته بالصوت والمقدم يضغط كم حرف صحيح (0 إلى 3)، أو استرايك (طلب محمد 9 نوفمبر) ----- */
+function sgHit(n) {
     const d0 = sgCur();
-    if (!d0 || d0.seg !== 3 || d0.sg.st !== "play") return;
-    const word = sgWordOf(d0), raw = sgGuessVal().trim(), g = sgNorm(raw);
-    if (!word) return roomToast("الكلمة ما وصلت للجهاز، اكتب كلمتك (كلمة من عندي)", "alert");
-    if (!g) return roomToast("اكتب تخمين المتسابق", "alert");
-    if (g.length !== d0.sg.len) return roomToast("التخمين " + g.length + " حروف والمطلوب " + d0.sg.len + ". إذا قال كلمة غلط اضغط استرايك", "alert");
-    const fb = sgFeedback(word, g), found = fb.b === g.length;
-    const el = document.getElementById("sgGuess"); if (el) el.value = "";
+    if (!d0 || d0.seg !== 3 || d0.sg.st !== "play" || !(n >= 0 && n <= 3)) return;
     sgAct((x, now) => {
-        const t = x.sg.turn, gs = x.sg.gs.concat([{ p: t, w: raw.slice(0, 14), b: fb.b, c: fb.c }]);
-        if (found) return sgEndRound(x, now, t, "found", { gs: gs, reveal: word });
+        const t = x.sg.turn, gs = x.sg.gs.concat([{ p: t, n: n }]);
+        /* 3 حروف صحيحة = عرف الكلمة */
+        if (n === SG_LEN) return sgEndRound(x, now, t, "found", { gs: gs, reveal: sgWordOf(x) || "" });
         return sgUpd(x, { gs: gs, turn: sgOther(t), tEnd: now + SG_TURN3_MS }, null, now);
     });
 }
-/* استرايك: انتهى وقته، أو كلمة بحروف أكثر أو أقل، أو من غير التصنيف (المقدم يحكم) */
+/* استرايك: انتهى وقته، أو كلمة بحروف غير 3، أو من غير التصنيف (المقدم يحكم) */
 function sgStrike() {
     const d0 = sgCur();
     if (!d0 || d0.seg !== 3 || d0.sg.st !== "play") return;
-    const raw = sgGuessVal().trim().slice(0, 14);
-    const el = document.getElementById("sgGuess"); if (el) el.value = "";
     sgAct((x, now) => {
-        const t = x.sg.turn, sk = x.sg.sk.slice(), gs = x.sg.gs.concat([{ p: t, w: raw, x: 1 }]);
+        const t = x.sg.turn, sk = x.sg.sk.slice(), gs = x.sg.gs.concat([{ p: t, x: 1 }]);
         sk[t - 1]++;
         if (sk[t - 1] >= SG_STRIKES) return sgEndRound(x, now, sgOther(t), "strikes", { gs: gs, sk: sk, reveal: sgWordOf(x) || "" });
         return sgUpd(x, { gs: gs, sk: sk, turn: sgOther(t), tEnd: now + SG_TURN3_MS }, null, now);
     });
 }
 
-/* ===== الرسم: العجلة ===== */
-const SG_COLORS = ["#2563eb", "#7c3aed", "#db2777", "#ea580c", "#16a34a", "#0891b2", "#ca8a04", "#dc2626"];
-function sgWheelSVG(items, w, letters) {
-    const n = items.length, a = 360 / n, R = 100;
-    const pt = (ang, r) => { const t = ang * Math.PI / 180; return [(r * Math.sin(t)).toFixed(2), (-r * Math.cos(t)).toFixed(2)]; };
-    const long = items.reduce((m, s) => Math.max(m, String(s).length), 0);
-    const fs = letters ? 16 : (n <= 6 ? 11.5 : (n <= 10 ? 10 : 8.5)) * (long > 11 ? 0.85 : 1);
-    let sl = "", tx = "";
-    for (let k = 0; k < n; k++) {
-        const [x0, y0] = pt(k * a, R), [x1, y1] = pt((k + 1) * a, R);
-        const col = SG_COLORS[(k === n - 1 && k % SG_COLORS.length === 0 && n > 1) ? 4 : k % SG_COLORS.length];
-        sl += `<path d="M0 0L${x0} ${y0}A${R} ${R} 0 ${a > 180 ? 1 : 0} 1 ${x1} ${y1}Z" fill="${col}" stroke="#0b1020" stroke-width="1.2"/>`;
-        const mid = k * a + a / 2, right = mid < 180, r = letters ? 80 : 60;
-        tx += `<text transform="${right ? `rotate(${(mid - 90).toFixed(1)}) translate(${r},0)` : `rotate(${(mid + 90).toFixed(1)}) translate(${-r},0)`}" text-anchor="middle" dominant-baseline="central" font-size="${fs.toFixed(1)}" font-weight="800" fill="#fff">${escapeHTML(String(items[k]))}</text>`;
-    }
+/* ===== الرسم: بكرة الاختيار (بدل العجلة، طلب محمد): شريط يدور بسرعة ويبطّئ لين يقف على النتيجة في الوسط.
+   النتيجة (w.i) مكتوبة من المقدم، والحركة محسوبة من وقت السيرفر (w.at): كل الأجهزة تقف على نفس العنصر بنفس اللحظة، واللي دخل متأخر يشوفها نص دورانها ===== */
+function sgReelHTML(items, w, letters) {
+    const n = items.length, loops = Math.max(4, Math.ceil(40 / n)), cells = [];
+    for (let l = 0; l < loops + 2; l++) items.forEach(t => cells.push(`<div class="c">${escapeHTML(String(t))}</div>`));
     let style = "";
     if (w) {
-        const to = 360 * 6 - (w.i + 0.5 + w.j) * a, el = Math.min(SG_SPIN_MS, Math.max(0, bcNow() - w.at));
-        style = `--to:${to.toFixed(1)}deg;animation:sgSpin ${SG_SPIN_MS}ms cubic-bezier(.1,.55,.12,1) ${-el}ms both;`;
-    }
-    return `<div class="sg-wheel"><i class="sg-ptr"></i><svg class="sg-wsvg" viewBox="-104 -104 208 208" style="${style}"><circle r="103" fill="#0b1020"/>${sl}${tx}<circle r="17" fill="#0b1020" stroke="#facc15" stroke-width="2.5"/></svg></div>`;
+        const fi = loops * n + w.i, el = Math.min(SG_SPIN_MS, Math.max(0, bcNow() - w.at));
+        style = `--to:calc(var(--h) * ${-(fi - 1)});animation:sgReel ${SG_SPIN_MS}ms cubic-bezier(.12,.72,.08,1) ${-el}ms both;`;
+    } else style = `--n:${n};animation:sgIdle ${Math.max(8, n * 1.2)}s linear infinite;`;
+    const flash = w ? `animation-delay:${Math.max(0, SG_SPIN_MS - Math.min(SG_SPIN_MS, Math.max(0, bcNow() - w.at)))}ms;` : "";
+    return `<div class="sg-reel ${letters ? "let" : ""} ${w ? "go" : "idle"}"><div class="sg-strip" style="${style}">${cells.join("")}</div><i class="sg-sel" style="${flash}"></i><i class="sg-fade"></i></div>`;
 }
 function sgHold(w, ms) { return bcNow() >= (w ? w.at : 0) + ms ? "" : "sg-hold"; }
 
@@ -326,12 +300,12 @@ function sgHeadHTML(d) {
 function sgWheelStageHTML(d) {
     const sg = d.sg, seg = d.seg, letter = seg === 2 && sg.st === "letter", w = sg.wheel;
     const items = letter ? SG_LETTERS : sg.items;
-    const title = letter ? "عجلة الحروف" : (seg === 2 ? "عجلة التصنيفات" : "عجلة نوع الكلمة");
+    const title = letter ? "اختيار الحرف" : (seg === 2 ? "اختيار التصنيف" : "اختيار نوع الكلمة");
     const chip = `<div class="sg-chip">${letter ? `التصنيف: <b>${escapeHTML(sg.cat)}</b> · ` : ""}${title}</div>`;
     let res;
     if (w) res = `<div class="sg-res ${sgHold(w, SG_SPIN_MS + 200)}" data-after="${w.at + SG_SPIN_MS + 200}">${letter ? `<span class="big">${escapeHTML(sg.letter)}</span>` : `<span class="lbl">${escapeHTML(sg.cat)}</span>`}${seg === 3 ? `<small>من ${sg.len} حروف</small>` : ""}</div>`;
-    else res = `<div class="sg-res idle">${isAdmin ? "اضغط لف العجلة" : "بانتظار المقدم يلف العجلة..."}</div>`;
-    return `${chip}${sgWheelSVG(items, w, letter)}${res}`;
+    else res = `<div class="sg-res idle">${isAdmin ? "اضغط ابدأ الاختيار" : "بانتظار المقدم يبدأ الاختيار..."}</div>`;
+    return `${chip}${sgReelHTML(items, w, letter)}${res}`;
 }
 function sgTurnHTML(d, me) {
     const sg = d.sg, nm = escapeHTML(livePlayerName(d, sg.turn)), total = d.seg === 2 ? SG_TURN2_MS : SG_TURN3_MS;
@@ -347,17 +321,15 @@ ${sgTurnHTML(d, me)}
 <div class="sg-cnt">${ic("check-circle")} أجوبة صحيحة في الجولة: <b>${sg.cnt || 0}</b></div>
 <div class="lv-muted">كل متسابق بدوره، واللي يغلط أو ينتهي وقته يخسر الجولة</div>`;
 }
+const SG_HITS = ["ولا حرف", "حرف صحيح", "حرفين صحيحة", "3 حروف صحيحة"];
 function sgFbHTML(g) {
     if (g.x) return `<i class="x">استرايك</i>`;
-    let h = "";
-    if (g.b) h += `<i class="b">${g.b} بمكانه</i>`;
-    if (g.c) h += `<i class="c">${g.c} بغير مكانه</i>`;
-    return h || `<i class="z">ولا حرف مشترك</i>`;
+    return `<i class="n${g.n}">${SG_HITS[g.n] || ""}</i>`;
 }
 function sgPlay3HTML(d, me) {
     const sg = d.sg, o = bcCur(d) || {};
     const box = n => `<div class="sg-sk ${sg.turn === n ? "on" : ""}"><b>${escapeHTML(n === 1 ? o.p1 : o.p2)}</b><div>${Array.from({ length: SG_STRIKES }, (_, k) => `<i class="${k < sg.sk[n - 1] ? "full" : ""}">${k < sg.sk[n - 1] ? ic("x") : ""}</i>`).join("")}</div></div>`;
-    const rows = sg.gs.slice().reverse().slice(0, 4).map(g => `<div class="sg-g p${g.p}"><span class="who">${escapeHTML(g.p === 1 ? o.p1 : o.p2)}</span><b class="w">${escapeHTML(g.w || "—")}</b><span class="fb">${sgFbHTML(g)}</span></div>`).join("");
+    const rows = sg.gs.slice().reverse().slice(0, 4).map(g => `<div class="sg-g p${g.p}"><span class="who">${escapeHTML(g.p === 1 ? o.p1 : o.p2)}</span><span class="fb">${sgFbHTML(g)}</span></div>`).join("");
     return `<div class="sg-prompt"><small>${escapeHTML(sg.cat)}</small><b>من ${sg.len} حروف</b></div>
 ${sgTurnHTML(d, me)}
 <div class="sg-sks">${box(1)}${box(2)}</div>
@@ -401,14 +373,14 @@ function sgDockPaint(d) {
     const wordBox = () => `<div class="sg-wordbox"><small>الكلمة (تشوفها أنت بس)</small><b>${escapeHTML(word || "…")}</b></div>`;
     if (sg.st === "cat" && d.seg === 2) {
         if (!w) {
-            h = btn("sgSpin", "bc-go", "dice", "لف عجلة التصنيفات")
+            h = btn("sgSpin", "bc-go", "dice", "ابدأ اختيار التصنيف")
               + `<details class="sg-edit"><summary>${ic("pencil")} التصنيفات (${sg.items.length}) · إضافة أو حذف</summary><div class="sg-chips">${sg.items.map((c, i) => `<span>${escapeHTML(c)}<button onclick="sgCatDel(${i})" aria-label="حذف">×</button></span>`).join("")}</div><button class="bc-ghost" onclick="sgCatAdd()">${ic("plus")} إضافة تصنيف</button></details>`;
-        } else h = btn("sgToLetter", "bc-go", "dice", "لف عجلة الحروف", 1);
+        } else h = btn("sgToLetter", "bc-go", "dice", "التالي: اختيار الحرف", 1);
     } else if (sg.st === "letter") {
-        if (!w) h = btn("sgSpinLetter", "bc-go", "dice", "لف عجلة الحروف");
-        else h = btn("sgStart", "bc-go", "zap", "ابدأ الجولة (" + first + " يبدأ)", 1) + btn("sgSpinLetter", "bc-ghost", "dice", "لف الحرف من جديد", 1);
+        if (!w) h = btn("sgSpinLetter", "bc-go", "dice", "ابدأ اختيار الحرف");
+        else h = btn("sgStart", "bc-go", "zap", "ابدأ الجولة (" + first + " يبدأ)", 1) + btn("sgSpinLetter", "bc-ghost", "dice", "اختيار حرف من جديد", 1);
     } else if (sg.st === "cat" && d.seg === 3) {
-        if (!w) h = btn("sgSpin", "bc-go", "dice", "لف عجلة نوع الكلمة");
+        if (!w) h = btn("sgSpin", "bc-go", "dice", "ابدأ اختيار نوع الكلمة");
         else h = `<div class="${hold(SG_SPIN_MS + 200)}" data-after="${w.at + SG_SPIN_MS + 200}">${say(`قل: «${cat} من ${sg.len} حروف»`)}${wordBox()}<div class="sg-row2"><button class="bc-ghost" onclick="sgReword()">كلمة غيرها</button><button class="bc-ghost" onclick="sgCustomWord()">${ic("pencil")} كلمة من عندي</button></div></div>`
             + btn("sgStart", "bc-go", "zap", "ابدأ الجولة (" + first + " يبدأ)", 1);
     } else if (sg.st === "play" && d.seg === 2) {
@@ -416,9 +388,9 @@ function sgDockPaint(d) {
           + `<div class="bc-verdict"><button class="ok" onclick="sgOk()">${ic("check-circle")} صح · الدور للثاني</button><button class="no" onclick="sgBad()">${ic("x-circle")} غلط / خلص وقته</button></div>`
           + `<button class="lv-link" onclick="sgSkip()">إنهاء الجولة بدون نقطة</button>`;
     } else if (sg.st === "play" && d.seg === 3) {
-        h = (sg.gs.length ? "" : say(`قل: «${cat} من ${sg.len} حروف، ${turn} يبدأ»`)) + wordBox()
-          + `<input id="sgGuess" class="sg-in" type="text" maxlength="14" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="تخمين ${turn}" onkeydown="if(event.key==='Enter')sgGuess()">`
-          + `<div class="bc-verdict"><button class="ok" onclick="sgGuess()">${ic("check-circle")} سجّل التخمين</button><button class="no" onclick="sgStrike()">${ic("x-circle")} استرايك</button></div>`
+        h = (sg.gs.length ? "" : say(`قل: «${cat} من 3 حروف، ${turn} يبدأ»`)) + wordBox()
+          + `<div class="sg-hits"><button class="h0" onclick="sgHit(0)">ولا حرف</button><button class="h1" onclick="sgHit(1)">حرف صحيح</button><button class="h2" onclick="sgHit(2)">حرفين صحيحة</button><button class="h3" onclick="sgHit(3)">ثلاث حروف صحيحة</button></div>`
+          + `<button class="sg-strike" onclick="sgStrike()">${ic("x-circle")} استرايك</button>`
           + `<div class="sg-row2">${sg.gs.length || sg.sk[0] || sg.sk[1] ? "" : `<button class="bc-ghost" onclick="sgReword()">كلمة غيرها</button><button class="bc-ghost" onclick="sgCustomWord()">${ic("pencil")} كلمة من عندي</button>`}<button class="lv-link" onclick="sgSkip()">إنهاء بدون نقطة</button></div>`;
     } else if (sg.st === "done") {
         const last = sg.r + 1 >= SG_ROUNDS;
@@ -456,6 +428,31 @@ function sgTick(d) {
         }
     } else SG.lastSec = -1;
 }
+/* نغمات أزرار فقرة الكلمات: كل ما زادت الحروف الصحيحة ارتفع التردد وزادت الحدة والحماس (طلب محمد 9 نوفمبر) */
+const SG_TONES = {
+    0: [[196, 0.3, "sawtooth"]],
+    1: [[523, 0.28, "triangle"]],
+    2: [[659, 0.14, "triangle"], [880, 0.14, "square"], [1109, 0.3, "triangle"]],
+    3: [[784, 0.11, "square"], [988, 0.11, "square"], [1319, 0.11, "square"], [1568, 0.12, "triangle"], [2093, 0.5, "triangle"]],
+    x: [[392, 0.13, "sawtooth"], [262, 0.13, "sawtooth"], [147, 0.4, "sawtooth"]]
+};
+function sgTone(key) {
+    try {
+        const c = liveCtx(), notes = SG_TONES[key];
+        if (!notes) return;
+        if (c.state === "suspended") c.resume().catch(() => {});
+        let t = c.currentTime + 0.02;
+        const vol = key === 3 ? 0.24 : (key === 2 ? 0.2 : 0.17);
+        notes.forEach(([f, d, type]) => {
+            const o = c.createOscillator(), g = c.createGain();
+            o.type = type; o.frequency.setValueAtTime(f, t);
+            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+            o.connect(g); g.connect(c.destination);
+            o.start(t); o.stop(t + d + 0.03);
+            t += d * 0.88;
+        });
+    } catch (e) {}
+}
 /* أصوات وستينجر (تنادى مع كل رسم للشاشة) */
 function sgFx(d) {
     const sg = d && d.sg;
@@ -464,6 +461,11 @@ function sgFx(d) {
     const snap = { cnt: sg.cnt || 0, gs: (sg.gs || []).length, sk: (sg.sk || [0, 0]).join(), turn: sg.turn };
     const prev = SG.prevSnap, was = SG.prevKey;
     SG.prevKey = key; SG.prevSnap = snap;
+    /* آخر ضغطة من المقدم في فقرة الكلمات (حتى لو انتهت بها الجولة) */
+    if (prev && d.seg === 3 && snap.gs > prev.gs && key.split(":").slice(0, 3).join() === was.split(":").slice(0, 3).join()) {
+        const g = sg.gs[sg.gs.length - 1];
+        if (g) sgTone(g.x ? "x" : g.n);
+    }
     if (key !== was) {
         if (sg.st === "cat" && sg.r === 0) bcStinger(d.seg === 2 ? "الفقرة الثانية" : "الفقرة الثالثة", d.seg === 2 ? "عجلة الحروف" : "خمّن الكلمة", sg.at);
         if (sg.st === "play") showSound(sg.at, "start_q", 0.6);
@@ -473,13 +475,17 @@ function sgFx(d) {
         }
     } else if (prev) {
         if (snap.cnt > prev.cnt) cinePlay("correct", 0.6);
-        else if (snap.sk !== prev.sk) cinePlay("wrong", 0.6);
-        else if (snap.gs > prev.gs) cinePlay("reveal", 0.5);
+        else if (snap.sk !== prev.sk && d.seg === 2) cinePlay("wrong", 0.6);
     }
     const w = sg.wheel;
     if (w && w.at !== SG.wheelAt) {
         SG.wheelAt = w.at;
         showSound(w.at, "riser", 0.5, { tail: SG_SPIN_MS / 1000 });
+        /* تكتكة البكرة: كثيفة أول شي وتتباعد لين تقف */
+        for (let k = 0; k < 24; k++) {
+            const at = w.at + SG_SPIN_MS * (1 - Math.pow(1 - k / 24, 2.4)) - bcNow();
+            if (at > 0) setTimeout(() => cinePlay("tick", 0.22), at);
+        }
         const wait = w.at + SG_SPIN_MS - bcNow();
         if (wait > -300) setTimeout(() => cinePlay("impact", 0.7), Math.max(0, wait));
     }
