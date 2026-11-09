@@ -109,10 +109,7 @@ const CINE_FILES = {
     /* طابع برامج المسابقات (مؤثرات قصيرة). الموسيقى (lobby، show_intro، interlude، decider، think2، outro، big_win) انشالت */
     reveal: { g: 0.83 }, match_end: { g: 0.81 }, applause: { g: 1 }, start_q: { g: 0.87 },
     /* نغمة شارة البداية (5.8 ث، مقطوعة من show_intro بتلاشي): طلب محمد 23 أكتوبر 2026، قبل الترحيب بالمتسابقين */
-    ident: { g: 0.55 },
-    /* مؤثرات فقرتي الحروف والكلمات: عينات احترافية من مكتبة Mixkit (audio/SG-CREDITS.txt)، مضبوطة المستوى */
-    sg_miss: { g: 1 }, sg_h1: { g: 1 }, sg_h2: { g: 1 }, sg_h3: { g: 1.05 }, sg_h3b: { g: 0.9 }, sg_strike: { g: 1 }, sg_spin: { g: 0.85 },
-    sg_land: { g: 1 }, sg_seg: { g: 0.9 }, sg_round: { g: 1 }, sg_pass: { g: 0.7 }, sg_ok: { g: 1 }, sg_bad: { g: 1 }, sg_time: { g: 1 }
+    ident: { g: 0.55 }
 };
 const CINE_BUF = {};
 const CINE_LOADING = {};
@@ -123,8 +120,6 @@ function cineNeedFor(d) {
     const left = (d.order || []).filter((o, i) => o.state === "pending" && i !== d.cur).length;
     if (d.scene === "closing" || (d.scene === "result" && !left)) return ["fireworks"];
     if (d.scene === "intro") return ["ident"];
-    /* مؤثرات الفقرتين الثانية والثالثة تتحمل وقت الأسئلة، فتكون جاهزة قبل ما تبدأ */
-    if (d.scene === "playing" && typeof SG_SAMPLES !== "undefined") return SG_SAMPLES;
     return [];
 }
 function cineLoadSamples(ids) {

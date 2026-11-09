@@ -415,6 +415,8 @@ function sgDockPaint(d) {
         const last = sg.r + 1 >= SG_ROUNDS;
         h = btn("sgNext", "bc-go", last ? "trophy" : "zap", d.seg === 2 ? (last ? "فقرة خمّن الكلمة" : "الجولة التالية") : (last ? "نتيجة المواجهة" : "الجولة التالية"));
     }
+    /* البث الخاص التجريبي: تخطي الفقرة الثانية للثالثة */
+    if (bcIsReh(openLiveId) && d.seg === 2) h += `<button class="lv-link" onclick="bcRehSkip()">تخطي للفقرة الثالثة (التجربة)</button>`;
     /* التركيب يتغير بس لو تغيّر المحتوى: الخانة المكتوبة فيها ما تنمسح مع الرسم */
     const sig = d.seg + "|" + sg.r + "|" + sg.st + "|" + sg.n + "|" + (w ? w.at : 0) + "|" + (word ? 1 : 0) + "|" + sg.items.length + "|" + sg.turn + "|" + (sg.wheel ? 1 : 0);
     if (!dock) {
@@ -443,18 +445,28 @@ function sgTick(d) {
             const first = SG.lastSec === -1;   /* أول قراءة (فتحت البث متأخر): بدون صوت */
             SG.lastSec = s;
             if (!first && s > 0 && s <= 3) cinePlay("tick", 0.6);
-            else if (!first && s === 0) cinePlay("sg_time", 1);
+            else if (!first && s === 0) SG_SFX.time();
         }
     } else SG.lastSec = -1;
 }
-/* مؤثرات احترافية (عينات mp3 من مكتبة Mixkit في audio/sg_*.mp3، مو أصوات المتصفح): كل ما زادت الحروف الصحيحة صار الصوت أقوى وأكثر حماس (طلب محمد 9 نوفمبر) */
-const SG_SAMPLES = ["sg_miss", "sg_h1", "sg_h2", "sg_h3", "sg_h3b", "sg_strike", "sg_spin", "sg_land", "sg_seg", "sg_round", "sg_pass", "sg_ok", "sg_bad", "sg_time"];
+/* أصوات الفقرتين من نفس مؤثرات البث (audio/: impact و slam و braam و whoosh و riser و tick و wrong و correct و timeout و match_end و applause)
+   عشان تكون متناسقة مع باقي البث (طلب محمد 10 نوفمبر: بدون أجراس ولا رنين، كل شي قوي واحترافي). الأقوى مع زيادة الحروف الصحيحة */
+const SG_SFX = {
+    miss: () => cinePlay("wrong", 0.55),
+    h1: () => cinePlay("impact", 0.45),
+    h2: () => { cinePlay("impact", 0.8); cinePlay("whoosh", 0.5); },
+    h3: () => { cinePlay("slam", 1); cinePlay("braam", 0.45); cinePlay("applause", 0.5, { dur: 2.2 }); },
+    strike: () => { cinePlay("wrong", 1); cinePlay("impact", 0.6); },
+    ok: () => cinePlay("correct", 1),
+    bad: () => cinePlay("wrong", 1),
+    time: () => cinePlay("timeout", 1),
+    pass: () => cinePlay("whoosh", 0.55),
+    seg: () => { cinePlay("braam", 0.6); cinePlay("whoosh", 0.6); },
+    round: () => { cinePlay("match_end", 1); cinePlay("applause", 0.45, { dur: 2.6 }); },
+    land: () => cinePlay("slam", 0.9)
+};
 function sgHitSound(key) {
-    if (key === "x") cinePlay("sg_strike", 1);
-    else if (key === 0) cinePlay("sg_miss", 1);
-    else if (key === 1) cinePlay("sg_h1", 1);
-    else if (key === 2) { cinePlay("sg_h2", 1); }
-    else if (key === 3) { cinePlay("sg_h3", 1); cinePlay("sg_h3b", 0.8); }
+    SG_SFX[key === "x" ? "strike" : (["miss", "h1", "h2", "h3"][key] || "miss")]();
 }
 /* أصوات وستينجر (تنادى مع كل رسم للشاشة) */
 function sgFx(d) {
@@ -466,30 +478,40 @@ function sgFx(d) {
     SG.prevKey = key; SG.prevSnap = snap;
     const same = !!prev && key.split(":").slice(0, 3).join() === was.split(":").slice(0, 3).join();
     const fresh = bcNow() - (Number(sg.at) || 0) < 2500;
-    const pass = ms => setTimeout(() => cinePlay("sg_pass", 1), ms);   /* انتقال الدور للمتسابق الثاني */
+    const pass = ms => setTimeout(SG_SFX.pass, ms);   /* انتقال الدور للمتسابق الثاني */
     /* فقرة الكلمات: كل ضغطة من المقدم لها مؤثر (يقوى مع عدد الحروف الصحيحة) وبعدها الدور ينتقل */
     if (same && d.seg === 3 && snap.gs > prev.gs) {
         const g = sg.gs[sg.gs.length - 1];
         if (g) { sgHitSound(g.x ? "x" : g.n); if (sg.st === "play") pass(g.n === 0 || g.x ? 900 : 1000); }
     }
     /* فقرة الحروف: جواب صح ← الدور للثاني */
-    if (same && d.seg === 2 && snap.cnt > prev.cnt) { cinePlay("sg_ok", 1); pass(700); }
+    if (same && d.seg === 2 && snap.cnt > prev.cnt) { SG_SFX.ok(); pass(700); }
     if (key !== was) {
         if (sg.st === "cat" && sg.r === 0) {
             bcStinger(d.seg === 2 ? "الفقرة الثانية" : "الفقرة الثالثة", d.seg === 2 ? "عجلة الحروف" : "خمّن الكلمة", sg.at);
-            showSound(sg.at, "sg_seg", 1);
+            if (fresh) SG_SFX.seg();
         }
         if (sg.st === "play") { showSound(sg.at, "start_q", 0.8); }
         if (sg.st === "done" && fresh) {
-            if (d.seg === 2 && sg.why === "wrong") cinePlay("sg_bad", 1);
-            if (sg.win) setTimeout(() => { cinePlay("sg_round", 1); cinePlay("applause", 0.45, { dur: 2.6 }); }, d.seg === 3 ? 1500 : 800);
+            if (d.seg === 2 && sg.why === "wrong") SG_SFX.bad();
+            if (sg.win) setTimeout(SG_SFX.round, d.seg === 3 ? 1500 : 800);
         }
     }
     const w = sg.wheel;
     if (w && w.at !== SG.wheelAt) {
         SG.wheelAt = w.at;
-        showSound(w.at, "sg_spin", 1);
+        /* صوت البكرة: سويش البداية، وتكتكة ميكانيكية تتباعد لين تقف، وصاعد (riser) آخر 3 ث، وضربة عند الوقوف */
+        const now0 = bcNow();
+        if (now0 - w.at < 1500) {
+            cinePlay("whoosh", 0.7);
+            for (let k = 0; k < 26; k++) {
+                const at = w.at + SG_SPIN_MS * (1 - Math.pow(1 - k / 26, 2.2)) - bcNow();
+                if (at > 0) setTimeout(() => cinePlay("tick", 0.9), at);
+            }
+            const rs = w.at + SG_SPIN_MS - 3000 - now0;
+            setTimeout(() => cinePlay("riser", 0.6), Math.max(0, rs));
+        }
         const wait = w.at + SG_SPIN_MS - bcNow();
-        if (wait > -300) setTimeout(() => cinePlay("sg_land", 1), Math.max(0, wait));
+        if (wait > -300) setTimeout(SG_SFX.land, Math.max(0, wait));
     }
 }

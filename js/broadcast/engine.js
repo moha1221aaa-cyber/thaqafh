@@ -780,6 +780,17 @@ function bcHostNextQ() {
         .then(u => { if (!u) bcRedrawAll(); }).catch(err => { roomToast("تعذّر: " + err.message, "alert"); bcRedrawAll(); });
 }
 
+/* البث الخاص التجريبي بس (طلب محمد 10 نوفمبر): تخطي فقرة الأسئلة للفقرة الثانية، وتخطي الفقرة الثانية للثالثة، عشان تجرب الفقرات الجديدة بسرعة */
+function bcRehSkip() {
+    if (!isAdmin || openLiveId !== BC_REH) return;
+    liveTx(BC_REH, (x, now) => {
+        if (x.status !== "live" || !(x.scene === "talk" || x.scene === "countdown" || x.scene === "playing")) return null;
+        if (x.scene !== "playing" || x.seg === 1) return sgEnter(x, 2, now);
+        if (x.seg === 2) return sgEnter(x, 3, now);
+        return null;
+    }).catch(err => roomToast("تعذّر: " + err.message, "alert"));
+}
+
 /* من صفحة المتسابقين ← فقرة الترحيب */
 function bcToTalk() {
     if (!isAdmin) return;
