@@ -560,14 +560,14 @@ ${adminBar(`<button class="bc-go" onclick="bcToTalk()">${ic("mic")} الترحي
 <div class="s">المايكات مفتوحة الحين للمنظم و${escapeHTML(o.p1)} و${escapeHTML(o.p2)}</div>
 </div>
 ${isAdmin ? "" : `<div class="lv-muted">المنظم يرحّب بالمتسابقين، والأسئلة تبدأ بعد شوي...</div>`}
-${adminBar(`<button class="bc-go" onclick="bcForceStart()">${ic("rocket")} ابدأ المواجهة</button><button class="bc-ghost" onclick="bcNext(true)">تخطي المواجهة</button>`)}`;
+${adminBar(`<button class="bc-go" onclick="bcForceStart()">${ic("rocket")} ابدأ المواجهة</button>${bcIsReh(openLiveId) ? `<button class="bc-ghost" onclick="bcRehSkip()">${ic("rocket")} تخطي الأسئلة للفقرة الثانية (التجربة)</button>` : ""}<button class="bc-ghost" onclick="bcNext(true)">تخطي المواجهة</button>`)}`;
     }
 
     if (d.scene === "countdown") {
         return `<div class="lv-muted">استعدوا!</div><div class="lv-count" id="lvCount">3</div><div class="lv-muted">السؤال الأول جاي...</div>`;
     }
 
-    if (d.scene === "playing") return (d.seg > 1 ? bcSegHTML(d, me) : bcQuizHTML(d, me)) + (isAdmin ? `<div class="bc-admin"><button class="lv-link" onclick="bcNext(true)">إيقاف المواجهة وتخطيها</button></div>` : "");
+    if (d.scene === "playing") return (d.seg > 1 ? bcSegHTML(d, me) : bcQuizHTML(d, me)) + (isAdmin ? `<div class="bc-admin">${bcIsReh(openLiveId) && !(d.seg > 1) ? `<button class="bc-ghost" onclick="bcRehSkip()">${ic("rocket")} تخطي فقرة الأسئلة (التجربة)</button>` : ""}<button class="lv-link" onclick="bcNext(true)">إيقاف المواجهة وتخطيها</button></div>` : "");
 
     if (d.scene === "result" && o) {
         const s1 = d.s1 || 0, s2 = d.s2 || 0;

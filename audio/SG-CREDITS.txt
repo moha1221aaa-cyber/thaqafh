@@ -1,4 +1,0 @@
-مؤثرات فقرتي الحروف والكلمات (ملفات sg_*.mp3): من مكتبة Mixkit للمؤثرات الصوتية (https://mixkit.co/free-sound-effects/)،
-مؤثرات قوية (ضربات سينمائية وصفارات وسويش وعدّاد) مو نغمات موسيقية. رخصة Mixkit Sound Effects Free License: مجانية للاستخدام التجاري وغير التجاري بدون نسب.
-اتضبط مستوى الصوت (loudnorm) وقُصّت.
-المصادر (رقم Mixkit): 2182 sg_miss، 833 sg_h1، 772 sg_h2، 2908+2919 sg_h3، 948 sg_strike، 2655 sg_ok، 955 sg_bad، 1647 sg_time، 1051 sg_spin (مكرر)، 788 sg_land، 1464 sg_pass، 2902 sg_seg، 2901 sg_round.
