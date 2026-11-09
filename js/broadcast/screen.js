@@ -103,6 +103,7 @@ async function closeLiveScreen(fromPop) {
     document.body.classList.remove("live-open");
     if (liveTickTimer) { clearInterval(liveTickTimer); liveTickTimer = null; }
     bcPredListen("");
+    sgDockPaint(null);
     bcFlushPage();   /* اللي تأجل رسمه من صفحات الموقع وقت البث */
     bcStopSpeech();
     cineCloseAll();
@@ -128,6 +129,8 @@ function liveTick() {
             cinePlay("heartbeat", 0.9);
             if (el.getAnimations) el.getAnimations().forEach(a => { a.cancel(); a.play(); });
         }
+    } else if (d.scene === "playing" && d.seg > 1) {
+        sgTick(d);   /* الفقرة الثانية والثالثة (segments.js): العجلة والعداد */
     } else if (d.scene === "playing") {
         const total = d.phase === "buzz" ? LIVE_BUZZ_MS : (d.phase === "answer" ? LIVE_ANSWER_MS : LIVE_REVEAL_MS);
         const ringEl = document.getElementById("lvRing");
@@ -323,6 +326,7 @@ function renderLiveScreenNow() {
     bcClockLast = -1;
     bcSceneEffects(d);
     bcAnnouncer(d);
+    sgFx(d);
     bcAutoFx(d);
     if (d.scene === "countdown" || d.scene === "playing") liveSoundsOnChange(d);
     else livePrevView = null;
@@ -346,7 +350,7 @@ ${isAdmin && (live || sched) ? `<button class="bc-endbtn" onclick="bcEnd()">${ic
     R.pods = "";
     if (live && o && (d.scene === "talk" || d.scene === "countdown" || d.scene === "playing" || d.scene === "result")) {
         /* منصات المتسابقين: تنور منصة اللي ضغط الجرس */
-        const lit = (d.scene === "playing" && d.phase === "answer") ? d.answerer : 0;
+        const lit = (d.scene === "playing" && d.phase === "answer") ? d.answerer : ((d.scene === "playing" && d.seg > 1 && d.sg && d.sg.st === "play") ? d.sg.turn : 0);
         const nq = (d.questions || []).length || LIVE_Q_COUNT;
         const pod = n => `
 <div class="st-pod ${lit === n ? "lit" : ""} ${me === n ? "me" : ""} ${lit && lit !== n ? "dim" : ""}" ${(n === 1 ? o.uid1 : o.uid2) ? `data-bcuid="${escapeHTML(n === 1 ? o.uid1 : o.uid2)}"` : ""}>
@@ -355,7 +359,7 @@ ${isAdmin && (live || sched) ? `<button class="bc-endbtn" onclick="bcEnd()">${ic
 <div class="nm">${escapeHTML(n === 1 ? o.p1 : o.p2)}</div>
 <div class="st-desk">${showScoreHTML(d, n)}<i>أجوبة</i></div>
 </div>`;
-        const mid = d.scene === "talk" ? `الترحيب<small>قبل البداية</small>` : d.scene === "playing" ? (d.qIndex >= LIVE_Q_COUNT ? `ذهبي<small>سؤال الحسم</small>` : `السؤال ${d.qIndex + 1}<small>من ${LIVE_Q_COUNT}</small>`) : (d.scene === "result" ? "النتيجة" : "استعدوا");
+        const mid = d.scene === "talk" ? `الترحيب<small>قبل البداية</small>` : d.scene === "playing" ? (d.seg > 1 && d.sg ? `الفقرة ${d.seg}<small>الجولة ${(d.sg.r || 0) + 1} من ${SG_ROUNDS}</small>` : d.qIndex >= LIVE_Q_COUNT ? `ذهبي<small>سؤال الحسم</small>` : `السؤال ${d.qIndex + 1}<small>من ${LIVE_Q_COUNT}</small>`) : (d.scene === "result" ? "النتيجة" : "استعدوا");
         const mc = (d.scene === "talk" || d.scene === "countdown" || d.scene === "playing") ? bcMicCtlHTML(d) : "";
         R.pods = `
 ${mc ? `<div class="st-microw">${mc}</div>` : ""}
@@ -371,6 +375,7 @@ ${pod(2)}
     bcPatchRegions(body, R);
     showAfterRender(body, d);
     bcEntrance(body, d);
+    sgDockPaint(d);   /* أزرار المقدم في الفقرة الثانية والثالثة (برا الرسم الجزئي) */
 
     const qc = body.querySelector(".st-qcard");
     /* still بس للوحة جديدة لنفس السؤال (انعاد بناء المشهد)، مو للوحة نفسها اللي للحين تتحرك (الرسم الجزئي ما يعيد بناءها) */
@@ -543,7 +548,7 @@ ${ctx ? `<div class="st-ctx ${ctx.k}">${ic(ctx.k === "revenge" ? "zap" : "trophy
 ${bcPredHTML(d, o)}
 <div class="bc-note">${ic("mic-off")} المايكات تفتح بعد شارة البداية (لما يضغطون الاثنين "جاهز")</div>
 ${action}
-<div class="lv-rules">${LIVE_Q_COUNT} أسئلة · أسرع واحد يضغط الجرس يجاوب · إذا غلط أو خلص وقته ينتقل السؤال للثاني</div>
+<div class="lv-rules">3 فقرات: ${LIVE_Q_COUNT} أسئلة بالجرس · عجلة الحروف · خمّن الكلمة. أسرع واحد يضغط الجرس يجاوب، وإذا غلط ينتقل السؤال للثاني</div>
 ${adminBar(`<button class="bc-go" onclick="bcToTalk()">${ic("mic")} الترحيب بالمتسابقين الحين</button><button class="bc-ghost" onclick="bcNext(true)">تخطي المواجهة</button>`)}`;
     }
 
@@ -562,7 +567,7 @@ ${adminBar(`<button class="bc-go" onclick="bcForceStart()">${ic("rocket")} اب�
         return `<div class="lv-muted">استعدوا!</div><div class="lv-count" id="lvCount">3</div><div class="lv-muted">السؤال الأول جاي...</div>`;
     }
 
-    if (d.scene === "playing") return bcQuizHTML(d, me) + (isAdmin ? `<div class="bc-admin"><button class="lv-link" onclick="bcNext(true)">إيقاف المواجهة وتخطيها</button></div>` : "");
+    if (d.scene === "playing") return (d.seg > 1 ? bcSegHTML(d, me) : bcQuizHTML(d, me)) + (isAdmin ? `<div class="bc-admin"><button class="lv-link" onclick="bcNext(true)">إيقاف المواجهة وتخطيها</button></div>` : "");
 
     if (d.scene === "result" && o) {
         const s1 = d.s1 || 0, s2 = d.s2 || 0;
@@ -581,6 +586,7 @@ ${adminBar(`<button class="bc-go" onclick="bcForceStart()">${ic("rocket")} اب�
         const pc = x => Math.round((x / nq) * 100) + "%";
         const fb = x => x > 0 ? bcSec(x) + " ث" : "—";
         const fb1 = d.fb1 || 0, fb2 = d.fb2 || 0;
+        const qw1 = (d.log || []).filter(x => x === 1).length, qw2 = (d.log || []).filter(x => x === 2).length;   /* نقاط فقرة الأسئلة بس */
         const fastest = fb1 && (!fb2 || fb1 <= fb2) ? 1 : (fb2 ? 2 : 0);
         return `
 <div class="lv-final ${kind}">
@@ -590,8 +596,8 @@ ${wAv ? `<img class="bc-win-av" src="${safeSrc(wAv)}" alt="">` : `<div class="tr
 </div>
 <div class="st-stats">
 <div class="h"><span>${escapeHTML(o.p1)}</span><span></span><span>${escapeHTML(o.p2)}</span></div>
-<div><b class="${s1 > s2 ? "hi" : ""}">${s1}</b><span>إجابات صحيحة</span><b class="${s2 > s1 ? "hi" : ""}">${s2}</b></div>
-<div><b>${pc(s1)}</b><span>نسبة النجاح</span><b>${pc(s2)}</b></div>
+<div><b class="${s1 > s2 ? "hi" : ""}">${s1}</b><span>${d.sp ? "مجموع النقاط" : "إجابات صحيحة"}</span><b class="${s2 > s1 ? "hi" : ""}">${s2}</b></div>
+${d.sp ? `<div><b>${qw1}</b><span>فقرة الأسئلة</span><b>${qw2}</b></div>${(d.sp.g2 || d.sp.g3) ? `<div><b>${(d.sp.g2 || [0, 0])[0]}</b><span>فقرة الحروف</span><b>${(d.sp.g2 || [0, 0])[1]}</b></div><div><b>${(d.sp.g3 || [0, 0])[0]}</b><span>فقرة الكلمات</span><b>${(d.sp.g3 || [0, 0])[1]}</b></div>` : ""}` : `<div><b>${pc(s1)}</b><span>نسبة النجاح</span><b>${pc(s2)}</b></div>`}
 <div><b class="${fastest === 1 ? "hi" : ""}">${fb(fb1)}</b><span>أسرع ضغطة جرس</span><b class="${fastest === 2 ? "hi" : ""}">${fb(fb2)}</b></div>
 </div>
 ${(() => { const c = bcPredCounts(d, d.cur); if (!c.t || !winner) return ""; const wn = s1 > s2 ? c.a : c.b; return `<div class="lv-muted">${ic("target")} ${wn} من ${c.t} توقعوا فوز ${escapeHTML(winner)}</div>`; })()}
@@ -695,8 +701,8 @@ ${(() => {
     /* السؤال الجاي بضغطة المقدم (23 أكتوبر 2026، قرار محمد) */
     const lastQ = d.qIndex + 1 >= (d.questions || []).length;
     return isAdmin
-        ? `${bcLateHTML(d)}<div class="bc-admin"><button class="bc-go bc-nextq" onclick="bcHostNextQ()">${ic(lastQ ? "trophy" : "zap")} ${lastQ ? "نتيجة المواجهة" : "السؤال التالي"}</button></div>`
-        : `<div class="lv-muted">${lastQ ? "بانتظار المقدم يعلن النتيجة" : "بانتظار المقدم يبدأ السؤال التالي"}</div>`;
+        ? `${bcLateHTML(d)}<div class="bc-admin"><button class="bc-go bc-nextq" onclick="bcHostNextQ()">${ic(lastQ ? "trophy" : "zap")} ${lastQ ? (d.seg === 1 ? "الفقرة الثانية: عجلة الحروف" : "نتيجة المواجهة") : "السؤال التالي"}</button></div>`
+        : `<div class="lv-muted">${lastQ ? (d.seg === 1 ? "بانتظار المقدم يبدأ الفقرة الثانية" : "بانتظار المقدم يعلن النتيجة") : "بانتظار المقدم يبدأ السؤال التالي"}</div>`;
 })()}`;
     }
     return html;

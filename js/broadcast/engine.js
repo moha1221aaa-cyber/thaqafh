@@ -333,7 +333,9 @@ function bcQuizReset() {
         ready1: false, ready2: false, qIndex: 0, phase: "wait",
         buzzer: 0, answerer: 0, tried1: false, tried2: false, passed: false,
         lastAnswer: null, outcome: 0, deadline: 0, s1: 0, s2: 0,
-        log: Array(LIVE_Q_COUNT).fill(-1), fb1: 0, fb2: 0, bh1: 0, bh2: 0, qAt: 0, golden: 0
+        log: Array(LIVE_Q_COUNT).fill(-1), fb1: 0, fb2: 0, bh1: 0, bh2: 0, qAt: 0, golden: 0,
+        /* فقرات المواجهة (segments.js): seg 1 الأسئلة، 2 عجلة الحروف، 3 خمّن الكلمة. sg حالة الجولة، sp نقاط الفقرتين */
+        seg: 1, sg: null, sp: {}
     };
 }
 
@@ -614,7 +616,12 @@ function liveRevealNext(d, now) {
     const next = (d.qIndex || 0) + 1;
     const qs = d.questions || [];
     if (next < qs.length) return liveQuestionUpd(next, now);
-    /* صافرة النهاية (والتعادل ينتهي تعادل، الدوري يحسبه نقطة لكل واحد: السؤال الذهبي انشال 22 أكتوبر 2026): نحفظ نتيجة المواجهة داخل البث وننتقل لمشهد النتيجة */
+    /* بعد آخر سؤال: الفقرة الثانية (عجلة الحروف) ثم الثالثة (خمّن الكلمة)، والنتيجة بعدها (segments.js). الوثائق القديمة بدون seg تنتهي زي قبل */
+    if (d.seg === 1) return sgEnter(d, 2, now);
+    return bcFinishUpd(d, now);
+}
+/* صافرة النهاية (والتعادل ينتهي تعادل، الدوري يحسبه نقطة لكل واحد: السؤال الذهبي انشال 22 أكتوبر 2026): نحفظ نتيجة المواجهة داخل البث وننتقل لمشهد النتيجة */
+function bcFinishUpd(d, now) {
     const order = (d.order || []).map(o => Object.assign({}, o));
     if (order[d.cur]) Object.assign(order[d.cur], { s1: d.s1 || 0, s2: d.s2 || 0, state: "done", applied: false, fb1: d.fb1 || 0, fb2: d.fb2 || 0, bh1: d.bh1 || 0, bh2: d.bh2 || 0 });
     return { scene: "result", phase: "done", order: order, deadline: 0, sceneAt: now };
