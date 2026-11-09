@@ -9,7 +9,7 @@ const QUAL_TITLE = "تصفيات أبطال النخبة الثقافي";
 const TN_PRIV_MAX_OWNED = 5;
 const TN_JOINED_KEY = "thq:joined";
 
-const tn = { mode: "official", official: "elite", pane: "stand", open: false, list: "official" };   /* open: داخل صفحة بطولة (وإلا القائمة) */
+const tn = { mode: "official", official: "elite", pane: "stand", open: false, list: "official", priv: null };   /* open: داخل صفحة بطولة (وإلا القائمة) */
 let qual = { players: [], matches: [], links: {}, groups: null, ko: null, exists: false };
 let privDoc = null;          /* البطولة الخاصة المفتوحة: { id, name, ownerUid, ownerName, double, players, matches } */
 let privUnsub = null;
@@ -156,33 +156,31 @@ function tnOpenOfficial(k) {
     tn.list = "official";
     tn.official = k === "qual" ? "qual" : "elite";
     tn.pane = "stand";
+    tn.priv = null;
     tn.open = true;
     renderTournamentsPage();
     window.scrollTo(0, 0);
+    if (typeof navPush === "function") navPush();
 }
+/* رجوع: لو الصفحة انفتحت بحالة في السجل نرجع خطوة في السجل (popstate يكمّل)، وإلا نسكّرها على طول */
 function tnBack() {
+    if (!navSilent && window.history.state && window.history.state.nav && window.history.state.nav.tn) { window.history.back(); return; }
     if (privUnsub) { privUnsub(); privUnsub = null; }
     privDoc = null;
+    tn.priv = null;
     tn.open = false;
     renderTournamentsPage();
     window.scrollTo(0, 0);
 }
 function tnSetPane(k) {
-    tn.pane = k === "matches" || k === "ko" ? k : "stand";
+    tn.pane = k === "matches" ? "matches" : "stand";
     paintTnPane();
 }
 function paintTnPane() {
     document.querySelectorAll("#tnSub button").forEach(b => b.classList.toggle("active", b.dataset.k === tn.pane));
     const st = document.getElementById("tnStand"), mt = document.getElementById("tnMatches");
-    const kt = document.getElementById("tnKo");
     if (st) st.style.display = tn.pane === "stand" ? "" : "none";
     if (mt) mt.style.display = tn.pane === "matches" ? "" : "none";
-    if (kt) kt.style.display = tn.pane === "ko" ? "" : "none";
-    if (tn.pane === "ko") renderKo();
-    /* تبويب الإقصاء يظهر لو فيه أدوار إقصائية، أو للي يقدر يبدأها */
-    const c = tCtx(), kb = document.querySelector('#tnSub button[data-k="ko"]');
-    if (kb) kb.style.display = c.ko || c.canEdit ? "" : "none";
-    if (tn.pane === "ko" && kb && kb.style.display === "none") { tn.pane = "stand"; paintTnPane(); }
     const lb = document.getElementById("liveMatchesBar");
     if (lb) lb.style.display = tn.mode === "official" && tn.official === "elite" ? "" : "none";
 }
@@ -413,7 +411,9 @@ function tnOpenPrivate(id, fromLink) {
     if (privUnsub) { privUnsub(); privUnsub = null; }
     tn.mode = "private";
     tn.list = "private";
+    tn.priv = id;
     tn.open = true;
+    if (typeof navPush === "function") navPush();
     let first = true;
     privUnsub = privCol().doc(id).onSnapshot(doc => {
         if (!doc.exists) {

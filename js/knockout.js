@@ -108,7 +108,7 @@ async function koStart() {
         ko = koFromSeeds(ctx.players.slice(0, n).map(p => p.name));
     }
     ctx.saveKo(ko);
-    tn.pane = "ko";
+    tn.pane = "matches";
     renderTournamentsPage();
 }
 async function koDelete() {
@@ -119,7 +119,7 @@ async function koDelete() {
     renderTournamentsPage();
 }
 
-/* ===== الرسم ===== */
+/* ===== الرسم: مواجهات الإقصاء تنعرض مع باقي المواجهات (القادمة والسابقة)، نفس شكل بطاقة المواجهة ===== */
 function koSet(r, i, field, value) {
     const ctx = tCtx();
     if (!ctx.canEdit || !ctx.ko) return;
@@ -130,46 +130,93 @@ function koSet(r, i, field, value) {
     t[field] = v;
     koRecalc(ctx.ko);
     ctx.saveKo(ctx.ko);
-    renderKo();
+    renderMatches();
 }
 
-function koSideHTML(ctx, t, side, win) {
-    const name = t[side], sc = side === "a" ? t.sa : t.sb;
-    const ready = !!(t.a && t.b) && !t.bye, edit = ctx.canEdit && ready;
-    const label = name ? escapeHTML(name) : `<span class="ko-wait">${t.bye ? "—" : "ينتظر"}</span>`;
-    return `<div class="ko-side ${win && win === name ? "w" : ""}">
-<span class="ko-n">${label}</span>
-<input type="number" min="0" class="ko-s" value="${escapeHTML(sc)}" ${edit ? "" : "disabled"} aria-label="نتيجة ${escapeHTML(name || "")}" onchange="koSet(${t.r}, ${t.i}, '${side === "a" ? "sa" : "sb"}', this.value)">
-</div>`;
+const KO_UNKNOWN_AV = "https://ui-avatars.com/api/?name=%3F&background=1e293b&color=94a3b8&bold=true&size=128";
+function koSide(ctx, name, win) {
+    const d = document.createElement("div");
+    d.className = "match-player" + (win && win === name ? " ko-w" : "");
+    const url = name ? getPlayerAvatar(name, ctx.links || {}).url : KO_UNKNOWN_AV;
+    d.innerHTML = `<img loading="lazy" decoding="async" src="${safeSrc(url)}" class="match-player-img" alt="">
+<div class="match-player-name">${name ? escapeHTML(name) : `<span class="ko-wait">ينتظر</span>`}</div>`;
+    return d;
+}
+function koTieCard(ctx, t) {
+    const w = koWinner(t), ready = !!(t.a && t.b) && !t.bye, edit = ctx.canEdit && ready;
+    const div = document.createElement("div");
+    div.className = "match ko-tie" + (w ? " is-done" : "");
+    div.dataset.r = t.r; div.dataset.i = t.i;
+    const box = document.createElement("div");
+    box.className = "match-score-box";
+    const inp = (side, v) => {
+        const x = document.createElement("input");
+        x.type = "number"; x.min = "0"; x.className = "ko-s"; x.value = v; x.disabled = !edit;
+        x.setAttribute("aria-label", "نتيجة " + (t[side] || ""));
+        x.onchange = () => koSet(t.r, t.i, side === "a" ? "sa" : "sb", x.value);
+        return x;
+    };
+    const sep = document.createElement("span"); sep.className = "match-sep"; sep.textContent = ":";
+    box.appendChild(inp("a", t.sa)); box.appendChild(sep); box.appendChild(inp("b", t.sb));
+    div.appendChild(koSide(ctx, t.a, w)); div.appendChild(box); div.appendChild(koSide(ctx, t.b, w));
+    if (t.bye) div.insertAdjacentHTML("beforeend", `<div class="ko-note">يتأهل مباشرة</div>`);
+    const tied = !t.bye && t.a && t.b && koNum(t.sa) !== null && koNum(t.sa) === koNum(t.sb);
+    if (tied) {
+        const tb = document.createElement("div");
+        tb.className = "ko-tb";
+        tb.innerHTML = `<span>تعادل: سؤال الحسم</span>`;
+        const mk = (side, v) => {
+            const x = document.createElement("input");
+            x.type = "number"; x.min = "0"; x.value = v; x.disabled = !ctx.canEdit;
+            x.setAttribute("aria-label", "حسم " + (t[side] || ""));
+            x.onchange = () => koSet(t.r, t.i, side === "a" ? "pa" : "pb", x.value);
+            return x;
+        };
+        const colon = document.createElement("i"); colon.textContent = ":";
+        tb.appendChild(mk("a", t.pa)); tb.appendChild(colon); tb.appendChild(mk("b", t.pb));
+        div.appendChild(tb);
+    }
+    return div;
 }
 
-function renderKo() {
-    const box = document.getElementById("tnKo");
-    if (!box) return;
-    const ctx = tCtx();
+/* يضيف الإقصائيات لقوائم المواجهات: اللي ما انحسمت (أو تنتظر طرف) في القادمة، واللي انحسمت في السابقة (الأحدث فوق) */
+function koAppend(ctx, upDiv, pastDiv, filterText) {
+    const clearEmpty = d => d.querySelectorAll(":scope > .empty-state").forEach(e => e.remove());
     if (!ctx.ko) {
-        box.innerHTML = ctx.canEdit
-            ? `<div class="ko-empty"><div class="ko-empty-ic">${ic("trophy")}</div>
-<h4>الأدوار الإقصائية</h4>
-<p>بعد ${ctx.groups ? "دور المجموعات يتأهل الأول والثاني من كل مجموعة" : "الدوري يتأهل الأعلى ترتيباً"}، ويلعبون إقصاء لين النهائي.</p>
-<button type="button" class="tn-primary" onclick="koStart()">${ic("plus")} ابدأ الأدوار الإقصائية</button></div>`
-            : `<div class="empty-state">الأدوار الإقصائية ما بدأت للحين</div>`;
+        /* من يقدر يبدأها يشوف بطاقة البدء بآخر القادمة */
+        if (ctx.canEdit && !filterText && ctx.players.length >= 3) {
+            clearEmpty(upDiv);
+            const c = document.createElement("div");
+            c.className = "ko-start";
+            c.innerHTML = `<div class="ko-start-ic">${ic("crown")}</div><div class="ko-start-t"><b>الأدوار الإقصائية</b><small>بعد ${ctx.groups ? "المجموعات يتأهل الأول والثاني من كل مجموعة" : "الدوري يتأهل الأعلى ترتيباً"}، ويلعبون إقصاء لين النهائي.</small></div><button type="button" onclick="koStart()">ابدأها</button>`;
+            upDiv.appendChild(c);
+        }
         return;
     }
     const rounds = koRounds(ctx.ko), champ = koChampion(ctx.ko);
-    box.innerHTML = (champ ? `<div class="ko-champ">${ic("crown")}<span>البطل</span><b>${escapeHTML(champ)}</b></div>` : "") +
-        rounds.map(ties => {
-            const name = koRoundName(ties.length);
-            return `<h4 class="ko-rt">${name}</h4><div class="ko-round">` + ties.map(t => {
-                const w = koWinner(t);
-                const tied = !t.bye && t.a && t.b && koNum(t.sa) !== null && koNum(t.sa) === koNum(t.sb);
-                return `<div class="ko-tie ${w ? "done" : ""}">
-${koSideHTML(ctx, t, "a", w)}${koSideHTML(ctx, t, "b", w)}
-${t.bye ? `<div class="ko-note">يتأهل مباشرة</div>` : ""}
-${tied ? `<div class="ko-tb"><span>تعادل: سؤال الحسم</span>
-<input type="number" min="0" value="${escapeHTML(t.pa)}" ${ctx.canEdit ? "" : "disabled"} aria-label="حسم ${escapeHTML(t.a)}" onchange="koSet(${t.r}, ${t.i}, 'pa', this.value)"><i>:</i>
-<input type="number" min="0" value="${escapeHTML(t.pb)}" ${ctx.canEdit ? "" : "disabled"} aria-label="حسم ${escapeHTML(t.b)}" onchange="koSet(${t.r}, ${t.i}, 'pb', this.value)"></div>` : ""}
-</div>`;
-            }).join("") + `</div>`;
-        }).join("");
+    const match = t => !filterText || [t.a, t.b].some(n => n && n.toLowerCase().includes(filterText));
+    const build = (target, pick, desc, prepend) => {
+        const frag = document.createDocumentFragment();
+        const order = rounds.map((ties, r) => r);
+        if (desc) order.reverse();
+        let any = false;
+        order.forEach(r => {
+            const ties = rounds[r].filter(t => pick(t) && match(t));
+            if (!ties.length) return;
+            any = true;
+            const h = document.createElement("h3");
+            h.className = "round-head ko-rt" + (desc ? " past" : "");
+            h.textContent = koRoundName(rounds[r].length);
+            frag.appendChild(h);
+            ties.forEach(t => frag.appendChild(koTieCard(ctx, t)));
+        });
+        if (!any) return;
+        clearEmpty(target);
+        if (prepend) target.insertBefore(frag, target.firstChild); else target.appendChild(frag);
+    };
+    build(upDiv, t => !koWinner(t), false, false);
+    build(pastDiv, t => !!koWinner(t), true, true);
+    if (champ && !filterText) {
+        [upDiv, pastDiv].forEach(d => d.insertAdjacentHTML("afterbegin", `<div class="ko-champ">${ic("crown")}<span>البطل</span><b>${escapeHTML(champ)}</b></div>`));
+    }
 }

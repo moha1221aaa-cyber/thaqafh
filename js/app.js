@@ -95,6 +95,8 @@ window.addEventListener('popstate', function(e) {
     if (typeof baraIsOpen !== "undefined" && baraIsOpen && !st.baraOpen) { baraClose(true); return; }
     if (!st.liveOpen && typeof closeLiveScreen === "function") closeLiveScreen(true);
     if (!st.roomOpen && !st.liveOpen && typeof closeRoomScreen === "function") closeRoomScreen(true);
+    /* حالة التنقل (التبويب، صفحة البطولة، الجلسة): js/nav.js */
+    if (st.nav && typeof navApply === "function") navApply(st.nav);
 });
 
 function openModal(modalId) {

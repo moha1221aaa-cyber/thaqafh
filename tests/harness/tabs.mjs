@@ -104,6 +104,7 @@ try {
     await p1.evaluate(() => { const a = document.querySelectorAll("#upcoming .match input"); a[0].value = "2"; a[0].dispatchEvent(new Event("change")); a[1].value = "2"; a[1].dispatchEvent(new Event("change")); });
     check("friend's board updates live", await until(() => fan.evaluate(() => document.querySelectorAll("#past .match").length === 2), 5000));
     /* الحد الأقصى للأسماء */
+    await p1.evaluate(() => history.back()); await sleep(450);   /* نرجع للقائمة، ومنها نفتح رمز غلط (زي الاستخدام الحقيقي) */
     await p1.evaluate(() => tnOpenPrivate("ZZZZZZZZ"));
     check("unknown code → back to the list, no crash", await until(() => p1.evaluate(() => document.getElementById("tnList").offsetParent !== null), 4000));
 

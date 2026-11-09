@@ -103,13 +103,13 @@
 <button class="notif-bell-btn" id="notifBellBtn" onclick="enableNotifications()" title="الإشعارات"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><i class="notif-dot"></i></button>
 <button class="notif-bell-btn menu-btn" id="menuBtn" onclick="openSideMenu()" title="القائمة" aria-label="القائمة" aria-haspopup="dialog" aria-expanded="false" aria-controls="sideMenu"><svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg></button>
 <button class="notif-bell-btn pwa-install-btn" id="pwaInstallBtn" onclick="installPwa()" title="تثبيت التطبيق" style="display:none; left:auto; right:60px;"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg></button>
-<div class="header-branding" id="headerBranding">
+<div class="header-branding" id="headerBranding" onclick="adminClick()">
 <div class="logo-box">
 <img src="logo.png" alt="FEEKARO Logo" class="logo">
 </div>
 <div class="league-name">منصة فيكارو الثقافية</div>
 </div>
-<span id="adminTitle" onclick="adminClick()">FEEKARO OFFICIAL</span>
+<span id="adminTitle" onclick="adminClick()"></span>
 </header>
 
 <div id="debugBox" style="display:none;">
@@ -159,14 +159,11 @@
 <div class="tn-seg tn-sub" id="tnSub" role="tablist">
 <button type="button" class="active" data-k="stand" onclick="tnSetPane('stand')"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg> الترتيب</button>
 <button type="button" data-k="matches" onclick="tnSetPane('matches')"><svg class="ic" aria-hidden="true"><use href="#i-ball"/></svg> المواجهات</button>
-<button type="button" data-k="ko" onclick="tnSetPane('ko')" style="display:none;"><svg class="ic" aria-hidden="true"><use href="#i-crown"/></svg> الإقصاء</button>
 </div>
 
 <div id="tnStand">
 <div id="standingsBox"></div>
 </div>
-
-<div id="tnKo" style="display:none;"></div>
 
 <div id="tnMatches" style="display:none;">
 <div id="liveMatchesBar"></div>
@@ -503,6 +500,7 @@
 <script src="js/broadcast/screen.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/menu.js"></script>
+<script src="js/nav.js"></script>
 </body>
 
 </html>

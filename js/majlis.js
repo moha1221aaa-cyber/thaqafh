@@ -4,7 +4,7 @@
    (أو يضيفهم هو بالاسم لو ما معهم جوال)، ولوحة النقاط تتحدث مباشرة عند الكل (sessions/<رمز 6 أحرف> و members تحته). */
 
 const SESS_KEY = "thq:sess";
-const sj = { pane: "room" };
+const sj = { pane: "room", sid: null };   /* sid: الجلسة المفتوحة (يعتمد عليها nav.js) */
 let sess = null;            /* الجلسة المفتوحة: { id, title, place, hostUid, hostName, status } */
 let sessMembers = [];       /* [{ id, name, pts }] */
 let sessUnsub = null, sessMembersUnsub = null;
@@ -41,6 +41,7 @@ function initMajlis() {
 function mjSetPane(k) {
     sj.pane = k === "session" ? "session" : "room";
     renderMajlis();
+    if (typeof navPush === "function") navPush();
 }
 
 function renderMajlis() {
@@ -198,6 +199,8 @@ function sessOpen(id, quiet) {
     if (!firebaseReady || !firebaseDB) return;
     sessDetach();
     sj.pane = "session";
+    sj.sid = id;
+    if (typeof navPush === "function") navPush();
     let first = true;
     sessUnsub = sessCol().doc(id).onSnapshot(doc => {
         if (!doc.exists) {
@@ -227,6 +230,9 @@ function sessDetach() {
     if (sessMembersUnsub) { sessMembersUnsub(); sessMembersUnsub = null; }
 }
 function sessLeave() {
+    /* الجلسة انفتحت بحالة في السجل: الرجوع خطوة في السجل (popstate يكمّل) */
+    if (!navSilent && window.history.state && window.history.state.nav && window.history.state.nav.mj && window.history.state.nav.mj.sess) { window.history.back(); return; }
+    sj.sid = null;
     sessDetach();
     sess = null; sessMembers = [];
     try { localStorage.removeItem(SESS_KEY); } catch (e) {}
