@@ -1,5 +1,5 @@
 /* فقرة الحروف وفقرة الكلمات في المواجهة (js/broadcast/segments.js) */
-@keyframes sgReel{from{transform:translateY(0)}to{transform:translateY(var(--to))}}
+@keyframes sgReel{from{transform:translateY(var(--from,0px))}to{transform:translateY(var(--to))}}
 @keyframes sgIdle{from{transform:translateY(0)}to{transform:translateY(calc(var(--h) * var(--n) * -1))}}
 @keyframes sgFlash{0%{opacity:0;transform:scale(1)}30%{opacity:1;transform:scale(1.04)}100%{opacity:.85;transform:scale(1)}}
 @keyframes sgPop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
