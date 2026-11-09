@@ -75,6 +75,7 @@ function bcPreScores(d) {
 /* سؤال الحسم: آخر سؤال والفرق نقطة أو تعادل */
 function bcIsGolden(d) { return !!d && d.status === "live" && d.scene === "playing" && (d.golden || 0) > 0 && d.qIndex >= LIVE_Q_COUNT; }
 function bcIsDecider(d) {
+    if (d && d.seg > 1) return false;   /* الفقرة الثانية والثالثة ما فيها سؤال حسم */
     if (bcIsGolden(d)) return true;
     const n = (d.questions || []).length;
     if (!d || d.status !== "live" || d.scene !== "playing" || !n || d.qIndex !== n - 1) return false;
