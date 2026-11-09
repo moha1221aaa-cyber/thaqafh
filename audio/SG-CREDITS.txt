@@ -1,3 +1,3 @@
-مؤثرات فقرتي الحروف والكلمات (ملفات sg_*.mp3): من مكتبة Mixkit للمؤثرات الصوتية (https://mixkit.co/free-sound-effects/)،
+مؤثرات فقرتي الحروف والكلمات (ملفات sg_*.mp3): من مكتبة Mixkit للمؤثرات الصوتية، قسم Game Show (https://mixkit.co/free-sound-effects/game-show/)،
 رخصة Mixkit Sound Effects Free License: مجانية للاستخدام التجاري وغير التجاري بدون نسب. اتضبط مستوى الصوت (loudnorm) وقُصّت.
-المصادر: 2032 sg_miss، 2020 sg_h1، 2018 sg_h2، 2016+2021 sg_h3، 2042 sg_strike، 2645 sg_spin، 2066 sg_land، 2059 sg_seg، 2063 sg_round، 2631 sg_pass، 2058 sg_ok، 2026 sg_bad، 2072 sg_time.
+المصادر (رقم Mixkit): 946 sg_miss، 947 sg_h1، 953 sg_h2، 952+2870 sg_h3، 950 sg_strike، 665 sg_spin، 961 sg_land، 943 sg_seg، 944 sg_round، 586 sg_pass، 949 sg_ok، 948 sg_bad، 1647 sg_time.
