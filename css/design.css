@@ -132,6 +132,7 @@ header:not(.hdr-compact)::after{
   background: var(--gold-soft);
   border: 1px solid rgba(245,197,66,.28);
 }
+#adminTitle:empty{ display: none !important; }
 #adminTitle::before{ content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); }
 
 /* الهيدر المختصر (باقي الصفحات): شريط زجاجي ثابت فوق */
@@ -144,9 +145,10 @@ header.hdr-compact{
   border-bottom: 1px solid var(--line);
 }
 header.hdr-compact .notif-bell-btn{ top: calc(10px + env(safe-area-inset-top, 0px)); width: 40px; height: 40px; }
+header.hdr-compact #adminTitle::before{ display: none; }
 header.hdr-compact #adminTitle{
   display: inline-flex; line-height: 1; background: none; border: 0; padding: 0;
-  font-size: 12px; letter-spacing: 2px; color: var(--text); height: 40px;
+  font-size: 18px; font-weight: 800; letter-spacing: 0; color: var(--text); height: 40px;
 }
 
 /* ============ الأزرار والحقول ============ */

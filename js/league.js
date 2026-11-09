@@ -415,6 +415,7 @@ pastDiv.appendChild(createMatchCard(m, ctx));
 });
 });
 }
+if (typeof koAppend === "function") koAppend(ctx, upDiv, pastDiv, filterText);
 return upRounds.length ? upcomingGroup[upRounds[0]] : null;
 }
 
@@ -468,6 +469,7 @@ if (!document.startViewTransition || reduce || !tabEl) return showTabNow(tabEl, 
 document.startViewTransition(() => showTabNow(tabEl, sectionId));
 }
 
+const TAB_TITLES = { home: "", tournaments: "البطولات", majlis: "المجلس", accountTab: "الحساب" };
 function showTabNow(tabEl, sectionId) {
 document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
 document.querySelectorAll(".bottom-nav .tab").forEach(t => t.classList.remove("active"));
@@ -484,6 +486,9 @@ if(headerBranding) {
     }
 }
 document.getElementById("mainHeader").classList.toggle("hdr-compact", sectionId !== 'home');
+/* اسم التبويب فوق (بدل FEEKARO OFFICIAL)، والرئيسية فيها الشعار بس */
+let ttl = document.getElementById("adminTitle");
+if(ttl) ttl.textContent = TAB_TITLES[sectionId] || "";
 
 if(tabEl) {
 tabEl.classList.add("active");
@@ -500,4 +505,5 @@ if(sectionId === 'tournaments') renderTournamentsPage();
 document.body.classList.toggle('room-tab', sectionId === 'majlis');
 document.documentElement.style.setProperty('--hdr-h', document.getElementById('mainHeader').offsetHeight + 'px');
 window.scrollTo(0, 0);
+if (typeof navPush === "function") navPush();
 }
