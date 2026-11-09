@@ -72,13 +72,31 @@ function sgAward(d, winner, seg) {
     sp[key] = cur; u.sp = sp;
     return u;
 }
+/* عشوائي حقيقي من المتصفح (crypto) بدل Math.random، وبدون انحياز */
+function sgRand(n) {
+    if (n <= 1) return 0;
+    try {
+        const a = new Uint32Array(1), lim = Math.floor(4294967296 / n) * n;
+        do { crypto.getRandomValues(a); } while (a[0] >= lim);
+        return a[0] % n;
+    } catch (e) { return Math.floor(Math.random() * n); }
+}
 function sgPickIdx(items, avoid) {
     const all = items.map((_, i) => i), free = all.filter(i => (avoid || []).indexOf(items[i]) === -1);
     const pool = free.length ? free : all;
-    return pool[Math.floor(Math.random() * pool.length)];
+    return pool[sgRand(pool.length)];
 }
+/* اللفة: النتيجة (i) والترتيب على البكرة (seed) وبداية الشريط (s) وعدد اللفات (loops) كلها عشوائية في كل مرة،
+   فالجديد ما يتوقعه أحد من اللي قبله (المنظم يكتبها، وكل الأجهزة ترسم نفس الشي) */
 function sgWheelObj(kind, items, i, now) {
-    return { k: kind, i: i, j: Math.round((Math.random() * 0.7 - 0.35) * 100) / 100, at: now, n: items.length };
+    return { k: kind, i: i, at: now, n: items.length, seed: sgRand(4294967295) + 1, loops: 4 + sgRand(4), s: sgRand(items.length) };
+}
+function sgShuffle(n, seed) {
+    const a = Array.from({ length: n }, (_, k) => k);
+    let t = seed >>> 0;
+    const rnd = () => { t = (t + 0x6D2B79F5) >>> 0; let r = Math.imul(t ^ (t >>> 15), 1 | t); r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r; return ((r ^ (r >>> 14)) >>> 0) / 4294967296; };
+    for (let k = n - 1; k > 0; k--) { const j = Math.floor(rnd() * (k + 1)); const x = a[k]; a[k] = a[j]; a[j] = x; }
+    return a;
 }
 function sgWheelDone(w) { return !!w && bcNow() >= w.at + SG_SPIN_MS + 200; }
 /* كلمة جديدة للتصنيف (ما تتكرر: آخر 200 كلمة تنحفظ في جهاز المنظم) */
@@ -88,7 +106,7 @@ function sgNewWord(cat, avoid) {
     const used = sgLS("sg_used_words") || [];
     let pool = bank.filter(w => used.indexOf(w) === -1 && w !== avoid);
     if (!pool.length) pool = bank.filter(w => w !== avoid);
-    const w = pool[Math.floor(Math.random() * pool.length)];
+    const w = pool[sgRand(pool.length)];
     sgLS("sg_used_words", used.concat([w]).slice(-200));
     return w;
 }
@@ -277,12 +295,13 @@ function sgStrike() {
 /* ===== الرسم: بكرة الاختيار (بدل العجلة، طلب محمد): شريط يدور بسرعة ويبطّئ لين يقف على النتيجة في الوسط.
    النتيجة (w.i) مكتوبة من المقدم، والحركة محسوبة من وقت السيرفر (w.at): كل الأجهزة تقف على نفس العنصر بنفس اللحظة، واللي دخل متأخر يشوفها نص دورانها ===== */
 function sgReelHTML(items, w, letters) {
-    const n = items.length, loops = Math.max(4, Math.ceil(40 / n)), cells = [];
-    for (let l = 0; l < loops + 2; l++) items.forEach(t => cells.push(`<div class="c">${escapeHTML(String(t))}</div>`));
+    const n = items.length, loops = w ? (w.loops || 4) : 4, cells = [];
+    const order = w && w.seed ? sgShuffle(n, w.seed) : items.map((_, k) => k);
+    for (let l = 0; l < loops + 3; l++) order.forEach(k => cells.push(`<div class="c">${escapeHTML(String(items[k]))}</div>`));
     let style = "";
     if (w) {
-        const fi = loops * n + w.i, el = Math.min(SG_SPIN_MS, Math.max(0, bcNow() - w.at));
-        style = `--to:calc(var(--h) * ${-(fi - 1)});animation:sgReel ${SG_SPIN_MS}ms cubic-bezier(.12,.72,.08,1) ${-el}ms both;`;
+        const p = order.indexOf(w.i), st = (w.s || 0) % n, fi = loops * n + p, el = Math.min(SG_SPIN_MS, Math.max(0, bcNow() - w.at));
+        style = `--from:calc(var(--h) * ${-st});--to:calc(var(--h) * ${-(fi - 1)});animation:sgReel ${SG_SPIN_MS}ms cubic-bezier(.12,.72,.08,1) ${-el}ms both;`;
     } else style = `--n:${n};animation:sgIdle ${Math.max(8, n * 1.2)}s linear infinite;`;
     const flash = w ? `animation-delay:${Math.max(0, SG_SPIN_MS - Math.min(SG_SPIN_MS, Math.max(0, bcNow() - w.at)))}ms;` : "";
     return `<div class="sg-reel ${letters ? "let" : ""} ${w ? "go" : "idle"}"><div class="sg-strip" style="${style}">${cells.join("")}</div><i class="sg-sel" style="${flash}"></i><i class="sg-fade"></i></div>`;
@@ -423,35 +442,19 @@ function sgTick(d) {
         if (s !== SG.lastSec) {
             const first = SG.lastSec === -1;   /* أول قراءة (فتحت البث متأخر): بدون صوت */
             SG.lastSec = s;
-            if (!first && s > 0 && s <= 3) cinePlay("tick", 0.45);
-            else if (!first && s === 0) cinePlay("timeout", 0.6);
+            if (!first && s > 0 && s <= 3) cinePlay("tick", 0.6);
+            else if (!first && s === 0) cinePlay("sg_time", 1);
         }
     } else SG.lastSec = -1;
 }
-/* نغمات أزرار فقرة الكلمات: كل ما زادت الحروف الصحيحة ارتفع التردد وزادت الحدة والحماس (طلب محمد 9 نوفمبر) */
-const SG_TONES = {
-    0: [[196, 0.3, "sawtooth"]],
-    1: [[523, 0.28, "triangle"]],
-    2: [[659, 0.14, "triangle"], [880, 0.14, "square"], [1109, 0.3, "triangle"]],
-    3: [[784, 0.11, "square"], [988, 0.11, "square"], [1319, 0.11, "square"], [1568, 0.12, "triangle"], [2093, 0.5, "triangle"]],
-    x: [[392, 0.13, "sawtooth"], [262, 0.13, "sawtooth"], [147, 0.4, "sawtooth"]]
-};
-function sgTone(key) {
-    try {
-        const c = liveCtx(), notes = SG_TONES[key];
-        if (!notes) return;
-        if (c.state === "suspended") c.resume().catch(() => {});
-        let t = c.currentTime + 0.02;
-        const vol = key === 3 ? 0.24 : (key === 2 ? 0.2 : 0.17);
-        notes.forEach(([f, d, type]) => {
-            const o = c.createOscillator(), g = c.createGain();
-            o.type = type; o.frequency.setValueAtTime(f, t);
-            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
-            o.connect(g); g.connect(c.destination);
-            o.start(t); o.stop(t + d + 0.03);
-            t += d * 0.88;
-        });
-    } catch (e) {}
+/* مؤثرات احترافية (عينات mp3 من مكتبة Mixkit في audio/sg_*.mp3، مو أصوات المتصفح): كل ما زادت الحروف الصحيحة صار الصوت أقوى وأكثر حماس (طلب محمد 9 نوفمبر) */
+const SG_SAMPLES = ["sg_miss", "sg_h1", "sg_h2", "sg_h3", "sg_h3b", "sg_strike", "sg_spin", "sg_land", "sg_seg", "sg_round", "sg_pass", "sg_ok", "sg_bad", "sg_time"];
+function sgHitSound(key) {
+    if (key === "x") cinePlay("sg_strike", 1);
+    else if (key === 0) cinePlay("sg_miss", 1);
+    else if (key === 1) cinePlay("sg_h1", 1);
+    else if (key === 2) { cinePlay("sg_h2", 1); }
+    else if (key === 3) { cinePlay("sg_h3", 1); cinePlay("sg_h3b", 0.8); }
 }
 /* أصوات وستينجر (تنادى مع كل رسم للشاشة) */
 function sgFx(d) {
@@ -461,32 +464,32 @@ function sgFx(d) {
     const snap = { cnt: sg.cnt || 0, gs: (sg.gs || []).length, sk: (sg.sk || [0, 0]).join(), turn: sg.turn };
     const prev = SG.prevSnap, was = SG.prevKey;
     SG.prevKey = key; SG.prevSnap = snap;
-    /* آخر ضغطة من المقدم في فقرة الكلمات (حتى لو انتهت بها الجولة) */
-    if (prev && d.seg === 3 && snap.gs > prev.gs && key.split(":").slice(0, 3).join() === was.split(":").slice(0, 3).join()) {
+    const same = !!prev && key.split(":").slice(0, 3).join() === was.split(":").slice(0, 3).join();
+    const fresh = bcNow() - (Number(sg.at) || 0) < 2500;
+    const pass = ms => setTimeout(() => cinePlay("sg_pass", 1), ms);   /* انتقال الدور للمتسابق الثاني */
+    /* فقرة الكلمات: كل ضغطة من المقدم لها مؤثر (يقوى مع عدد الحروف الصحيحة) وبعدها الدور ينتقل */
+    if (same && d.seg === 3 && snap.gs > prev.gs) {
         const g = sg.gs[sg.gs.length - 1];
-        if (g) sgTone(g.x ? "x" : g.n);
+        if (g) { sgHitSound(g.x ? "x" : g.n); if (sg.st === "play") pass(g.n === 0 || g.x ? 900 : 1000); }
     }
+    /* فقرة الحروف: جواب صح ← الدور للثاني */
+    if (same && d.seg === 2 && snap.cnt > prev.cnt) { cinePlay("sg_ok", 1); pass(700); }
     if (key !== was) {
-        if (sg.st === "cat" && sg.r === 0) bcStinger(d.seg === 2 ? "الفقرة الثانية" : "الفقرة الثالثة", d.seg === 2 ? "عجلة الحروف" : "خمّن الكلمة", sg.at);
-        if (sg.st === "play") showSound(sg.at, "start_q", 0.6);
-        if (sg.st === "done") {
-            if (sg.win) { showSound(sg.at, "correct", 0.7); showSound(sg.at, "applause", 0.4, { dur: 2.5 }); }
-            else showSound(sg.at, "wrong", 0.5);
+        if (sg.st === "cat" && sg.r === 0) {
+            bcStinger(d.seg === 2 ? "الفقرة الثانية" : "الفقرة الثالثة", d.seg === 2 ? "عجلة الحروف" : "خمّن الكلمة", sg.at);
+            showSound(sg.at, "sg_seg", 1);
         }
-    } else if (prev) {
-        if (snap.cnt > prev.cnt) cinePlay("correct", 0.6);
-        else if (snap.sk !== prev.sk && d.seg === 2) cinePlay("wrong", 0.6);
+        if (sg.st === "play") { showSound(sg.at, "start_q", 0.8); }
+        if (sg.st === "done" && fresh) {
+            if (d.seg === 2 && sg.why === "wrong") cinePlay("sg_bad", 1);
+            if (sg.win) setTimeout(() => { cinePlay("sg_round", 1); cinePlay("applause", 0.45, { dur: 2.6 }); }, d.seg === 3 ? 1500 : 800);
+        }
     }
     const w = sg.wheel;
     if (w && w.at !== SG.wheelAt) {
         SG.wheelAt = w.at;
-        showSound(w.at, "riser", 0.5, { tail: SG_SPIN_MS / 1000 });
-        /* تكتكة البكرة: كثيفة أول شي وتتباعد لين تقف */
-        for (let k = 0; k < 24; k++) {
-            const at = w.at + SG_SPIN_MS * (1 - Math.pow(1 - k / 24, 2.4)) - bcNow();
-            if (at > 0) setTimeout(() => cinePlay("tick", 0.22), at);
-        }
+        showSound(w.at, "sg_spin", 1);
         const wait = w.at + SG_SPIN_MS - bcNow();
-        if (wait > -300) setTimeout(() => cinePlay("impact", 0.7), Math.max(0, wait));
+        if (wait > -300) setTimeout(() => cinePlay("sg_land", 1), Math.max(0, wait));
     }
 }

@@ -117,8 +117,10 @@ try {
                 check(`ف3 ج1: زر ${seq[k]} حرف ينسجل للمتسابق الصحيح ويروح الدور`, g.n === seq[k] && g.p === (k % 2 === 0 ? first : sgOtherJs(first)) && D().sg.turn === sgOtherJs(g.p) && D().sg.tEnd > Date.now() + 8000 && D().sg.tEnd < Date.now() + 10500, { g, turn: D().sg.turn });
             }
             check("ف3 ج1: المشاهد يشوف نتيجة التخمين (حرفين صحيحة)", await until(() => fan.evaluate(() => [...document.querySelectorAll(".sg-g .fb i")].some(i => i.textContent.trim() === "حرفين صحيحة")), 5000));
-            const tones = await host.evaluate(() => ({ t0: SG_TONES[0][0][0], t1: SG_TONES[1][0][0], t2: SG_TONES[2][0][0], t3: SG_TONES[3][0][0], m1: Math.max(...SG_TONES[1].map(n => n[0])), m2: Math.max(...SG_TONES[2].map(n => n[0])), m3: Math.max(...SG_TONES[3].map(n => n[0])) }));
-            check("النغمات: كل ما زادت الحروف الصحيحة ارتفع التردد", tones.t0 < tones.t1 && tones.m1 < tones.m2 && tones.m2 < tones.m3, tones);
+            const snd = await host.evaluate(async () => { const r = await Promise.all(SG_SAMPLES.map(id => fetch("audio/" + id + ".mp3").then(x => x.ok && (x.headers.get("content-type") || "").includes("audio")))); return { files: r.every(Boolean), reg: SG_SAMPLES.every(id => !!CINE_FILES[id]), noSynth: typeof sgTone === "undefined" }; });
+            check("الأصوات: كل عينات الفقرتين موجودة ومسجّلة (مو أصوات متصفح)", snd.files && snd.reg && snd.noSynth, snd);
+            const r = await host.evaluate(() => { const items = ["أ","ب","ج","د","هـ","و","ز"]; const ws = Array.from({ length: 300 }, () => sgWheelObj("cat", items, sgPickIdx(items, []), 1)); const cnt = new Array(7).fill(0); ws.forEach(w => cnt[w.i]++); return { cnt, seeds: new Set(ws.map(w => w.seed)).size, loops: new Set(ws.map(w => w.loops)).size, starts: new Set(ws.map(w => w.s)).size, shuf: new Set(ws.map(w => sgShuffle(7, w.seed).join())).size, same: sgShuffle(7, 12345).join() === sgShuffle(7, 12345).join() }; });
+            check("العشوائية: كل الخيارات تطلع، والترتيب والبداية واللفات تتغير، وكل الأجهزة تحسب نفس الترتيب", r.cnt.every(c => c > 15) && r.seeds > 280 && r.loops === 4 && r.starts === 7 && r.shuf > 100 && r.same, r);
             /* 3 استرايك للأول: بقي له ضغطتين (تخمينات الأول مرت) */
             const sk0 = D().sg.sk.slice();
             for (let k = 0; k < 6; k++) { await click("#sgDock .sg-strike"); await sleep(400); if (D().sg.st === "done") break; }
