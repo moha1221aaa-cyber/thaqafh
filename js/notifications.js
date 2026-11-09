@@ -13,10 +13,10 @@ function renderNotifBell() {
     b.classList.toggle("off", !on);
     b.title = on ? "الإشعارات مفعّلة (اضغط للإيقاف)" : "تفعيل الإشعارات";
 }
-function enableNotifications() {
+async function enableNotifications() {
     if (!("Notification" in window) || !("serviceWorker" in navigator)) return alert("المتصفح هذا ما يدعم الإشعارات. جرّب من متصفح Chrome، أو ثبّت الموقع كتطبيق.");
     if (notifOn()) {
-        if (confirm("الإشعارات مفعّلة. تبي توقفها؟")) { try { localStorage.setItem("notifOff", "1"); } catch (e) {} renderNotifBell(); }
+        if (await uiConfirm("الإشعارات مفعّلة. تبي توقفها؟")) { try { localStorage.setItem("notifOff", "1"); } catch (e) {} renderNotifBell(); }
         return;
     }
     if (Notification.permission === "denied") {

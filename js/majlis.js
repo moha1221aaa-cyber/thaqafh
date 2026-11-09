@@ -243,8 +243,8 @@ function sessJoin() {
         name: sessMyName(), pts: 0, joinedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => roomToast("انضميت للجلسة", "check-circle")).catch(err => alert("ما قدرت تنضم: " + authErrAr(err)));
 }
-function sessQuit() {
-    if (!sess || !currentUser || !confirm("تبي تغادر الجلسة؟")) return;
+async function sessQuit() {
+    if (!sess || !currentUser || !await uiConfirm("تبي تغادر الجلسة؟")) return;
     sessCol().doc(sess.id).collection("members").doc(currentUser.uid).delete().catch(err => alert("ما تمت المغادرة: " + authErrAr(err)));
 }
 
@@ -267,19 +267,19 @@ function sessAddGuest() {
         name: name, pts: 0, joinedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => { if (inp) { inp.value = ""; inp.focus(); } }).catch(err => alert("ما انضاف: " + authErrAr(err)));
 }
-function sessRemove(memberId) {
+async function sessRemove(memberId) {
     if (!sessIsHost()) return;
     const m = sessMembers.find(x => x.id === memberId);
-    if (!m || !confirm(`نحذف ${m.name} من الجلسة؟`)) return;
+    if (!m || !await uiConfirm(`نحذف ${m.name} من الجلسة؟`)) return;
     sessCol().doc(sess.id).collection("members").doc(memberId).delete().catch(err => alert("ما انحذف: " + authErrAr(err)));
 }
-function sessEnd() {
-    if (!sessIsHost() || !confirm("ننهي الجلسة؟ اللوحة تبقى للقراءة بس.")) return;
+async function sessEnd() {
+    if (!sessIsHost() || !await uiConfirm("ننهي الجلسة؟ اللوحة تبقى للقراءة بس.")) return;
     sessCol().doc(sess.id).update({ status: "ended", endedAt: firebase.firestore.FieldValue.serverTimestamp() })
         .catch(err => alert("ما انتهت الجلسة: " + authErrAr(err)));
 }
 async function sessDelete() {
-    if (!sessIsHost() || !confirm("نحذف الجلسة ولوحتها نهائياً؟")) return;
+    if (!sessIsHost() || !await uiConfirm("نحذف الجلسة ولوحتها نهائياً؟")) return;
     const id = sess.id;
     try {
         const snap = await sessCol().doc(id).collection("members").get();
@@ -293,5 +293,5 @@ async function sessShare() {
     const text = `انضم لجلسة "${sess.title}" على منصة فيكارو الثقافية\nالرمز: ${sess.id}\n${url}`;
     if (navigator.share) { try { await navigator.share({ title: sess.title, text: text, url: url }); } catch (e) {} return; }
     try { await navigator.clipboard.writeText(text); roomToast("اننسخ رابط الجلسة", "check-circle"); }
-    catch (e) { window.prompt("انسخ الرابط:", url); }
+    catch (e) { await uiPrompt("انسخ الرابط:", url); }
 }

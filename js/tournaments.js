@@ -10,7 +10,7 @@ const TN_PRIV_MAX_OWNED = 5;
 const TN_JOINED_KEY = "thq:joined";
 
 const tn = { mode: "official", official: "elite", pane: "stand", open: false, list: "official" };   /* open: داخل صفحة بطولة (وإلا القائمة) */
-let qual = { players: [], matches: [], links: {}, groups: null, exists: false };
+let qual = { players: [], matches: [], links: {}, groups: null, ko: null, exists: false };
 let privDoc = null;          /* البطولة الخاصة المفتوحة: { id, name, ownerUid, ownerName, double, players, matches } */
 let privUnsub = null;
 let privOwned = [];          /* بطولاتي: [{id, name, n, played}] */
@@ -50,6 +50,7 @@ function tCtx() {
         if (privDoc) {
             return {
                 kind: "private", players: privDoc.players, matches: privDoc.matches, links: {}, groups: privDoc.groups,
+                ko: privDoc.ko, saveKo: ko => { privDoc.ko = ko; privSave(); },
                 canEdit: !!(currentUser && currentUser.uid === privDoc.ownerUid), save: privSave,
                 live: false, profile: false, title: privDoc.name, empty: "ما فيه متسابقين"
             };
@@ -59,12 +60,14 @@ function tCtx() {
     if (tn.official === "qual") {
         return {
             kind: "qual", players: qual.players, matches: qual.matches, links: qual.links, groups: qual.groups,
+            ko: qual.ko, saveKo: ko => { qual.ko = ko; qualSave(); },
             canEdit: isAdmin, save: qualSave, live: false, profile: false, title: QUAL_TITLE,
             empty: qual.exists ? "ما فيه متسابقين" : "التصفيات ما بدأت للحين"
         };
     }
     return {
         kind: "elite", players: players, matches: matches, links: playerLinks, groups: leagueGroups,
+        ko: leagueKo, saveKo: ko => { leagueKo = ko; save(); },
         canEdit: isAdmin, save: save, live: true, profile: true, title: ELITE_TITLE, empty: "ما فيه متسابقين"
     };
 }
@@ -83,9 +86,9 @@ function initTournaments() {
         if (doc.exists) {
             const d = doc.data();
             const h = tnHydrate(d.playersList, d.matches);
-            qual = { players: h.players, matches: h.matches, links: d.playerLinks || {}, groups: groupsValid(d.groups, h.players.map(p => p.name)) ? d.groups : null, exists: true };
+            qual = { players: h.players, matches: h.matches, links: d.playerLinks || {}, groups: groupsValid(d.groups, h.players.map(p => p.name)) ? d.groups : null, ko: koValid(d.ko, h.players.map(p => p.name)) ? d.ko : null, exists: true };
         } else {
-            qual = { players: [], matches: [], links: {}, groups: null, exists: false };
+            qual = { players: [], matches: [], links: {}, groups: null, ko: null, exists: false };
         }
         renderTournamentsPage();
     }, () => {});
@@ -99,26 +102,27 @@ function qualSave() {
         playersList: qual.players.map(p => p.name),
         playerLinks: qual.links || {},
         groups: qual.groups || firebase.firestore.FieldValue.delete(),
+        ko: qual.ko || firebase.firestore.FieldValue.delete(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).catch(err => { console.log(err); alert("ما انحفظ: " + authErrAr(err)); });
 }
 /* كم مجموعة؟ (1 = دوري واحد). الحد: 3 متسابقين على الأقل في المجموعة */
-function tnAskGroups(count, cur) {
+async function tnAskGroups(count, cur) {
     const max = Math.max(1, Math.min(GROUP_NAMES.length, Math.floor(count / 3)));
     if (max < 2) return 1;
-    const ans = prompt(`كم مجموعة؟ اكتب 1 لدوري واحد، أو رقم من 2 لين ${max} لنظام المجموعات (مثل دوري أبطال أوروبا).`, String(cur || 1));
+    const ans = await uiPrompt(`كم مجموعة؟ اكتب 1 لدوري واحد، أو رقم من 2 لين ${max} لنظام المجموعات (مثل دوري أبطال أوروبا).`, String(cur || 1));
     if (ans === null) return null;
     const n = parseInt(ans, 10);
     if (!(n >= 1 && n <= max)) { alert(`اكتب رقم من 1 لين ${max}`); return null; }
     return n;
 }
-function qualAddPlayer() {
+async function qualAddPlayer() {
     if (!isAdmin) return;
-    let name = prompt("اسم المتسابق الجديد في التصفيات:");
+    let name = await uiPrompt("اسم المتسابق الجديد في التصفيات:");
     if (!name || !name.trim()) return;
     name = name.trim().replace(/\s+/g, " ").slice(0, 40);
     if (qual.players.some(p => p.name === name)) return alert("المتسابق موجود بنفس الاسم");
-    if (qual.matches.some(m => m.s1 !== "" && m.s2 !== "") && !confirm("فيه نتايج مسجلة، وإضافة متسابق تعيد القرعة وتمسحها. نكمل؟")) return;
+    if (qual.matches.some(m => m.s1 !== "" && m.s2 !== "") && !await uiConfirm("فيه نتايج مسجلة، وإضافة متسابق تعيد القرعة وتمسحها. نكمل؟")) return;
     const list = qual.players.map(p => p.name).concat([name]);
     let groups = null;
     if (qual.groups) { /* ينضاف لأصغر مجموعة */
@@ -127,19 +131,19 @@ function qualAddPlayer() {
     }
     qualRebuild(list, groups);
 }
-function qualRedraw() {
+async function qualRedraw() {
     if (!isAdmin) return;
     if (!qual.players.length) return alert("أضف متسابقين أول");
     const names = qual.players.map(p => p.name);
-    const n = tnAskGroups(names.length, qual.groups ? qual.groups.length : 1);
+    const n = await tnAskGroups(names.length, qual.groups ? qual.groups.length : 1);
     if (n === null) return;
-    if (!confirm(`نعيد القرعة ${n > 1 ? "بـ " + n + " مجموعات" : "بدوري واحد"} ونمسح نتايج التصفيات؟`)) return;
+    if (!await uiConfirm(`نعيد القرعة ${n > 1 ? "بـ " + n + " مجموعات" : "بدوري واحد"} ونمسح نتايج التصفيات؟`)) return;
     qualRebuild(names, drawGroups(names, n));
 }
 function qualRebuild(names, groups) {
     const ps = names.map(n => ({ name: n, w: 0, d: 0, l: 0, gf: 0, ga: 0, pts: 0 }));
     const ms = names.length >= 2 ? buildSchedule(ps, true, groups) : [];
-    qual = { players: ps, matches: ms, links: qual.links || {}, groups: groups || null, exists: true };
+    qual = { players: ps, matches: ms, links: qual.links || {}, groups: groups || null, ko: null, exists: true };
     qualSave();
     renderTournamentsPage();
 }
@@ -164,14 +168,21 @@ function tnBack() {
     window.scrollTo(0, 0);
 }
 function tnSetPane(k) {
-    tn.pane = k === "matches" ? "matches" : "stand";
+    tn.pane = k === "matches" || k === "ko" ? k : "stand";
     paintTnPane();
 }
 function paintTnPane() {
     document.querySelectorAll("#tnSub button").forEach(b => b.classList.toggle("active", b.dataset.k === tn.pane));
     const st = document.getElementById("tnStand"), mt = document.getElementById("tnMatches");
+    const kt = document.getElementById("tnKo");
     if (st) st.style.display = tn.pane === "stand" ? "" : "none";
     if (mt) mt.style.display = tn.pane === "matches" ? "" : "none";
+    if (kt) kt.style.display = tn.pane === "ko" ? "" : "none";
+    if (tn.pane === "ko") renderKo();
+    /* تبويب الإقصاء يظهر لو فيه أدوار إقصائية، أو للي يقدر يبدأها */
+    const c = tCtx(), kb = document.querySelector('#tnSub button[data-k="ko"]');
+    if (kb) kb.style.display = c.ko || c.canEdit ? "" : "none";
+    if (tn.pane === "ko" && kb && kb.style.display === "none") { tn.pane = "stand"; paintTnPane(); }
     const lb = document.getElementById("liveMatchesBar");
     if (lb) lb.style.display = tn.mode === "official" && tn.official === "elite" ? "" : "none";
 }
@@ -276,6 +287,7 @@ function renderTournamentsPage() {
             items.push({ icon: "plus", label: "إضافة متسابق", action: q ? "qualAddPlayer()" : "addNewPlayerPrompt()" });
             items.push({ icon: "dice", label: "إعادة القرعة (دوري أو مجموعات)", action: q ? "qualRedraw()" : "reDrawMatches()" });
         }
+        if (isAdmin) items.push(tCtx().ko ? { icon: "trash", label: "حذف الأدوار الإقصائية", action: "koDelete()", danger: true } : { icon: "crown", label: "ابدأ الأدوار الإقصائية", action: "koStart()" });
         items.push({ icon: "message", label: "مشاركة الترتيب عبر واتساب", action: "shareStandingsToWhatsApp()" });
         head.innerHTML = tnHeadHTML(q ? QUAL_TITLE : ELITE_TITLE, sm, moreMenuHTML("tnMenu", items));
     }
@@ -331,6 +343,7 @@ function privHeadHTML() {
     const small = `${escapeHTML(privDoc.ownerName || "-")}${mine ? " (أنت)" : ""}${grp} · <span class="tn-code" dir="ltr">${escapeHTML(privDoc.id)}</span>`;
     const items = [
         { icon: "message", label: "مشاركة الترتيب عبر واتساب", action: "shareStandingsToWhatsApp()" },
+        mine ? (privDoc.ko ? { icon: "trash", label: "حذف الأدوار الإقصائية", action: "koDelete()" } : { icon: "crown", label: "ابدأ الأدوار الإقصائية", action: "koStart()" }) : null,
         mine ? { icon: "hourglass", label: "تصفير النتائج", action: "privResetScores()" } : null,
         mine ? { icon: "trash", label: "حذف البطولة", action: "privDelete()", danger: true } : null
     ];
@@ -411,7 +424,7 @@ function tnOpenPrivate(id, fromLink) {
         }
         const d = doc.data();
         const h = tnHydrate(d.playersList, d.matches);
-        privDoc = { id: id, name: d.name, ownerUid: d.ownerUid, ownerName: d.ownerName, double: d.double !== false, players: h.players, matches: h.matches, groups: groupsValid(d.groups, h.players.map(p => p.name)) ? d.groups : null };
+        privDoc = { id: id, name: d.name, ownerUid: d.ownerUid, ownerName: d.ownerName, double: d.double !== false, players: h.players, matches: h.matches, groups: groupsValid(d.groups, h.players.map(p => p.name)) ? d.groups : null, ko: koValid(d.ko, h.players.map(p => p.name)) ? d.ko : null };
         if (first) {
             first = false;
             tn.pane = "stand";
@@ -436,17 +449,19 @@ function privSave() {
     if (!privDoc || !currentUser || currentUser.uid !== privDoc.ownerUid) return;
     privCol().doc(privDoc.id).set({
         matches: tnSerialize(privDoc.matches),
+        ko: privDoc.ko || firebase.firestore.FieldValue.delete(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true }).catch(err => alert("ما انحفظت النتيجة: " + authErrAr(err)));
 }
-function privResetScores() {
-    if (!privDoc || !confirm("نصفّر كل نتايج البطولة؟")) return;
+async function privResetScores() {
+    if (!privDoc || !await uiConfirm("نصفّر كل نتايج البطولة؟")) return;
     privDoc.matches.forEach(m => { m.s1 = ""; m.s2 = ""; });
+    privDoc.ko = null;
     privSave();
     renderTournamentsPage();
 }
-function privDelete() {
-    if (!privDoc || !confirm(`نحذف بطولة "${privDoc.name}" نهائياً؟`)) return;
+async function privDelete() {
+    if (!privDoc || !await uiConfirm(`نحذف بطولة "${privDoc.name}" نهائياً؟`)) return;
     const id = privDoc.id;
     privCol().doc(id).delete().then(() => { tnForget(id); roomToast("انحذفت البطولة", "check-circle"); }).catch(err => alert("ما انحذفت: " + authErrAr(err)));
 }
@@ -456,5 +471,5 @@ async function privShare() {
     const text = `تابع بطولة "${privDoc.name}" على منصة فيكارو الثقافية\nالرمز: ${privDoc.id}\n${url}`;
     if (navigator.share) { try { await navigator.share({ title: privDoc.name, text: text, url: url }); } catch (e) {} return; }
     try { await navigator.clipboard.writeText(text); roomToast("اننسخ رابط البطولة", "check-circle"); }
-    catch (e) { window.prompt("انسخ الرابط:", url); }
+    catch (e) { await uiPrompt("انسخ الرابط:", url); }
 }

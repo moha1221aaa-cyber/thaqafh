@@ -355,12 +355,12 @@ function openAdminToolsModal() {
 `;
     openModal("roomAdminToolsModal");
 }
-function adminToolsAction(action) {
+async function adminToolsAction(action) {
     if (!isAdmin) return;
     closeAllModalsDirectly();
     if (action === "qbank") openQBankModal();
     else if (action === "clear") clearAllMics();
-    else if (action === "end") { if (confirm("إنهاء البث وإغلاق الغرفة للجميع؟")) endRoomBroadcast(); }
+    else if (action === "end") { if (await uiConfirm("إنهاء البث وإغلاق الغرفة للجميع؟")) endRoomBroadcast(); }
 }
 
 /* قائمة الألعاب: لإضافة لعبة جديدة مستقبلاً أضف عنصراً هنا بنفس الشكل { id, icon, name, desc, start } */
@@ -472,9 +472,9 @@ try {
 }
 
 // تفريغ كل مقاعد المايك (للمسؤول)
-function clearAllMics() {
+async function clearAllMics() {
 if(!isAdmin) return;
-if(!confirm("هل تريد تفريغ كل مقاعد المايك؟")) return;
+if(!await uiConfirm("هل تريد تفريغ كل مقاعد المايك؟")) return;
 roomState.mics = Array(MIC_SLOTS).fill(null);
 saveRoomState(["mics"]);
 }
@@ -773,13 +773,13 @@ input.value = "";
 if (!file) return;
 if (file.size > 200000) return alert("الملف كبير، خلّه أقل من 200KB");
 const reader = new FileReader();
-reader.onload = () => {
+reader.onload = async () => {
     const rows = parseQBankCsv(reader.result);
     if (!rows.length) return alert("ما لقيت أسئلة في الملف. كل سطر لازم يكون: السؤال، الإجابة");
     const have = new Set(roomBank.map(q => q && q.text));
     const fresh = rows.filter(r => !have.has(r.text) && have.add(r.text)).slice(0, 200);
     if (!fresh.length) return alert("كل الأسئلة اللي في الملف موجودة في البنك من قبل");
-    if (!confirm(`بنضيف ${fresh.length} سؤال للبنك. أول سؤال:\n${fresh[0].text}\nالإجابة: ${fresh[0].answer}`)) return;
+    if (!await uiConfirm(`بنضيف ${fresh.length} سؤال للبنك. أول سؤال:\n${fresh[0].text}\nالإجابة: ${fresh[0].answer}`)) return;
     roomBank.push(...fresh);
     saveRoomBank();
     renderQBankList();

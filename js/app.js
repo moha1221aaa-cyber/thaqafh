@@ -152,13 +152,13 @@ loginAdmin();
 }
 }
 
-function loginAdmin() {
+async function loginAdmin() {
 if(!firebaseReady || !firebaseAuth) return alert("Firebase غير متصل");
 if(firebaseAuth.currentUser) return alert("يوجد حساب مسجل دخول بالفعل");
 
-let email = prompt("اكتب بريد المسؤول");
+let email = await uiPrompt("اكتب بريد المسؤول", "", { title: "دخول المسؤول", ok: "التالي", placeholder: "name@example.com" });
 if(!email) return;
-let password = prompt("اكتب كلمة مرور حساب Firebase");
+let password = await uiPrompt("اكتب كلمة المرور", "", { type: "password", title: "دخول المسؤول", ok: "دخول" });
 if(!password) return;
 
 email = email.trim().toLowerCase();
@@ -358,15 +358,17 @@ function groupsValid(groups, names) {
 }
 
 let leagueGroups = null;   /* league/current.groups لو الدوري مجموعات */
+let leagueKo = null;       /* league/current.ko: الأدوار الإقصائية (js/knockout.js) */
 function generateMatches(groupCount) {
+    leagueKo = null;   /* قرعة جديدة تمسح النتايج، فالإقصائيات بعد */
     if (groupCount !== undefined) leagueGroups = drawGroups(players.map(p => p.name), groupCount);
     else if (leagueGroups && !groupsValid(leagueGroups, players.map(p => p.name))) leagueGroups = null;
     matches = buildSchedule(players, true, leagueGroups);
 }
 
-function addNewPlayerPrompt() {
+async function addNewPlayerPrompt() {
 if(!isAdmin) return;
-let name = prompt("أدخل اسم المتسابق الجديد:");
+let name = await uiPrompt("أدخل اسم المتسابق الجديد:");
 if(!name || !name.trim()) return;
 
 name = name.trim();
@@ -386,14 +388,14 @@ save();
 alert(`تم إضافة المتسابق "${name}" وإعادة بناء جدول المواجهات بنجاح!`);
 }
 
-function reDrawMatches() {
+async function reDrawMatches() {
 if(!isAdmin) return;
 let max = Math.max(1, Math.min(GROUP_NAMES.length, Math.floor(players.length / 3)));
-let ans = prompt(`كم مجموعة؟ اكتب 1 لدوري واحد، أو رقم من 2 لين ${max} لنظام المجموعات (مثل دوري أبطال أوروبا، 3 متسابقين على الأقل في المجموعة).`, String(leagueGroups ? leagueGroups.length : 1));
+let ans = await uiPrompt(`كم مجموعة؟ اكتب 1 لدوري واحد، أو رقم من 2 لين ${max} لنظام المجموعات (مثل دوري أبطال أوروبا، 3 متسابقين على الأقل في المجموعة).`, String(leagueGroups ? leagueGroups.length : 1));
 if(ans === null) return;
 let n = parseInt(ans, 10);
 if(!(n >= 1 && n <= max)) return alert(`اكتب رقم من 1 لين ${max}`);
-if(!confirm(`هل أنت متأكد من إعادة القرعة ${n > 1 ? "بـ " + n + " مجموعات" : "بدوري واحد"}؟ سيتم مسح أي نتائج سابقة.`)) return;
+if(!await uiConfirm(`هل أنت متأكد من إعادة القرعة ${n > 1 ? "بـ " + n + " مجموعات" : "بدوري واحد"}؟ سيتم مسح أي نتائج سابقة.`)) return;
 
 generateMatches(n);
 table();
@@ -425,6 +427,7 @@ const o = { p1:p1Obj, p2:p2Obj, s1:m.s1, s2:m.s2, round:m.round }; if(m.g != nul
 });
 }
 leagueGroups = groupsValid(data.groups, players.map(p => p.name)) ? data.groups : null;
+leagueKo = koValid(data.ko, players.map(p => p.name)) ? data.ko : null;
 playerLinks = data.playerLinks || {};
 leagueTrial = data.trial || null;
 }
@@ -452,7 +455,7 @@ if(doc.exists) {
 let data = doc.data();
 isInitialLoad = false;
 applyLeagueData(data);
-try { localStorage.setItem(LEAGUE_CACHE_KEY, JSON.stringify({ playersList: data.playersList || [], matches: data.matches || [], playerLinks: data.playerLinks || {}, groups: data.groups || null })); } catch(e) {}
+try { localStorage.setItem(LEAGUE_CACHE_KEY, JSON.stringify({ playersList: data.playersList || [], matches: data.matches || [], playerLinks: data.playerLinks || {}, groups: data.groups || null, ko: data.ko || null })); } catch(e) {}
 } else {
 generateMatches();
 }
@@ -475,7 +478,7 @@ playerLinks: playerLinks,
 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
 };
 /* وقت التجربة ما نلمس مجموعات الدوري الأصلي (تنرجع مع الأصلي) */
-if(!leagueTrial) doc.groups = leagueGroups || firebase.firestore.FieldValue.delete();
+if(!leagueTrial) { doc.groups = leagueGroups || firebase.firestore.FieldValue.delete(); doc.ko = leagueKo || firebase.firestore.FieldValue.delete(); }
 firebaseDB.collection("league").doc("current").set(doc, { merge: true })
 .catch(error => {
 console.log(error);
@@ -508,13 +511,13 @@ if(!isAdmin || !firebaseReady || !firebaseDB) return;
 if(leagueTrial) return endTrialLeague();
 startTrialLeague();
 }
-function startTrialLeague() {
-let raw = prompt("اكتب أسماء متسابقي التجربة، بين كل اسم واسم فاصلة (،)\nمثال: احمد، مشاري، خلود، ياي، عبدالرحمن، سعود");
+async function startTrialLeague() {
+let raw = await uiPrompt("اكتب أسماء متسابقي التجربة، بين كل اسم واسم فاصلة (،)\nمثال: احمد، مشاري، خلود، ياي، عبدالرحمن، سعود");
 if(!raw) return;
 let names = [];
 raw.split(/[،,\n]+/).map(x => x.trim()).filter(Boolean).forEach(x => { if(!names.includes(x)) names.push(x); });
 if(names.length < 2) return alert("اكتب اسمين على الأقل");
-if(!confirm(`بنبدأ مسابقة تجريبية بـ ${names.length} متسابقين:\n${names.join("، ")}\n\nالدوري الأصلي (${players.length} متسابق ونتايجهم) ينحفظ ويختفي لين تضغط "إنهاء التجربة وإرجاع الدوري". نكمل؟`)) return;
+if(!await uiConfirm(`بنبدأ مسابقة تجريبية بـ ${names.length} متسابقين:\n${names.join("، ")}\n\nالدوري الأصلي (${players.length} متسابق ونتايجهم) ينحفظ ويختفي لين تضغط "إنهاء التجربة وإرجاع الدوري". نكمل؟`)) return;
 /* نولّد مواجهات التجربة بدون ما نغيّر الدوري المعروض (لو فشل الحفظ يظل مثل ما هو) */
 const keepPlayers = players, keepMatches = matches;
 players = names.map(name => ({ name:name, w:0, d:0, l:0, gf:0, ga:0, pts:0 }));
@@ -544,8 +547,8 @@ updatedAt: firebase.firestore.FieldValue.serverTimestamp()
 .then(() => alert(`بدأت المسابقة التجريبية بـ ${names.length} متسابقين (${trialMatches.length} مواجهة).\nالدوري الأصلي محفوظ.`))
 .catch(err => alert("ما بدأت التجربة: " + (err && err.code ? authErrAr(err) : err.message)));
 }
-function endTrialLeague() {
-if(!confirm("بنرجّع الدوري الأصلي بمتسابقينه ونتايجه، ونشيل جدول التجربة ونتايجها وتوقعاتها. نكمل؟")) return;
+async function endTrialLeague() {
+if(!await uiConfirm("بنرجّع الدوري الأصلي بمتسابقينه ونتايجه، ونشيل جدول التجربة ونتايجها وتوقعاتها. نكمل؟")) return;
 const R = trialRefs();
 let startedAt = null;
 firebaseDB.runTransaction(async tx => {
@@ -645,10 +648,10 @@ if(names.includes(name)) throw new Error("المتسابق موجود بنفس �
 return { names: names.concat([name]), matches: trialAddMatches(list, names, name), links: links };
 }).then(u => { if(u && inp) inp.value = ""; if(u && typeof roomToast === "function") roomToast(`انضاف ${name} للتجربة (${u.matches.length} مواجهة)`, "check-circle"); });
 }
-function trialRemovePlayer(name) {
+async function trialRemovePlayer(name) {
 const n = matches.filter(m => (m.p1.name === name || m.p2.name === name) && trialPlayed(m)).length;
 if(players.length <= 2) return alert("التجربة تحتاج متسابقين اثنين على الأقل");
-if(!confirm(`حذف ${name} من التجربة؟` + (n ? `\nبتنشال ${n} مواجهة انلعبت له ونتايجها تطلع من الترتيب.` : ""))) return;
+if(!await uiConfirm(`حذف ${name} من التجربة؟` + (n ? `\nبتنشال ${n} مواجهة انلعبت له ونتايجها تطلع من الترتيب.` : ""))) return;
 trialEditPlayers((names, list, links) => {
 if(!names.includes(name)) throw new Error("المتسابق مو موجود");
 if(names.length <= 2) throw new Error("التجربة تحتاج متسابقين اثنين على الأقل");
@@ -667,9 +670,9 @@ return Promise.all(old.map(x => x.ref.delete().catch(() => null))).then(() => ol
 }).catch(() => 0);
 }
 
-function resetLeague() {
+async function resetLeague() {
 if(!isAdmin) return;
-if(!confirm("هل أنت متأكد من إعادة ضبط الدوري وحذف جميع النتائج؟")) return;
+if(!await uiConfirm("هل أنت متأكد من إعادة ضبط الدوري وحذف جميع النتائج؟")) return;
 generateMatches();
 save();
 alert("تم إعادة ضبط الدوري بنجاح");

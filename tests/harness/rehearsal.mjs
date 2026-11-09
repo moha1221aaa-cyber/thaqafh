@@ -20,10 +20,10 @@ try {
     await until(() => host.evaluate(() => !!currentUser && isAdmin && !!document.getElementById("rehearsalBtn")), 15000);
     check("organizer sees the private broadcast button", await host.evaluate(() => { const b = document.getElementById("rehearsalBtn"); return !!b && b.offsetParent !== null; }));
     check("viewer doesn't", await fan.evaluate(() => { const b = document.getElementById("rehearsalBtn"); return !b || b.offsetParent === null; }));
-    await host.evaluate(() => { window.prompt = () => null; return bcStartRehearsal(); });
+    await host.evaluate(() => { window.uiPrompt = () => Promise.resolve(null); return bcStartRehearsal(); });
     await sleep(500);
     check("cancel: nothing starts", !db.data(REH));
-    await host.evaluate(() => { window.prompt = () => "٢"; return bcStartRehearsal(); });   /* أرقام عربية */
+    await host.evaluate(() => { window.uiPrompt = () => Promise.resolve("٢"); return bcStartRehearsal(); });   /* أرقام عربية */
     const d0 = await until(() => db.data(REH), 10000);
     check("private broadcast saved in liveSecrets/rehearsal (organizer only)", d0 && d0.status === "live" && d0.rehearsal === 1 && d0.order.length === 2, d0 && { status: d0.status, n: d0.order.length });
     check("fake contestants (bot uids)", d0 && d0.order.every(o => /^bot_/.test(o.uid1) && /^bot_/.test(o.uid2) && o.p1 && o.p2));
@@ -61,10 +61,10 @@ try {
     check("no public predictions doc", db.list("room/main/livePred").length === 0);
     check("audio on its own channel", channels.length > 0 && channels.every(c => c === "thaqafah_live_rehearsal"), channels);
     /* إنهاء */
-    await host.evaluate(() => { window.confirm = () => true; bcEnd(); });
+    await host.evaluate(() => { window.uiConfirm = () => Promise.resolve(true); bcEnd(); });
     check("ends like a normal broadcast", !!await until(() => db.data(REH).status === "ended", 5000));
     /* بعد التحديث: يرجع يكمّل أو يبدأ جديد */
-    await host.evaluate(() => { window.confirm = () => false; window.prompt = () => "1"; return bcStartRehearsal(); });
+    await host.evaluate(() => { window.uiConfirm = () => Promise.resolve(false); window.uiPrompt = () => Promise.resolve("1"); return bcStartRehearsal(); });
     const d2 = await until(() => { const x = db.data(REH); return x && x.status === "live" && x.order.length === 1 ? x : null; }, 6000);
     check("new private broadcast replaces the old one", !!d2);
     const errs = [...host.__logs, ...fan.__logs].filter(l => /PAGEERROR/.test(l));

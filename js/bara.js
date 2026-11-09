@@ -423,7 +423,7 @@ async function baraHostReveal() {
 async function baraHostSettle(skip) {
     const s = baraState;
     if (!baraHost() || !s || s.phase !== "guess" || baraHostBusy) return;
-    if (skip && !confirm("تتخطى تخمين " + baraName(s, s.res.out) + "؟ (ينحسب ما خمّن)")) return;
+    if (skip && !await uiConfirm("تتخطى تخمين " + baraName(s, s.res.out) + "؟ (ينحسب ما خمّن)")) return;
     baraHostBusy = true; baraRender();
     try {
         let receipt = "";
@@ -439,11 +439,11 @@ async function baraHostSettle(skip) {
         roomToast("ما قدرت أطلّع النتيجة: " + e.message, "alert");
     } finally { baraHostBusy = false; baraRender(); }
 }
-function baraHostSkip() {
+async function baraHostSkip() {
     const s = baraState;
     if (!s) return;
-    if (s.phase === "ask") { const p = s.asks[s.turn]; if (p && confirm("تتخطى سؤال " + baraName(s, p.a) + "؟")) baraHostNext(); }
-    else if (s.phase === "vote") { if (confirm("تكشف التصويت الحين؟ اللي ما صوّت ياخذ صفر")) baraHostReveal(); }
+    if (s.phase === "ask") { const p = s.asks[s.turn]; if (p && await uiConfirm("تتخطى سؤال " + baraName(s, p.a) + "؟")) baraHostNext(); }
+    else if (s.phase === "vote") { if (await uiConfirm("تكشف التصويت الحين؟ اللي ما صوّت ياخذ صفر")) baraHostReveal(); }
     else if (s.phase === "guess") baraHostSettle(true);
 }
 function baraSetRounds(dir) { const s = baraState; if (s) baraDo({ t: "rounds", n: Math.max(1, Math.min(BARA.MAX_ROUNDS, (s.rounds || BARA.ROUNDS) + dir)) }); }
@@ -459,9 +459,9 @@ async function baraCreate() {
 }
 function baraJoin() { baraDo({ t: "join", name: baraMyName(), av: (currentUserDocData && currentUserDocData.photoURL) || "" }); }
 function baraLeave() { baraDo({ t: "leave" }); }
-function baraKick(uid) { if (confirm("تطلّع " + baraName(baraState, uid) + " من الطاولة؟")) baraDo({ t: "leave", uid }); }
-function baraEnd() { if (confirm("تنهي اللعبة الحين؟ الترتيب يطلع على النقاط اللي معهم")) baraDo({ t: "end" }); }
-function baraCloseTable() { if (confirm("تسكّر الطاولة؟")) baraDo({ t: "close" }); }
+async function baraKick(uid) { if (await uiConfirm("تطلّع " + baraName(baraState, uid) + " من الطاولة؟")) baraDo({ t: "leave", uid }); }
+async function baraEnd() { if (await uiConfirm("تنهي اللعبة الحين؟ الترتيب يطلع على النقاط اللي معهم")) baraDo({ t: "end" }); }
+async function baraCloseTable() { if (await uiConfirm("تسكّر الطاولة؟")) baraDo({ t: "close" }); }
 async function baraNewTable() {
     const r = await baraDo({ t: "close" }, true);
     if (r && r.s) { baraState = r.s; await baraCreate(); }

@@ -28,10 +28,10 @@ function ensureRoomAccessId() {
         .finally(() => { roomAccessIdCreating = false; });
 }
 
-function adminChangeRoomId(ev) {
+async function adminChangeRoomId(ev) {
     if (ev) ev.stopPropagation();
     if (!isAdmin) return;
-    let v = prompt("اكتب ID جديد للغرفة (أرقام أو حروف).\nملاحظة: الكل بيحتاج يدخل الـ ID الجديد مرة ثانية.", roomState.accessId || "");
+    let v = await uiPrompt("اكتب ID جديد للغرفة (أرقام أو حروف).\nملاحظة: الكل بيحتاج يدخل الـ ID الجديد مرة ثانية.", roomState.accessId || "");
     if (v === null) return;
     v = v.trim();
     if (v.length < 3) return alert("الـ ID لازم يكون 3 خانات على الأقل");
@@ -190,12 +190,12 @@ function openRoomScreen(skipPush) {
     roomViewportSync();
 }
 
-function closeRoomScreen(fromPop) {
+async function closeRoomScreen(fromPop) {
     if (!roomScreenOpen) return;
     if (currentUser && roomState.mics) {
         const idx = roomState.mics.findIndex(m => m && m.uid === currentUser.uid);
         if (idx !== -1) {
-            if (!fromPop && !confirm("أنت على المايك، إذا طلعت بتنزل من المايك. تبي تطلع؟")) return;
+            if (!fromPop && !await uiConfirm("أنت على المايك، إذا طلعت بتنزل من المايك. تبي تطلع؟")) return;
             releaseMicSlot(idx);
         }
     }

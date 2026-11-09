@@ -106,10 +106,10 @@ ${photoURL ? `<button onclick="removeProfilePhoto()" style="width:100%; margin:8
 openModal("settingsModal");
 }
 
-function promptChangeName() {
+async function promptChangeName() {
 if(!currentUser) return;
 let currentName = (currentUserDocData && currentUserDocData.name) ? currentUserDocData.name : (currentUser.displayName || "");
-let newName = prompt("أدخل الاسم الجديد:", currentName);
+let newName = await uiPrompt("أدخل الاسم الجديد:", currentName);
 
 if(newName && newName.trim() && newName.trim() !== currentName) {
 newName = newName.trim();
@@ -167,9 +167,9 @@ alert("خطأ أثناء رفع الصورة: " + err.message);
 });
 }
 
-function removeProfilePhoto() {
+async function removeProfilePhoto() {
 if(!currentUser) return;
-if(!confirm("هل أنت متأكد من حذف صورتك الشخصية؟")) return;
+if(!await uiConfirm("هل أنت متأكد من حذف صورتك الشخصية؟")) return;
 
 firebaseDB.collection("users").doc(currentUser.uid).update({
 photoURL: firebase.firestore.FieldValue.delete()
@@ -212,10 +212,10 @@ createdAt: firebase.firestore.FieldValue.serverTimestamp()
 
 /* نسيت كلمة المرور: Firebase يرسل إيميل بالعربي فيه رابط (فيه رمز تغيير كلمة المرور)،
    يفتح صفحة Firebase يكتب فيها كلمة مرور جديدة، وبعدها زر يرجّعه للموقع */
-function handleForgotPassword() {
+async function handleForgotPassword() {
 let input = document.getElementById("loginEmail");
 let email = (input && input.value.trim()) || "";
-if(!email) email = (prompt("اكتب بريدك الإلكتروني المسجّل في الدوري:") || "").trim();
+if(!email) email = (await uiPrompt("اكتب بريدك الإلكتروني المسجّل في الدوري:") || "").trim();
 if(!email) return;
 if(input) input.value = email;
 firebaseAuth.languageCode = "ar";

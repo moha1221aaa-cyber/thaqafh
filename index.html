@@ -34,6 +34,7 @@
 <link rel="stylesheet" href="css/som.css">
 <link rel="stylesheet" href="css/bara.css">
 <link rel="stylesheet" href="css/tournaments.css">
+<link rel="stylesheet" href="css/dialogs.css">
 <link rel="stylesheet" href="css/broadcast.css">
 <script src="js/pwa.js"></script>
 <script src="js/wake.js"></script>
@@ -158,11 +159,14 @@
 <div class="tn-seg tn-sub" id="tnSub" role="tablist">
 <button type="button" class="active" data-k="stand" onclick="tnSetPane('stand')"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg> الترتيب</button>
 <button type="button" data-k="matches" onclick="tnSetPane('matches')"><svg class="ic" aria-hidden="true"><use href="#i-ball"/></svg> المواجهات</button>
+<button type="button" data-k="ko" onclick="tnSetPane('ko')" style="display:none;"><svg class="ic" aria-hidden="true"><use href="#i-crown"/></svg> الإقصاء</button>
 </div>
 
 <div id="tnStand">
 <div id="standingsBox"></div>
 </div>
+
+<div id="tnKo" style="display:none;"></div>
 
 <div id="tnMatches" style="display:none;">
 <div id="liveMatchesBar"></div>
@@ -472,12 +476,14 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
+<script src="js/dialogs.js"></script>
 <script src="js/config.js"></script>
 <script src="js/voice.js"></script>
 <script src="js/app.js"></script>
 <script src="js/notifications.js"></script>
 <script src="js/users.js"></script>
 <script src="js/league.js"></script>
+<script src="js/knockout.js"></script>
 <script src="js/tournaments.js"></script>
 <script src="js/majlis.js"></script>
 <script src="js/account.js"></script>

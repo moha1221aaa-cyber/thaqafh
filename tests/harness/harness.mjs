@@ -190,6 +190,8 @@ export async function device(browser, db, who, opts) {
         if (out && out.raw) return r.fulfill(out.raw);
         return r.fulfill({ status: (out && out.status) || 200, contentType: "application/json", body: JSON.stringify(out && out.json !== undefined ? out.json : out) });
     });
+    /* نوافذ المتصفح الأصلية (الاختبارات تعتمد عليها)، إلا لو opts.customDialogs */
+    if (!opts.customDialogs) await ctx.addInitScript(() => { window.__UI_NATIVE = true; });
     await ctx.addInitScript(() => { try { localStorage.setItem("bcVoiceOn", "1"); } catch (e) {} });
     const page = await ctx.newPage();
     page.__hid = who + (++HID);   /* عداد عام: جهازين بنفس الدور كانوا ياخذون نفس الرقم ويمسحون اشتراكات بعض */
