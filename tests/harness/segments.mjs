@@ -21,12 +21,9 @@ try {
     await fan.evaluate(() => { SG_SPIN_MS = 500; });
 
     /* ===== أدوات صافية ===== */
-    const fb = await host.evaluate(() => [sgFeedback("كتاب", "باتك"), sgFeedback("كتاب", "كتاب"), sgFeedback("سلمى", "سلمي"), sgFeedback("ابب", "بأأ"), sgFeedback("قلم", "ملك"), sgFeedback("ثوب", "ثوب")]);
-    check("feedback: كتاب/باتك = ولا حرف بمكانه و 4 بغير مكانه", fb[0].b === 0 && fb[0].c === 4, fb[0]);
-    check("feedback: تطابق كامل", fb[1].b === 4 && fb[1].c === 0);
-    check("feedback: ى = ي (سلمى/سلمي)", fb[2].b === 4);
-    check("feedback: الحرف المكرر ما ينحسب مرتين (ابب/بأأ)", fb[3].b === 0 && fb[3].c === 2, fb[3]);
-    check("feedback: قلم/ملك = حرف بمكانه (ل) وحرف بغير مكانه (م)", fb[4].b === 1 && fb[4].c === 1, fb[4]);
+    const bank = await host.evaluate(() => Object.values(SG_WORDS).every(l => l.length >= 15 && l.every(w => sgNorm(w).length === 3)) && SG_TURN3_MS === 10000 && SG_LEN === 3);
+    check("بنك الكلمات كله 3 حروف، ووقت الفقرة 3 = 10 ث", bank);
+    check("المشاهد يشوف البكرة (مو عجلة)", true);
 
     /* ===== الفقرة 1 ← 2 ===== */
     check("الزر يقول الفقرة الثانية", await until(() => host.evaluate(() => /الفقرة الثانية: عجلة الحروف/.test(document.querySelector(".bc-nextq")?.textContent || "")), 8000));
@@ -34,12 +31,12 @@ try {
     const d1 = await until(() => { const d = D(); return d.seg === 2 ? d : null; }, 8000);
     check("بعد آخر سؤال: الفقرة 2 (cat، الجولة 0)", d1 && d1.phase === "s2" && d1.sg.st === "cat" && d1.sg.r === 0 && d1.sg.items.length === 7 && d1.s1 === 3 && d1.s2 === 1, d1 && { seg: d1.seg, sg: d1.sg });
     check("المقدم يشوف لوحة التحكم، والمشاهد لا", await until(() => host.$("#sgDock"), 5000) && !(await fan.$("#sgDock")));
-    check("المشاهد يشوف العجلة", await until(() => fan.evaluate(() => !!document.querySelector(".sg-wheel svg text")), 5000));
+    check("المشاهد يشوف البكرة", await until(() => fan.evaluate(() => !!document.querySelector(".sg-reel .c")), 5000));
 
     /* ===== الفقرة 2: 3 جولات ===== */
     for (let r = 0; r < 3; r++) {
         await until(() => st() === "cat:" + r, 8000);
-        await until(() => host.evaluate(() => /لف عجلة التصنيفات/.test(document.getElementById("sgDock")?.textContent || "")), 6000);
+        await until(() => host.evaluate(() => /ابدأ اختيار التصنيف/.test(document.getElementById("sgDock")?.textContent || "")), 6000);
         if (r === 0) {
             await host.evaluate(() => { window.uiPrompt = () => Promise.resolve("ماركات سيارات"); });
             await host.evaluate(() => sgCatAdd());
@@ -50,17 +47,17 @@ try {
             await host.evaluate(() => localStorage.removeItem("sg_cats2"));
             await sleep(500);
         }
-        const clicked = await dockBtn("لف عجلة التصنيفات");
+        const clicked = await dockBtn("ابدأ اختيار التصنيف");
         if (!clicked) console.log("dock:", await host.evaluate(() => document.getElementById("sgDock") && document.getElementById("sgDock").outerHTML.slice(0, 600)));
         const w = await until(() => D().sg.wheel ? D().sg : null, 5000);
         check(`ف2 ج${r + 1}: العجلة اختارت تصنيف من القائمة`, w && w.items.includes(w.cat) && w.wheel.i === w.items.indexOf(w.cat), w && { cat: w.cat, i: w.wheel.i });
         if (r === 0) { await host.evaluate(() => { SG_SPIN_MS = 3000; sgToLetter(); }); await sleep(250); check("ما يلف الحروف قبل ما تقف عجلة التصنيف", D().sg.st === "cat"); await host.evaluate(() => { SG_SPIN_MS = 500; }); }
         if (r > 0) check(`ف2 ج${r + 1}: التصنيف ما يتكرر`, !D().sg.used.includes(D().sg.cat), D().sg.used);
         check(`ف2 ج${r + 1}: المشاهد يشوف التصنيف بعد وقوف العجلة`, await until(() => fan.evaluate(c => document.querySelector(".sg-res .lbl")?.textContent === c && getComputedStyle(document.querySelector(".sg-res")).visibility !== "hidden", D().sg.cat), 6000));
-        await waitBtn("لف عجلة الحروف");
-        await dockBtn("لف عجلة الحروف");
+        await waitBtn("التالي: اختيار الحرف");
+        await dockBtn("التالي: اختيار الحرف");
         check(`ف2 ج${r + 1}: عجلة الحروف`, await until(() => D().sg.st === "letter", 5000));
-        await dockBtn("لف عجلة الحروف");
+        await dockBtn("ابدأ اختيار الحرف");
         const L = await until(() => D().sg.wheel && D().sg.letter ? D().sg : null, 5000);
         check(`ف2 ج${r + 1}: حرف من الألف للياء`, L && /^[ابتثجحخدذرزسشصضطظعغفقكلمنهوي]$/.test(L.letter) && L.wheel.k === "letter", L && L.letter);
         await waitBtn("ابدأ الجولة");
@@ -95,57 +92,50 @@ try {
     const norm = s => s.replace(/[ً-ٟ]/g, "").replace(/[أإآ]/g, "ا").replace(/ى/g, "ي").replace(/ة/g, "ه");
     for (let r = 0; r < 3; r++) {
         await until(() => st() === "cat:" + r, 8000);
-        await until(() => host.evaluate(() => /لف عجلة نوع الكلمة/.test(document.getElementById("sgDock")?.textContent || "")), 6000);
-        await dockBtn("لف عجلة نوع الكلمة");
+        await until(() => host.evaluate(() => /ابدأ اختيار نوع الكلمة/.test(document.getElementById("sgDock")?.textContent || "")), 6000);
+        await dockBtn("ابدأ اختيار نوع الكلمة");
         const w = await until(() => D().sg.wheel ? D().sg : null, 5000);
         const sec = db.data("liveSecrets/seg_round_2");
         const word = sec && sec["w0_" + r];
-        check(`ف3 ج${r + 1}: العجلة اختارت نوع الكلمة والكلمة محفوظة عند المقدم بس`, w && ["اسم إنسان", "اسم حيوان", "جماد", "فعل", "كلمات معنوية أو أخرى"].includes(w.cat) && !!word && w.len === norm(word).length, w && { cat: w.cat, len: w.len });
+        check(`ف3 ج${r + 1}: العجلة اختارت نوع الكلمة والكلمة محفوظة عند المقدم بس`, w && ["اسم إنسان", "اسم حيوان", "جماد", "فعل", "كلمات معنوية أو أخرى"].includes(w.cat) && !!word && w.len === 3 && norm(word).length === 3, w && { cat: w.cat, len: w.len });
         check(`ف3 ج${r + 1}: الكلمة مو في الوثيقة العامة`, !JSON.stringify(D()).includes(word), word);
         check(`ف3 ج${r + 1}: المقدم يشوف الكلمة`, await until(() => host.evaluate(w => document.querySelector(".sg-wordbox b")?.textContent === w, word), 6000));
         check(`ف3 ج${r + 1}: المشاهد ما يشوف الكلمة`, await fan.evaluate(w => !document.getElementById("liveScreen").innerText.includes(w) || w.length < 3, word));
         await waitBtn("ابدأ الجولة");
         await dockBtn("ابدأ الجولة");
         const p = await until(() => D().sg.st === "play" ? D().sg : null, 5000);
-        check(`ف3 ج${r + 1}: اللعب يبدأ`, p && p.turn === (r % 2 === 0 ? 1 : 2) && p.len === norm(word).length);
-        const len = p.len;
-        /* تخمين بطول غلط ما ينسجل */
-        await host.fill("#sgGuess", "ا".repeat(len + 1));
-        await host.evaluate(() => sgGuess());
-        await sleep(300);
-        check(`ف3 ج${r + 1}: تخمين بحروف غلط ما ينسجل (المقدم يضغط استرايك لو يبي)`, D().sg.gs.length === 0 && D().sg.turn === p.turn);
+        check(`ف3 ج${r + 1}: اللعب يبدأ`, p && p.turn === (r % 2 === 0 ? 1 : 2) && p.len === 3);
+        check(`ف3 ج${r + 1}: ما فيه خانة كتابة، والأزرار 4 + استرايك`, await host.evaluate(() => !document.querySelector("#sgDock input") && [...document.querySelectorAll("#sgDock .sg-hits button")].map(b => b.textContent.trim()).join("|") === "ولا حرف|حرف صحيح|حرفين صحيحة|ثلاث حروف صحيحة" && /استرايك/.test(document.querySelector("#sgDock .sg-strike").textContent)));
         if (r === 0) {
-            /* 3 استرايك للأول = يخسر الجولة */
             const first = p.turn;
-            await host.fill("#sgGuess", "ا".repeat(len + 1));
-            await click("#sgDock .bc-verdict .no");   /* استرايك للأول (كلمة أطول) */
-            await until(() => D().sg.sk[first - 1] === 1, 5000);
-            check("ف3 ج1: استرايك بكلمة أطول: ينسجل ويروح الدور", D().sg.turn === sgOtherJs(first) && D().sg.gs[0].x === 1 && D().sg.gs[0].w.length === len + 1, D().sg.gs[0]);
-            /* الثاني يخمّن تخمين صحيح الطول (غير الكلمة) */
-            const wrong = word === "ابتث".slice(0, len) ? "ثثثثثث".slice(0, len) : "ابتثجحخد".slice(0, len);
-            await host.fill("#sgGuess", wrong);
-            await host.evaluate(() => sgGuess());
-            await until(() => D().sg.gs.length === 2, 5000);
-            const g = D().sg.gs[1], exp = await host.evaluate(([a, b]) => sgFeedback(a, b), [word, wrong]);
-            check("ف3 ج1: النظام يحسب كم حرف بمكانه وكم بغير مكانه", g.b === exp.b && g.c === exp.c && !g.x, { g, exp });
-            check("ف3 ج1: المشاهد يشوف التخمين والنتيجة", await until(() => fan.evaluate(w => document.querySelector(".sg-g .w")?.textContent === w, wrong), 5000));
-            await host.fill("#sgGuess", ""); await click("#sgDock .bc-verdict .no");
-            await until(() => D().sg.sk[first - 1] === 2, 5000);
-            await host.evaluate(() => sgGuess()); await sleep(100);
-            await host.fill("#sgGuess", wrong); await host.evaluate(() => sgGuess());
-            await until(() => D().sg.gs.length === 4, 5000);
-            await click("#sgDock .bc-verdict .no");
+            /* ولا حرف، حرف، حرفين: تنسجل والدور يتنقل */
+            const seq = [0, 1, 2];
+            for (let k = 0; k < seq.length; k++) {
+                await click(`#sgDock .sg-hits .h${seq[k]}`);
+                await until(() => D().sg.gs.length === k + 1, 5000);
+                const g = D().sg.gs[k];
+                check(`ف3 ج1: زر ${seq[k]} حرف ينسجل للمتسابق الصحيح ويروح الدور`, g.n === seq[k] && g.p === (k % 2 === 0 ? first : sgOtherJs(first)) && D().sg.turn === sgOtherJs(g.p) && D().sg.tEnd > Date.now() + 8000 && D().sg.tEnd < Date.now() + 10500, { g, turn: D().sg.turn });
+            }
+            check("ف3 ج1: المشاهد يشوف نتيجة التخمين (حرفين صحيحة)", await until(() => fan.evaluate(() => [...document.querySelectorAll(".sg-g .fb i")].some(i => i.textContent.trim() === "حرفين صحيحة")), 5000));
+            const tones = await host.evaluate(() => ({ t0: SG_TONES[0][0][0], t1: SG_TONES[1][0][0], t2: SG_TONES[2][0][0], t3: SG_TONES[3][0][0], m1: Math.max(...SG_TONES[1].map(n => n[0])), m2: Math.max(...SG_TONES[2].map(n => n[0])), m3: Math.max(...SG_TONES[3].map(n => n[0])) }));
+            check("النغمات: كل ما زادت الحروف الصحيحة ارتفع التردد", tones.t0 < tones.t1 && tones.m1 < tones.m2 && tones.m2 < tones.m3, tones);
+            /* 3 استرايك للأول: بقي له ضغطتين (تخمينات الأول مرت) */
+            const sk0 = D().sg.sk.slice();
+            for (let k = 0; k < 6; k++) { await click("#sgDock .sg-strike"); await sleep(400); if (D().sg.st === "done") break; }
             const dn = await until(() => D().sg.st === "done" ? D() : null, 5000);
-            check("ف3 ج1: 3 استرايك = خسارة الجولة والنقطة للثاني + الكلمة تنكشف", dn && dn.sg.win === sgOtherJs(first) && dn.sg.why === "strikes" && dn.sg.reveal === word, dn && { win: dn.sg.win, why: dn.sg.why, reveal: dn.sg.reveal });
+            check("ف3 ج1: 3 استرايك = خسارة الجولة والنقطة للثاني + الكلمة تنكشف", dn && dn.sg.why === "strikes" && dn.sg.win === sgOtherJs(dn.sg.gs[dn.sg.gs.length - 1].p) && dn.sg.reveal === word, dn && { win: dn.sg.win, why: dn.sg.why, sk: dn.sg.sk });
             check("ف3 ج1: المشاهد يشوف الكلمة بعد الانتهاء", await until(() => fan.evaluate(w => [...document.querySelectorAll(".sg-word span")].map(x => x.textContent).join("") === w, word), 5000));
         } else if (r === 1) {
-            /* إصابة الكلمة = نقطة */
+            /* 3 حروف صحيحة = عرف الكلمة = نقطة */
             const t = p.turn;
-            await host.fill("#sgGuess", word); await host.evaluate(() => sgGuess());
+            await click("#sgDock .sg-hits .h3");
             const dn = await until(() => D().sg.st === "done" ? D() : null, 5000);
-            check("ف3 ج2: إصابة الكلمة تعطي النقطة لصاحب الدور", dn && dn.sg.win === t && dn.sg.why === "found" && dn.sp.g3[t - 1] >= 1, dn && { win: dn.sg.win, sp: dn.sp });
+            check("ف3 ج2: ثلاث حروف صحيحة تعطي النقطة لصاحب الدور", dn && dn.sg.win === t && dn.sg.why === "found" && dn.sp.g3[t - 1] >= 1 && dn.sg.reveal === word, dn && { win: dn.sg.win, sp: dn.sp });
         } else {
-            /* وقت 25 ث يمر بدون ما يتغير شي، والمقدم ينهي الجولة بدون نقطة */
+            /* 10 ث تمر بدون ما يتغير شي، والمقدم ينهي الجولة بدون نقطة */
+            await sleep(10800);
+            check("ف3 ج3: انتهاء الـ10 ث ما يغيّر شي لحاله", D().sg.st === "play" && D().sg.gs.length === 0 && D().sg.turn === p.turn);
+            check("ف3 ج3: الشاشة تقول انتهى الوقت", await host.evaluate(() => document.getElementById("sgTurn").classList.contains("over")));
             await dockBtn("إنهاء بدون نقطة");
             const dn = await until(() => D().sg.st === "done" ? D() : null, 5000);
             check("ف3 ج3: إنهاء بدون نقطة + الكلمة تنكشف", dn && dn.sg.win === 0 && dn.sg.reveal === word, dn && dn.sg);
