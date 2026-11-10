@@ -786,7 +786,7 @@ function bcRehSkip() {
     liveTx(BC_REH, (x, now) => {
         if (x.status !== "live" || !(x.scene === "talk" || x.scene === "countdown" || x.scene === "playing")) return null;
         if (x.scene !== "playing" || x.seg === 1) return sgEnter(x, 2, now);
-        if (x.seg === 2) return sgEnter(x, 3, now);
+        if (x.seg === 2 || x.seg === 3) return sgEnter(x, x.seg + 1, now);
         return null;
     }).catch(err => roomToast("تعذّر: " + err.message, "alert"));
 }

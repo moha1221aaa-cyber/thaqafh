@@ -437,6 +437,24 @@ await no("ptour ko: more than 15 ties", ctx.p1.doc(KT).set({ ko: Array.from({ le
 await no("ptour ko: not a list", ctx.p1.doc(KT).set({ ko: "x", updatedAt: TS() }, { merge: true }));
 await ok("ptour ko: guest reads it", ctx.guest.doc(KT).get());
 
+/* ===== الفقرة الرابعة "ضد وند": اللي في بال المتسابق (10 نوفمبر 2026) ===== */
+const DP = u => "duelPicks/" + u;
+const pk = extra => Object.assign({ bid: "round_2", cur: 0, cat: "دول", pick: "اليابان", at: Date.now() }, extra || {});
+await ok("duel: player saves own pick", ctx.p1.doc(DP("u_p1")).set(pk()));
+await ok("duel: player changes own pick", ctx.p1.doc(DP("u_p1")).set(pk({ pick: "مصر" })));
+await ok("duel: player reads own pick", ctx.p1.doc(DP("u_p1")).get());
+await ok("duel: admin reads a pick", ctx.admin.doc(DP("u_p1")).get());
+await no("duel: opponent reads the pick", ctx.p2.doc(DP("u_p1")).get());
+await no("duel: fan reads the pick", ctx.fan.doc(DP("u_p1")).get());
+await no("duel: guest reads the pick", ctx.guest.doc(DP("u_p1")).get());
+await no("duel: player writes someone else's pick", ctx.p2.doc(DP("u_p1")).set(pk()));
+await no("duel: guest writes a pick", ctx.guest.doc(DP("u_guest")).set(pk()));
+await no("duel: empty pick", ctx.p1.doc(DP("u_p1")).set(pk({ pick: "" })));
+await no("duel: pick too long", ctx.p1.doc(DP("u_p1")).set(pk({ pick: "x".repeat(41) })));
+await no("duel: extra field", ctx.p1.doc(DP("u_p1")).set(pk({ win: true })));
+await no("duel: cur not a number", ctx.p1.doc(DP("u_p1")).set(pk({ cur: "0" })));
+await no("duel: player lists all picks", ctx.p1.collection("duelPicks").get());
+
 await env.cleanup();
 if (failed) { console.log(failed + " failed"); process.exit(1); }
 console.log("all passed");

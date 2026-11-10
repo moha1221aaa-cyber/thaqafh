@@ -147,11 +147,18 @@ try {
             const dn = await until(() => D().sg.st === "done" ? D() : null, 5000);
             check("ف3 ج3: إنهاء بدون نقطة + الكلمة تنكشف", dn && dn.sg.win === 0 && dn.sg.reveal === word, dn && dn.sg);
         }
-        await waitBtn(r === 2 ? "نتيجة المواجهة" : "الجولة التالية");
-        await dockBtn(r === 2 ? "نتيجة المواجهة" : "الجولة التالية");
+        await waitBtn(r === 2 ? "الفقرة الرابعة: ضد وند" : "الجولة التالية");
+        await dockBtn(r === 2 ? "الفقرة الرابعة: ضد وند" : "الجولة التالية");
     }
+    /* الفقرة 4 (ضد وند، تفاصيلها في duel.mjs): هنا ننهيها بدون نقطة ونتأكد إن النتيجة تطلع بعدها */
+    check("بعد الفقرة 3: الفقرة الرابعة ضد وند", !!await until(() => { const d = D(); return d.seg === 4 && d.phase === "s4" && d.sg.st === "pick" ? d : null; }, 6000));
+    await waitBtn("إنهاء الفقرة بدون نقطة");
+    await dockBtn("إنهاء الفقرة بدون نقطة");
+    await until(() => D().sg.st === "done", 5000);
+    await waitBtn("نتيجة المواجهة");
+    await dockBtn("نتيجة المواجهة");
     const res = await until(() => D().scene === "result" ? D() : null, 6000);
-    check("بعد الفقرة 3: نتيجة المواجهة", !!res && res.order[0].state === "done" && res.order[0].s1 === res.s1 && res.order[0].s2 === res.s2, res && { s1: res.s1, s2: res.s2, sp: res.sp });
+    check("بعد الفقرة 4: نتيجة المواجهة", !!res && res.order[0].state === "done" && res.order[0].s1 === res.s1 && res.order[0].s2 === res.s2, res && { s1: res.s1, s2: res.s2, sp: res.sp });
     check("مجموع النقاط = الأسئلة (4) + ف2 (3) + ف3 (2)", res && res.s1 + res.s2 === 4 + 3 + 2, res && { s1: res.s1, s2: res.s2 });
     check("لوحة المقدم اختفت", await until(() => host.evaluate(() => !document.getElementById("sgDock")), 5000));
     check("شاشة النتيجة تفصّل الفقرات", await until(() => host.evaluate(() => /فقرة الحروف/.test(document.getElementById("liveScreen").innerText) && /فقرة الكلمات/.test(document.getElementById("liveScreen").innerText)), 6000));

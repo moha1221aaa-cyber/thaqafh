@@ -360,7 +360,7 @@ ${isAdmin && (live || sched) ? `<button class="bc-endbtn" onclick="bcEnd()">${ic
 <div class="nm">${escapeHTML(n === 1 ? o.p1 : o.p2)}</div>
 <div class="st-desk">${showScoreHTML(d, n)}<i>أجوبة</i></div>
 </div>`;
-        const mid = d.scene === "talk" ? `الترحيب<small>قبل البداية</small>` : d.scene === "playing" ? (d.seg > 1 && d.sg ? `الفقرة ${d.seg}<small>الجولة ${(d.sg.r || 0) + 1} من ${SG_ROUNDS}</small>` : d.qIndex >= LIVE_Q_COUNT ? `ذهبي<small>سؤال الحسم</small>` : `السؤال ${d.qIndex + 1}<small>من ${LIVE_Q_COUNT}</small>`) : (d.scene === "result" ? "النتيجة" : "استعدوا");
+        const mid = d.scene === "talk" ? `الترحيب<small>قبل البداية</small>` : d.scene === "playing" ? (d.seg > 1 && d.sg ? (d.seg === 4 ? `ضد وند<small>الفقرة الرابعة</small>` : `الفقرة ${d.seg}<small>الجولة ${(d.sg.r || 0) + 1} من ${SG_ROUNDS}</small>`) : d.qIndex >= LIVE_Q_COUNT ? `ذهبي<small>سؤال الحسم</small>` : `السؤال ${d.qIndex + 1}<small>من ${LIVE_Q_COUNT}</small>`) : (d.scene === "result" ? "النتيجة" : "استعدوا");
         const mc = (d.scene === "talk" || d.scene === "countdown" || d.scene === "playing") ? bcMicCtlHTML(d) : "";
         R.pods = `
 ${mc ? `<div class="st-microw">${mc}</div>` : ""}
@@ -598,7 +598,7 @@ ${wAv ? `<img class="bc-win-av" src="${safeSrc(wAv)}" alt="">` : `<div class="tr
 <div class="st-stats">
 <div class="h"><span>${escapeHTML(o.p1)}</span><span></span><span>${escapeHTML(o.p2)}</span></div>
 <div><b class="${s1 > s2 ? "hi" : ""}">${s1}</b><span>${d.sp ? "مجموع النقاط" : "إجابات صحيحة"}</span><b class="${s2 > s1 ? "hi" : ""}">${s2}</b></div>
-${d.sp ? `<div><b>${qw1}</b><span>فقرة الأسئلة</span><b>${qw2}</b></div>${(d.sp.g2 || d.sp.g3) ? `<div><b>${(d.sp.g2 || [0, 0])[0]}</b><span>فقرة الحروف</span><b>${(d.sp.g2 || [0, 0])[1]}</b></div><div><b>${(d.sp.g3 || [0, 0])[0]}</b><span>فقرة الكلمات</span><b>${(d.sp.g3 || [0, 0])[1]}</b></div>` : ""}` : `<div><b>${pc(s1)}</b><span>نسبة النجاح</span><b>${pc(s2)}</b></div>`}
+${d.sp ? `<div><b>${qw1}</b><span>فقرة الأسئلة</span><b>${qw2}</b></div>${(d.sp.g2 || d.sp.g3) ? `<div><b>${(d.sp.g2 || [0, 0])[0]}</b><span>فقرة الحروف</span><b>${(d.sp.g2 || [0, 0])[1]}</b></div><div><b>${(d.sp.g3 || [0, 0])[0]}</b><span>فقرة الكلمات</span><b>${(d.sp.g3 || [0, 0])[1]}</b></div>${d.sp.g4 ? `<div><b>${d.sp.g4[0]}</b><span>ضد وند</span><b>${d.sp.g4[1]}</b></div>` : ""}` : ""}` : `<div><b>${pc(s1)}</b><span>نسبة النجاح</span><b>${pc(s2)}</b></div>`}
 <div><b class="${fastest === 1 ? "hi" : ""}">${fb(fb1)}</b><span>أسرع ضغطة جرس</span><b class="${fastest === 2 ? "hi" : ""}">${fb(fb2)}</b></div>
 </div>
 ${(() => { const c = bcPredCounts(d, d.cur); if (!c.t || !winner) return ""; const wn = s1 > s2 ? c.a : c.b; return `<div class="lv-muted">${ic("target")} ${wn} من ${c.t} توقعوا فوز ${escapeHTML(winner)}</div>`; })()}

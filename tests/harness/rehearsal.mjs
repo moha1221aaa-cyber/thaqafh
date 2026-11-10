@@ -64,10 +64,16 @@ try {
     const sk3 = await until(() => db.data(REH).seg === 3 ? db.data(REH) : null, 6000);
     check("skip → segment 3", sk3 && sk3.phase === "s3" && sk3.sg.st === "cat", sk3 && { seg: sk3.seg });
     await sleep(500);
+    check("rehearsal: dock has the skip-to-segment-4 button", await until(() => host.evaluate(() => /تخطي للفقرة الرابعة/.test(document.getElementById("sgDock")?.textContent || "")), 6000));
+    await host.evaluate(() => bcRehSkip());
+    const sk4 = await until(() => db.data(REH).seg === 4 ? db.data(REH) : null, 6000);
+    check("skip → segment 4 (ضد وند)", sk4 && sk4.phase === "s4" && sk4.sg.st === "pick", sk4 && { seg: sk4.seg });
+    check("rehearsal bots pick by themselves (host gets ready for both)", !!await until(() => { const d = db.data(REH); return d.sg.rd[0] && d.sg.rd[1] && d.sg.c[0] && d.sg.c[1] ? d : null; }, 9000));
+    await sleep(500);
     await host.evaluate(() => bcRehSkip());
     await sleep(600);
-    check("no skip beyond segment 3", db.data(REH).seg === 3);
-    check("skip does nothing outside the private broadcast", await host.evaluate(() => { const o = openLiveId; openLiveId = "round_9"; const before = JSON.stringify(liveMatchesCache.rehearsal && liveMatchesCache.rehearsal.seg); bcRehSkip(); openLiveId = o; return true; }) && db.data(REH).seg === 3);
+    check("no skip beyond segment 4", db.data(REH).seg === 4);
+    check("skip does nothing outside the private broadcast", await host.evaluate(() => { const o = openLiveId; openLiveId = "round_9"; bcRehSkip(); openLiveId = o; return true; }) && db.data(REH).seg === 4);
     /* لا شي يتسرب للدوري */
     await host.evaluate(() => { const x = liveMatchesCache.rehearsal; x.order[0].state = "done"; bcApplyResults("rehearsal"); });
     await sleep(800);
