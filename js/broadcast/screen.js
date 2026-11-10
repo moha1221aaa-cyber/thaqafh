@@ -358,7 +358,7 @@ ${isAdmin && (live || sched) ? `<button class="bc-endbtn" onclick="bcEnd()">${ic
 <div class="nm">${escapeHTML(n === 1 ? o.p1 : o.p2)}</div>
 <div class="st-desk">${showScoreHTML(d, n)}<i>أجوبة</i></div>
 </div>`;
-        const mid = d.scene === "talk" ? `الترحيب<small>قبل البداية</small>` : d.scene === "playing" ? (d.seg > 1 && d.sg ? (d.seg === 4 ? `ضد وند<small>الفقرة الرابعة</small>` : `الفقرة ${d.seg}<small>الجولة ${(d.sg.r || 0) + 1} من ${SG_ROUNDS}</small>`) : d.qIndex >= LIVE_Q_COUNT ? `ذهبي<small>سؤال الحسم</small>` : `السؤال ${d.qIndex + 1}<small>من ${LIVE_Q_COUNT}</small>`) : (d.scene === "result" ? "النتيجة" : "استعدوا");
+        const mid = d.scene === "talk" ? `الترحيب` : d.scene === "playing" ? (d.seg > 1 && d.sg ? (d.seg === 4 ? `ضد وند<small>الفقرة الرابعة</small>` : `الفقرة ${d.seg}<small>الجولة ${(d.sg.r || 0) + 1} من ${SG_ROUNDS}</small>`) : d.qIndex >= LIVE_Q_COUNT ? `ذهبي<small>سؤال الحسم</small>` : `السؤال ${d.qIndex + 1}<small>من ${LIVE_Q_COUNT}</small>`) : (d.scene === "result" ? "النتيجة" : "استعدوا");
         const mc = (d.scene === "talk" || d.scene === "countdown" || d.scene === "playing") ? bcMicCtlHTML(d) : "";
         R.pods = `
 ${mc ? `<div class="st-microw">${mc}</div>` : ""}
@@ -554,7 +554,6 @@ ${adminBar(`<button class="bc-go" onclick="bcToTalk()">${ic("mic")} الترحي
 <div class="st-talk">
 <div class="ic-wrap">${ic("mic")}</div>
 <div class="t">الترحيب بالمتسابقين</div>
-<div class="s">المايكات مفتوحة الحين للمنظم و${escapeHTML(o.p1)} و${escapeHTML(o.p2)}</div>
 </div>
 
 ${adminBar(`<button class="bc-go" onclick="bcForceStart()">${ic("rocket")} ابدأ المواجهة</button>${bcIsReh(openLiveId) ? `<button class="bc-ghost" onclick="bcRehSkip()">${ic("rocket")} تخطي الأسئلة للفقرة الثانية (التجربة)</button>` : ""}<button class="bc-ghost" onclick="bcNext(true)">تخطي المواجهة</button>`)}`;
@@ -674,7 +673,7 @@ ${lastHTML}
             const ans = String(bcAnswerOf(d, d.qIndex) || "").split("|");
             if (!ans[0]) bcLoadSecret(openLiveId);
             html += `<div class="bc-judge">
-<div class="bc-judge-a"><small>الإجابة الصحيحة (تشوفها أنت بس)</small><b>${escapeHTML(ans[0] || "…")}</b>${ans.length > 1 ? `<span>${escapeHTML(ans.slice(1).join("، "))}</span>` : ""}</div>
+<div class="bc-judge-a"><small>الإجابة الصحيحة</small><b>${escapeHTML(ans[0] || "…")}</b>${ans.length > 1 ? `<span>${escapeHTML(ans.slice(1).join("، "))}</span>` : ""}</div>
 <div class="bc-verdict"><button class="ok" onclick="bcHostVerdict(true)">${ic("check-circle")} صح</button><button class="no" onclick="bcHostVerdict(false)">${ic("x-circle")} غلط</button></div>
 ${bcLateHTML(d)}
 </div>`;
@@ -753,6 +752,6 @@ function bcLateHTML(d) {
     if (!isAdmin) return "";
     const list = bcLateList(d);
     if (!list.length) return "";
-    return `<div class="bc-late"><small>جاوب صح قبل ينتهي وقته وما لحقت؟</small>${list.map(n =>
+    return `<div class="bc-late">${list.map(n =>
         `<button onclick="bcHostLateOk(${n})">${ic("check-circle")} ثبّت جواب ${escapeHTML(livePlayerName(d, n))} صح</button>`).join("")}</div>`;
 }
