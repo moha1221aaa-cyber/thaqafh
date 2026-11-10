@@ -451,7 +451,7 @@ let BC_PUB_LAST = null;
 function bcMicCtlHTML(d) {
     const net = bcConnState === "RECONNECTING" ? `<div class="bc-note">${ic("alert")} النت تقطّع، نرجع نوصل الصوت...</div>`
         : (bcNetQ >= 5 && bcTrack ? `<div class="bc-note">${ic("alert")} النت عندك ضعيف، صوتك ممكن يتقطع</div>` : "");
-    if (bcTrack && bcPolicyMuted) return net + `<div class="bc-note">${ic("mic-off")} مايكك جاهز، ينفتح بعد الشارة</div>`;
+    if (bcTrack && bcPolicyMuted) return net + `<div class="bc-note">${ic("mic-off")} مايكك جاهز</div>`;
     if (bcTrack) return net + `<button class="bc-mybtn ${bcSelfMuted ? "muted" : ""}" onclick="bcToggleSelfMute()">${ic(bcSelfMuted ? "mic-off" : "mic")} ${bcSelfMuted ? "مايكك مكتوم · اضغط للفتح" : "مايكك مفتوح · اضغط للكتم"}</button>`;
     if (bcShouldPublish(d)) return bcMicErr
         ? `<button class="bc-mybtn err" onclick="bcToggleSelfMute()">${ic("alert")} ${escapeHTML(bcMicErr)} · اضغط للمحاولة</button>`
@@ -545,9 +545,7 @@ ${uid ? `<div class="bc-st">المايك مقفل</div>` : `<div class="bc-st wa
 <div class="bc-vs">${side(1)}<div class="bc-vsx">VS</div>${side(2)}</div>
 ${ctx ? `<div class="st-ctx ${ctx.k}">${ic(ctx.k === "revenge" ? "zap" : "trophy")} ${escapeHTML(ctx.t)}</div>` : ""}
 ${bcPredHTML(d, o)}
-<div class="bc-note">${ic("mic-off")} المايكات تفتح بعد شارة البداية (لما يضغطون الاثنين "جاهز")</div>
 ${action}
-<div class="lv-rules">3 فقرات: ${LIVE_Q_COUNT} أسئلة بالجرس · عجلة الحروف · خمّن الكلمة. أسرع واحد يضغط الجرس يجاوب، وإذا غلط ينتقل السؤال للثاني</div>
 ${adminBar(`<button class="bc-go" onclick="bcToTalk()">${ic("mic")} الترحيب بالمتسابقين الحين</button><button class="bc-ghost" onclick="bcNext(true)">تخطي المواجهة</button>`)}`;
     }
 
