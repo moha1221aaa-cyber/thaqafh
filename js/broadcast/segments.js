@@ -301,7 +301,7 @@ function sgReelHTML(items, w, letters) {
     let style = "";
     if (w) {
         const p = order.indexOf(w.i), st = (w.s || 0) % n, fi = loops * n + p, el = Math.min(SG_SPIN_MS, Math.max(0, bcNow() - w.at));
-        style = `--from:calc(var(--h) * ${-st});--to:calc(var(--h) * ${-(fi - 1)});animation:sgReel ${SG_SPIN_MS}ms cubic-bezier(.12,.72,.08,1) ${-el}ms both;`;
+        style = `--from:calc(var(--h) * ${-st});--to:calc(var(--h) * ${-(fi - 1)});--dur:${SG_SPIN_MS}ms;animation-timing-function:cubic-bezier(.12,.72,.08,1),linear;animation-delay:${-el}ms;animation-fill-mode:both;`;
     } else style = `--n:${n};animation:sgIdle ${Math.max(8, n * 1.2)}s linear infinite;`;
     const flash = w ? `animation-delay:${Math.max(0, SG_SPIN_MS - Math.min(SG_SPIN_MS, Math.max(0, bcNow() - w.at)))}ms;` : "";
     return `<div class="sg-reel ${letters ? "let" : ""} ${w ? "go" : "idle"}"><div class="sg-strip" style="${style}">${cells.join("")}</div><i class="sg-sel" style="${flash}"></i><i class="sg-fade"></i></div>`;
@@ -513,5 +513,20 @@ function sgFx(d) {
         }
         const wait = w.at + SG_SPIN_MS - bcNow();
         if (wait > -300) setTimeout(SG_SFX.land, Math.max(0, wait));
+        /* لحظة الاختيار سينمائية: شاشة مظلمة بشريطين وضوء وتكبير للنتيجة (طلب محمد 10 نوفمبر)، والبكرة قبلها مموّهة فما أحد يقرا اللي يمر */
+        if (wait > -600) setTimeout(() => sgCine(liveMatchesCache[openLiveId], w), Math.max(0, wait));
     }
+}
+function sgCine(d, w) {
+    const scr = document.getElementById("liveScreen");
+    if (!scr || !d || !d.sg || !d.sg.wheel || d.sg.wheel.at !== w.at) return;
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const sg = d.sg, letter = w.k === "letter", val = letter ? sg.letter : sg.cat;
+    if (!val) return;
+    const old = scr.querySelector(".sg-cine"); if (old) old.remove();
+    const el = document.createElement("div");
+    el.className = "sg-cine" + (letter ? " let" : "");
+    el.innerHTML = `<i class="sgc-bar top"></i><i class="sgc-bar bot"></i><i class="sgc-glow"></i><i class="sgc-ring"></i><i class="sgc-ring r2"></i><i class="sgc-streak"></i><div class="sgc-txt"><small>${letter ? "الحرف" : (d.seg === 3 ? "نوع الكلمة" : "التصنيف")}</small><b>${escapeHTML(String(val))}</b>${d.seg === 3 ? `<span>من ${SG_LEN} حروف</span>` : ""}</div>`;
+    scr.appendChild(el);
+    setTimeout(() => el.remove(), 2300);
 }

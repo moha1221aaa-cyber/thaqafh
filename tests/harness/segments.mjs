@@ -51,6 +51,11 @@ try {
         if (!clicked) console.log("dock:", await host.evaluate(() => document.getElementById("sgDock") && document.getElementById("sgDock").outerHTML.slice(0, 600)));
         const w = await until(() => D().sg.wheel ? D().sg : null, 5000);
         check(`ف2 ج${r + 1}: العجلة اختارت تصنيف من القائمة`, w && w.items.includes(w.cat) && w.wheel.i === w.items.indexOf(w.cat), w && { cat: w.cat, i: w.wheel.i });
+        if (r === 0) {
+            check("اللحظة السينمائية: تطلع عند الاختيار فيها النتيجة (عند المشاهد)", await until(() => fan.evaluate(c => document.querySelector(".sg-cine b")?.textContent === c, D().sg.cat), 4000));
+            check("البكرة مخفية وقت الدوران (تمويه، أو تعتيم على الجوالات)", await fan.evaluate(() => { const st = document.querySelector(".sg-reel .sg-strip"); return !!st && /sgMotion|sgDim/.test(getComputedStyle(st).animationName); }));
+            check("وتختفي بعد ثانيتين ونص", await until(() => fan.evaluate(() => !document.querySelector(".sg-cine")), 5000));
+        }
         if (r === 0) { await host.evaluate(() => { SG_SPIN_MS = 3000; sgToLetter(); }); await sleep(250); check("ما يلف الحروف قبل ما تقف عجلة التصنيف", D().sg.st === "cat"); await host.evaluate(() => { SG_SPIN_MS = 500; }); }
         if (r > 0) check(`ف2 ج${r + 1}: التصنيف ما يتكرر`, !D().sg.used.includes(D().sg.cat), D().sg.used);
         check(`ف2 ج${r + 1}: المشاهد يشوف التصنيف بعد وقوف العجلة`, await until(() => fan.evaluate(c => document.querySelector(".sg-res .lbl")?.textContent === c && getComputedStyle(document.querySelector(".sg-res")).visibility !== "hidden", D().sg.cat), 6000));
