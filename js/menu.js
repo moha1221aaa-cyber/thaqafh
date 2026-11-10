@@ -10,6 +10,9 @@ const MENU_PAGES = [
 
 /* أحدث شي فوق. أي ميزة جديدة تنضاف هنا عشان تطلع في "ما الجديد" */
 const MENU_CHANGELOG = [
+    { date: "10 نوفمبر 2026 (البث)", items: [
+        "المنظم يقدر يختار صوت كل زر ولحظة في البث من القائمة الجانبية ← أصوات البث: 6 أصوات لكل واحد (نحاسي، سينمائي، ماريمبا، إلكتروني، أوركسترا، بيانو كهربائي) ويسمعها كل المشاهدين"
+    ] },
     { date: "9 نوفمبر 2026 (البث)", items: [
         "كل مواجهة في البث صارت 3 فقرات: الأسئلة بالجرس، ثم عجلة الحروف (عجلة تصنيف وعجلة حرف، وكل متسابق يذكر بدوره)، ثم خمّن الكلمة (حروف صحيحة بمكانها وبغير مكانها، و3 استرايك)",
         "اختيار التصنيف والحرف عشوائي بالكامل في كل مرة",
@@ -269,6 +272,7 @@ ${menuItemHTML("i-bell", "الإشعارات", "menuRun(enableNotifications)")}
 ${menuItemHTML("i-download", "تثبيت التطبيق", "menuRun(installPwa)")}
 ${menuItemHTML("i-share", "مشاركة الموقع", "menuRun(shareSite)")}
 ${loggedIn ? menuItemHTML("i-settings", "إعدادات الحساب", "menuSwapModal(openSettingsModal)") : ""}
+${typeof isAdmin !== "undefined" && isAdmin ? menuItemHTML("i-music", "أصوات البث (للمنظم)", "menuSwapModal(openSfxModal)") : ""}
 <div class="side-menu-group">معلومات</div>
 ${Object.keys(MENU_INFO).map(k => menuItemHTML(MENU_INFO[k].icon, MENU_INFO[k].title, `menuSwapModal(function(){openInfoPage(${jsArg(k)})})`)).join("")}
 <div class="side-menu-foot">FEEKARO © 2026</div>`;

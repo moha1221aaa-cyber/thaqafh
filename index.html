@@ -382,6 +382,17 @@
 </div>
 <button class="ai-fab" onclick="aiOpenChat()" aria-label="مساعد الدوري"><svg class="ic" aria-hidden="true"><use href="#i-message"/></svg></button>
 
+<!-- مودال أصوات البث (المنظم بس، js/sfx.js) -->
+<div id="sfxModal" class="modal-overlay">
+<div class="modal-content">
+<div class="modal-header">
+<h3><svg class="ic" aria-hidden="true"><use href="#i-music"/></svg> أصوات البث</h3>
+<button class="modal-back-btn" onclick="goBackModal()"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg> رجوع</button>
+</div>
+<div id="sfxBody" class="sfx-body"></div>
+</div>
+</div>
+
 <!-- مودال أدوات المسؤول -->
 <div id="roomAdminToolsModal" class="modal-overlay">
 <div class="modal-content">
@@ -498,6 +509,7 @@
 <script src="js/broadcast/tv.js"></script>
 <script src="js/broadcast/show.js"></script>
 <script src="js/broadcast/segments.js"></script>
+<script src="js/sfx.js"></script>
 <script src="js/broadcast/voice.js"></script>
 <script src="js/broadcast/screen.js"></script>
 <script src="js/ai.js"></script>

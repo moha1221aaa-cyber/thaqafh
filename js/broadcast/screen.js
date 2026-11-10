@@ -2,6 +2,7 @@
 /* ===== الشاشة الكاملة للبث ===== */
 function openLiveScreen(id) {
     if (!id) return;
+    if (typeof sfxListen === "function") sfxListen();   /* الأصوات اللي اختارها المنظم (js/sfx.js) */
     const scr = document.getElementById("liveScreen");
     if (!scr) return;
     if (!openLiveId) {
@@ -422,7 +423,7 @@ function liveSoundsOnChange(d) {
         const wait = Math.max(0, bcRevealAt(d) - bcNow());
         cinePlay("reveal", 0.75, { tail: Math.max(0.4, wait / 1000 + 0.15) });
         setTimeout(() => {
-            if (view.out) { cinePlay("sg_ok", 0.9); cinePlay("applause", 0.4, { dur: 3 }); }
+            if (view.out) { SG_SFX.ok(); cinePlay("applause", 0.4, { dur: 3 }); }
             else cinePlay("wrong", 0.55);
         }, wait);
     }
