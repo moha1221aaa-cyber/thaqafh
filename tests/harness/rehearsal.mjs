@@ -54,9 +54,10 @@ try {
     }
     /* تخطي فقرة الأسئلة (البث الخاص بس): الفقرة الثانية ثم الثالثة */
     check("rehearsal: skip button shown on the questions segment", await host.evaluate(() => /تخطي فقرة الأسئلة/.test(document.getElementById("liveScreen").innerText)));
+    const beforeSkip = db.data(REH).s1 + db.data(REH).s2;
     await host.evaluate(() => bcRehSkip());
     const sk2 = await until(() => db.data(REH).seg === 2 ? db.data(REH) : null, 6000);
-    check("skip questions → segment 2 (cat wheel, scores kept)", sk2 && sk2.phase === "s2" && sk2.sg.st === "cat" && sk2.scene === "playing" && sk2.s1 + sk2.s2 >= 1, sk2 && { seg: sk2.seg, st: sk2.sg.st });
+    check("skip questions → segment 2 (cat wheel, scores kept)", sk2 && sk2.phase === "s2" && sk2.sg.st === "cat" && sk2.scene === "playing" && sk2.s1 + sk2.s2 === beforeSkip, sk2 && { seg: sk2.seg, st: sk2.sg.st });
     check("rehearsal: dock has the skip-to-segment-3 button", await until(() => host.evaluate(() => /تخطي للفقرة الثالثة/.test(document.getElementById("sgDock")?.textContent || "")), 6000));
     await sleep(500);
     await host.evaluate(() => bcRehSkip());

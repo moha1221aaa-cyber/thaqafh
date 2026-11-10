@@ -369,7 +369,7 @@ service cloud.firestore {
     match /room/main/liveDiag/{id} {
       allow read: if true;
       allow write: if isAdmin();
-      allow create: if signedIn() && id != '_qhistory'
+      allow create: if signedIn() && id != '_qhistory' && id != '_sfx'
         && request.resource.data.keys().hasOnly(['bcDiag', 'at'])
         && request.resource.data.bcDiag.keys().hasOnly([request.auth.uid])
         && request.resource.data.bcDiag[request.auth.uid].size() <= 10;

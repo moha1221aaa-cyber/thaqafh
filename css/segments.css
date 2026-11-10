@@ -168,3 +168,14 @@
 .sg-cine .sgc-txt b{font-size:clamp(38px,12vw,64px);line-height:1.15;font-weight:900;color:#fff;text-shadow:0 0 28px rgba(250,204,21,.85),0 4px 18px rgba(0,0,0,.7);}
 .sg-cine.let .sgc-txt b{font-size:clamp(110px,40vw,190px);line-height:1;color:#facc15;}
 .sg-cine .sgc-txt span{font-size:17px;color:#fde68a;font-weight:700;}
+
+/* قائمة اختيار أصوات البث (js/sfx.js) */
+.sfx-body{display:flex;flex-direction:column;gap:8px;padding:2px 2px 14px;}
+.sfx-hint{font-size:12.5px;line-height:1.8;color:#94a3b8;background:rgba(56,189,248,.08);border:1px dashed rgba(56,189,248,.4);padding:8px 10px;border-radius:10px;}
+.sfx-group{margin-top:8px;font-size:13px;font-weight:800;color:#facc15;}
+.sfx-card{background:#0f1a3a;border:1px solid #334155;border-radius:12px;padding:9px 10px;display:flex;flex-direction:column;gap:7px;}
+.sfx-t{font-size:14px;font-weight:700;color:#e2e8f0;}
+.sfx-row{display:flex;flex-wrap:wrap;gap:6px;}
+.sfx-row button{margin:0;width:auto;padding:7px 11px;font-size:12.5px;border-radius:18px;background:#1e293b;color:#cbd5e1;border:1px solid #475569;}
+.sfx-row button.on{background:linear-gradient(90deg,#b45309,#f59e0b);color:#1c1003;border-color:#f59e0b;font-weight:800;}
+.sfx-reset{margin:6px 0 0;width:100%;padding:10px;font-size:13px;border-radius:12px;background:#1e293b;border:1px solid #475569;color:#fca5a5;}
