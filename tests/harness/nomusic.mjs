@@ -29,6 +29,8 @@ try {
             const st = AudioBufferSourceNode.prototype.start;
             AudioBufferSourceNode.prototype.start = function () { window.__srcs.push({ loop: this.loop, dur: this.buffer ? this.buffer.duration : 0 }); return st.apply(this, arguments); };
         });
+        /* الأصوات تنحفظ في الجهاز من أول فتح (AUDIO_CACHE)، فنمسح المخزن عشان الطلبات تبان من جديد */
+        await p.evaluate(() => caches.keys().then(ks => Promise.all(ks.map(k => caches.delete(k))))).catch(() => {});
         await reopen(p, ["fan", "p1"][i]);
     }
     const fan = pages[0];
