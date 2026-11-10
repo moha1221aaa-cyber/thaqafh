@@ -175,8 +175,6 @@ function bcTickClock(d) {
         if (sec <= 10 && sec > 0) cinePlay(sec <= 3 ? "heartbeat" : "tick", sec <= 3 ? 0.9 : 0.6);
         if (sec === 0) {
             el.innerHTML = `<div class="now">الحين!</div>`;
-            const lb = document.getElementById("bcWaitNote");
-            if (lb) lb.textContent = isAdmin ? "الموعد جا، اضغط \"ابدأ البث الحين\"" : "الموعد جا، بانتظار المنظم يبدأ البث";
         }
     }
 }
@@ -491,7 +489,7 @@ function bcStageHTML(d, me) {
 <div class="bc-wait-t">يبدأ البث بعد</div>
 <div class="bc-clock" id="bcClock"></div>
 <div class="bc-wait-at">${ic("hourglass")} الساعة ${escapeHTML(bcTimeLabel(d.startAt || 0))}</div>
-<div class="lv-muted" id="bcWaitNote">البث يبدأ لما المنظم يبدأه</div>
+<div class="lv-muted" id="bcWaitNote"></div>
 <button class="bc-ghost" onclick="bcShare()">${ic("share")} أرسل رابط البث في الواتساب</button>
 </div>
 <div class="bc-fixtures">${bcFixturesHTML(d, false)}</div>
@@ -516,7 +514,7 @@ ${isAdmin ? `<div class="bc-admin"><button class="bc-go" onclick="bcGoLive()">${
 <div class="bc-sub">منصة فيكارو الثقافية · ${total} مواجهات · المنظم: ${escapeHTML(d.hostName || "")}</div>
 </div>
 <div class="bc-fixtures">${bcFixturesHTML(d, false)}</div>
-${isAdmin ? "" : `<div class="lv-muted">أول مواجهة تبدأ بعد شوي...</div>`}
+
 ${adminBar(`<button class="bc-go" onclick="bcNext(false)">${ic("zap")} ابدأ المواجهة الأولى</button>`)}`;
     }
 
@@ -540,8 +538,8 @@ ${uid ? `<div class="bc-st">المايك مقفل</div>` : `<div class="bc-st wa
         };
         let action;
         if (me && !d["ready" + me]) action = `<button class="lv-ready-btn" onclick="liveSetReady()">${ic("check-circle")} جاهز</button>`;
-        else if (me) action = `<div class="lv-muted">${ic("hourglass")} أنت جاهز، بانتظار خصمك...</div>`;
-        else action = `<div class="lv-muted">بانتظار المتسابقين يضغطون "جاهز"، وبعد الشارة تبدأ فقرة الترحيب بالمايكات</div>`;
+        else if (me) action = `<div class="lv-muted">${ic("check-circle")} جاهز</div>`;
+        else action = "";
         return `
 <div class="bc-mlabel big">المواجهة ${d.cur + 1} من ${total}</div>
 <div class="bc-vs">${side(1)}<div class="bc-vsx">VS</div>${side(2)}</div>
@@ -560,12 +558,12 @@ ${adminBar(`<button class="bc-go" onclick="bcToTalk()">${ic("mic")} الترحي
 <div class="t">الترحيب بالمتسابقين</div>
 <div class="s">المايكات مفتوحة الحين للمنظم و${escapeHTML(o.p1)} و${escapeHTML(o.p2)}</div>
 </div>
-${isAdmin ? "" : `<div class="lv-muted">المنظم يرحّب بالمتسابقين، والأسئلة تبدأ بعد شوي...</div>`}
+
 ${adminBar(`<button class="bc-go" onclick="bcForceStart()">${ic("rocket")} ابدأ المواجهة</button>${bcIsReh(openLiveId) ? `<button class="bc-ghost" onclick="bcRehSkip()">${ic("rocket")} تخطي الأسئلة للفقرة الثانية (التجربة)</button>` : ""}<button class="bc-ghost" onclick="bcNext(true)">تخطي المواجهة</button>`)}`;
     }
 
     if (d.scene === "countdown") {
-        return `<div class="lv-muted">استعدوا!</div><div class="lv-count" id="lvCount">3</div><div class="lv-muted">السؤال الأول جاي...</div>`;
+        return `<div class="lv-muted">استعدوا!</div><div class="lv-count" id="lvCount">3</div>`;
     }
 
     if (d.scene === "playing") return (d.seg > 1 ? bcSegHTML(d, me) : bcQuizHTML(d, me)) + (isAdmin ? `<div class="bc-admin">${bcIsReh(openLiveId) && !(d.seg > 1) ? `<button class="bc-ghost" onclick="bcRehSkip()">${ic("rocket")} تخطي فقرة الأسئلة (التجربة)</button>` : ""}<button class="lv-link" onclick="bcNext(true)">إيقاف المواجهة وتخطيها</button></div>` : "");
@@ -623,7 +621,7 @@ ${(() => {
 })()}
 ${(() => { const b = bcPredBoard(d); if (!b.length) return ""; return `<div class="st-best"><div class="t">${ic("target")} أفضل المتوقعين</div>${b.map((x, i) => `<div>${i + 1}. <b>${escapeHTML(x.name)}</b> · ${x.ok} من ${x.all} صح</div>`).join("")}</div>`; })()}
 <div class="bc-fixtures">${bcFixturesHTML(d, true)}</div>
-${isAdmin ? "" : `<div class="lv-muted">شكراً لمتابعتكم، المنظم يختم البث...</div>`}
+
 ${adminBar(`<button class="bc-go" onclick="bcEnd()">${ic("power")} إنهاء البث</button>`)}`;
     }
     return `<div class="lv-muted">...</div>`;
@@ -665,7 +663,7 @@ ${d.phase === "answer" && !d.passed
         const canBuzz = !!me;
         html += `
 <button class="lv-bell ${canBuzz ? "" : "idle"}" id="lvBell" ${canBuzz ? `onpointerdown="event.preventDefault();liveBuzz(event)"` : "disabled"}>${ic("bell")}<span>${canBuzz ? "اضغط!" : "الجرس"}</span></button>
-<div class="lv-muted">${canBuzz ? "أسرع واحد يضغط الجرس هو اللي يجاوب" : "بانتظار أحد المتسابقين يضغط الجرس"}</div>`;
+`;
     } else if (d.phase === "answer") {
         /* 23 أكتوبر 2026 (قرار محمد): المتسابق يقول جوابه بالمايك، والمقدم يحكم. ما فيه تسجيل ولا كتابة */
         const nm = escapeHTML(livePlayerName(d, d.answerer));
@@ -673,7 +671,7 @@ ${d.phase === "answer" && !d.passed
 ${lastHTML}
 <div class="lv-turn">${d.passed ? ic("chevron-right") + " انتقل السؤال إلى " + nm : ic("bell") + " " + nm + " ضغط الجرس أول"}</div>`;
         if (me && me === d.answerer) html += `<div class="bc-sayit">${ic("mic")}<b>قل جوابك الحين بالمايك</b><span>المقدم يسمعك ويحكم</span></div>`;
-        else html += `<div class="lv-muted">${nm} يجاوب الحين، والمقدم يحكم...</div>`;
+        else html += "";
         if (isAdmin) {
             const ans = String(bcAnswerOf(d, d.qIndex) || "").split("|");
             if (!ans[0]) bcLoadSecret(openLiveId);
@@ -703,7 +701,7 @@ ${(() => {
     const lastQ = d.qIndex + 1 >= (d.questions || []).length;
     return isAdmin
         ? `${bcLateHTML(d)}<div class="bc-admin"><button class="bc-go bc-nextq" onclick="bcHostNextQ()">${ic(lastQ ? "trophy" : "zap")} ${lastQ ? (d.seg === 1 ? "الفقرة الثانية: عجلة الحروف" : "نتيجة المواجهة") : "السؤال التالي"}</button></div>`
-        : `<div class="lv-muted">${lastQ ? (d.seg === 1 ? "بانتظار المقدم يبدأ الفقرة الثانية" : "بانتظار المقدم يعلن النتيجة") : "بانتظار المقدم يبدأ السؤال التالي"}</div>`;
+        : "";
 })()}`;
     }
     return html;

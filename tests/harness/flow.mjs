@@ -151,7 +151,7 @@ try {
         check("score counts", (liveDoc(db).log || [])[0] === 2);
         await sleep(9000);
         check("reveal waits for the host (no auto next question)", liveDoc(db).phase === "reveal" && liveDoc(db).qIndex === 0);
-        check("viewer told the host starts the next question", /بانتظار المقدم/.test(await p1.evaluate(() => document.body.textContent)));
+        check("no explanatory text for the viewer (just the screen)", !/بانتظار المقدم/.test(await p1.evaluate(() => document.getElementById("liveScreenBody").textContent)));
         await host.click(".bc-nextq");
         check("host 'next question' → question 2 starts", await until(() => liveDoc(db).qIndex === 1 && liveDoc(db).phase === "buzz", 5000));
         /* آخر سؤال ← نتيجة المواجهة */
@@ -204,7 +204,7 @@ try {
         await until(() => fan.$("#bcClock"), 15000);
         await sleep(6000);
         check("scheduled broadcast does not start by itself at zero", liveDoc(db).status === "scheduled", liveDoc(db).status);
-        check("waiting page says the organizer starts it", /المنظم/.test(await fan.evaluate(() => (document.getElementById("bcWaitNote") || {}).textContent || "")));
+        check("waiting page has no explanatory text", !/المنظم/.test(await fan.evaluate(() => (document.getElementById("bcWaitNote") || {}).textContent || "")));
         await fan.context().close();
     }
     for (const scene of ["opening", "intro", "talk", "result"]) {
