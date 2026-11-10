@@ -109,12 +109,14 @@ const CINE_FILES = {
     /* طابع برامج المسابقات (مؤثرات قصيرة). الموسيقى (lobby، show_intro، interlude، decider، think2، outro، big_win) انشالت */
     reveal: { g: 0.83 }, match_end: { g: 0.81 }, applause: { g: 1 }, start_q: { g: 0.87 },
     /* نغمة شارة البداية (5.8 ث، مقطوعة من show_intro بتلاشي): طلب محمد 23 أكتوبر 2026، قبل الترحيب بالمتسابقين */
-    ident: { g: 0.55 }
+    ident: { g: 0.55 },
+    /* أزرار الفقرتين (ولدناها بـ tests/harness/audio/gen_sg.py): سلم صاعد في الفقرة 3، وكل زر صوته مختلف */
+    sg_miss: { g: 1 }, sg_strike: { g: 1 }, sg_h1: { g: 1 }, sg_h2: { g: 1 }, sg_h3: { g: 1 }, sg_ok: { g: 1, fi: 0.004 }
 };
 const CINE_BUF = {};
 const CINE_LOADING = {};
 /* الأصوات تتحمل حسب الحاجة: المؤثرات الصغيرة أول ما يفتح البث، والألعاب النارية (أكبر ملف) لما يقرب الختام */
-const CINE_CORE = ["buzz", "correct", "wrong", "tick", "timeout", "heartbeat", "whoosh", "riser", "braam", "slam", "impact", "start_q", "reveal", "match_end", "applause"];
+const CINE_CORE = ["sg_miss", "sg_strike", "sg_h1", "sg_h2", "sg_h3", "sg_ok", "buzz", "correct", "wrong", "tick", "timeout", "heartbeat", "whoosh", "riser", "braam", "slam", "impact", "start_q", "reveal", "match_end", "applause"];
 function cineNeedFor(d) {
     if (!d || d.status !== "live") return [];
     const left = (d.order || []).filter((o, i) => o.state === "pending" && i !== d.cur).length;

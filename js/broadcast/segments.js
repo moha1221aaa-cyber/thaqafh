@@ -452,12 +452,12 @@ function sgTick(d) {
 /* أصوات الفقرتين من نفس مؤثرات البث (audio/: impact و slam و braam و whoosh و riser و tick و wrong و correct و timeout و match_end و applause)
    عشان تكون متناسقة مع باقي البث (طلب محمد 10 نوفمبر: بدون أجراس ولا رنين، كل شي قوي واحترافي). الأقوى مع زيادة الحروف الصحيحة */
 const SG_SFX = {
-    miss: () => cinePlay("wrong", 0.55),
-    h1: () => cinePlay("impact", 0.45),
-    h2: () => { cinePlay("impact", 0.8); cinePlay("whoosh", 0.5); },
-    h3: () => { cinePlay("slam", 1); cinePlay("braam", 0.45); cinePlay("applause", 0.5, { dur: 2.2 }); },
-    strike: () => { cinePlay("wrong", 1); cinePlay("impact", 0.6); },
-    ok: () => cinePlay("correct", 1),
+    miss: () => cinePlay("sg_miss", 1),
+    h1: () => cinePlay("sg_h1", 1),
+    h2: () => { cinePlay("sg_h2", 1); cinePlay("impact", 0.35); },
+    h3: () => { cinePlay("sg_h3", 1); cinePlay("slam", 0.8); cinePlay("applause", 0.45, { dur: 2.2 }); },
+    strike: () => cinePlay("sg_strike", 1),
+    ok: () => cinePlay("sg_ok", 1),
     bad: () => cinePlay("wrong", 1),
     time: () => cinePlay("timeout", 1),
     pass: () => cinePlay("whoosh", 0.55),
