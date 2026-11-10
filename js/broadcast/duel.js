@@ -63,9 +63,8 @@ function duPickPaint(d, scr) {
     let h, sig;
     if (sg.st === "pick" && !mine) {
         sig = "form|" + duKey(d) + "|" + sg.cat;
-        h = `<div class="du-ptitle">${ic("lock")} اختر من <b>${escapeHTML(sg.cat)}</b> شي في بالك، و${escapeHTML(duOpp(d, me))} يحاول يخمّنه</div>
-<div class="du-prow"><input id="duPickIn" maxlength="40" autocomplete="off" placeholder="اكتب ${escapeHTML(DU_HINT[sg.cat] || "اللي في بالك")}" onkeydown="if(event.key==='Enter')duSubmit()"><button class="bc-go" onclick="duSubmit()">${ic("lock")} ثبّت</button></div>
-<div class="du-pnote">ما يشوفه إلا المقدم لين تنتهي الفقرة</div>`;
+        h = `<div class="du-ptitle">${ic("lock")} <b>${escapeHTML(sg.cat)}</b></div>
+<div class="du-prow"><input id="duPickIn" maxlength="40" autocomplete="off" placeholder="اكتب ${escapeHTML(DU_HINT[sg.cat] || "اللي في بالك")}" onkeydown="if(event.key==='Enter')duSubmit()"><button class="bc-go" onclick="duSubmit()">${ic("lock")} ثبّت</button></div>`;
     } else {
         sig = "mine|" + duKey(d) + "|" + sg.st + "|" + (mine ? mine.pick : "");
         h = `<div class="du-mine">${ic("lock")} اللي في بالك: <b>${escapeHTML(mine ? mine.pick : "…")}</b> <small>${escapeHTML(mine ? mine.cat : "")}</small>${sg.st === "pick" ? `<button class="lv-link" onclick="duEditMine()">غيّره</button>` : ""}</div>`;
@@ -182,46 +181,41 @@ function duHTML(d, me) {
     const cards = `<div class="du-vs">${duCard(d, 1, sg)}<div class="du-x">ضد</div>${duCard(d, 2, sg)}</div>`;
     const catBox = sg.cat ? `<div class="du-cat"><small>التصنيف</small><b>${escapeHTML(sg.cat)}</b></div>` : "";
     if (sg.st === "cat") {
-        return `<div class="du-title"><b>ضد وند</b><small>كل متسابق يختار شي في باله، والثاني يخمّنه بأسئلة جوابها نعم أو لا</small></div>${cards}
-<div class="du-catsrow">${DU_CATS.map(c => `<span>${escapeHTML(c)}</span>`).join("")}</div>
-<div class="lv-muted">بانتظار المقدم يختار التصنيف...</div>`;
+        return `<div class="du-title"><b>ضد وند</b></div>${cards}
+<div class="du-catsrow">${DU_CATS.map(c => `<span>${escapeHTML(c)}</span>`).join("")}</div>`;
     }
     if (sg.st === "pick") {
-        return `<div class="du-title"><b>ضد وند</b><small>كل متسابق يختار شي في باله، والثاني يخمّنه بأسئلة جوابها نعم أو لا</small></div>${catBox}${cards}
-<div class="lv-muted">${me ? "اكتب اللي في بالك تحت (سري)" : "بانتظار الاختيار..."}</div>`;
+        return `<div class="du-title"><b>ضد وند</b></div>${catBox}${cards}`;
     }
     if (sg.st === "play") {
         const nm = escapeHTML(livePlayerName(d, sg.turn)), opp = escapeHTML(livePlayerName(d, sgOther(sg.turn)));
         const rows = sg.gs.slice().reverse().slice(0, 5).map(g => `<div class="du-g p${g.p}"><span>سؤال ${escapeHTML(livePlayerName(d, g.p))}</span><i class="${g.a ? "y" : "x"}">${g.a ? "نعم" : "لا"}</i></div>`).join("");
-        return `<div class="du-turn"><small>${me === sg.turn ? "دورك!" : "الدور على"}</small><b>${me === sg.turn ? "اسأل " + opp : nm}</b><span>${me === sg.turn ? "سؤال جوابه نعم أو لا" : "يسأل " + opp + " سؤال جوابه نعم أو لا"}</span></div>${catBox}${cards}
+        return `<div class="du-turn"><small>${me === sg.turn ? "دورك!" : "الدور على"}</small><b>${me === sg.turn ? "اسأل " + opp : nm}</b></div>${catBox}${cards}
 <div class="du-q">${ic("ball")} أسئلة: <b>${sg.q || 0}</b></div><div class="du-gs">${rows}</div>`;
     }
     const w = sg.win;
-    return `<div class="du-title"><b>${w ? ic("trophy") + " " + escapeHTML(livePlayerName(d, w)) + " عرفها!" : "بدون نقطة"}</b><small>${w ? "+1 نقطة بعد " + (sg.q || 0) + " سؤال" : "انتهت الجولة"}</small></div>${catBox}${cards}
+    return `<div class="du-title"><b>${w ? ic("trophy") + " " + escapeHTML(livePlayerName(d, w)) + " عرفها!" : "بدون نقطة"}</b>${w ? `<small>+1 نقطة</small>` : ""}</div>${catBox}${cards}
 <div class="sg-score">${escapeHTML((bcCur(d) || {}).p1 || "")} <b>${d.s1 || 0}</b> - <b>${d.s2 || 0}</b> ${escapeHTML((bcCur(d) || {}).p2 || "")}</div>`;
 }
 
 /* ===== لوحة المقدم ===== */
 function duDockPaint(d, scr, dock) {
     duListen(d);
-    const sg = d.sg, say = t => `<div class="sg-say">${ic("mic")} ${t}</div>`;
+    const sg = d.sg;
     const sec = n => { const p = duPickOf(d, n); return `<div class="du-sec ${sg.turn === n && sg.st === "play" ? "on" : ""}"><small>في بال ${escapeHTML(livePlayerName(d, n))}</small><b>${escapeHTML(p ? p.pick : "…")}</b>${p && p.cat ? `<i>${escapeHTML(p.cat)}</i>` : ""}</div>`; };
-    const first = escapeHTML(livePlayerName(d, sg.first)), turn = escapeHTML(livePlayerName(d, sg.turn)), opp = escapeHTML(livePlayerName(d, sgOther(sg.turn)));
+    const first = escapeHTML(livePlayerName(d, sg.first));
     let h = "";
     if (sg.st === "cat") {
-        h = `<div class="du-ptitle">اختر التصنيف (نفسه للاثنين)</div><div class="du-cats">${DU_CATS.map((c, i) => `<button onclick="duSetRoundCat(${i})">${escapeHTML(c)}</button>`).join("")}</div>`
+        h = `<div class="du-cats">${DU_CATS.map((c, i) => `<button onclick="duSetRoundCat(${i})">${escapeHTML(c)}</button>`).join("")}</div>`
           + `<button class="lv-link" onclick="duSkip()">إنهاء الفقرة بدون نقطة</button>`;
     } else if (sg.st === "pick") {
         const both = sg.rd[0] && sg.rd[1];
-        h = say(`قل: «التصنيف ${escapeHTML(sg.cat)}، كل واحد يختار شي في باله ويثبّته من جواله»`)
-          + `<div class="du-secs">${sec(1)}${sec(2)}</div>`
+        h = `<div class="du-secs">${sec(1)}${sec(2)}</div>`
           + `<div class="sg-row2"><button class="bc-ghost" onclick="duHostPick(1)">${ic("pencil")} أدخل بدل ${escapeHTML(livePlayerName(d, 1))}</button><button class="bc-ghost" onclick="duHostPick(2)">${ic("pencil")} أدخل بدل ${escapeHTML(livePlayerName(d, 2))}</button></div>`
           + `<button class="bc-go ${both ? "" : "off"}" onclick="duStart()">${ic("zap")} ${both ? "ابدأ (" + first + " يسأل أول)" : "بانتظار الاثنين يختارون"}</button>`
           + `<button class="lv-link" onclick="duSkip()">إنهاء الفقرة بدون نقطة</button>`;
     } else if (sg.st === "play") {
-        h = (sg.q ? "" : say(`قل: «${first} يبدأ، اسأل ${escapeHTML(livePlayerName(d, sgOther(sg.first)))} سؤال جوابه نعم أو لا»`))
-          + `<div class="du-secs">${sec(1)}${sec(2)}</div>`
-          + `<div class="du-ask">${turn} يسأل · جواب ${opp}:</div>`
+        h = `<div class="du-secs">${sec(1)}${sec(2)}</div>`
           + `<div class="du-act"><button class="yes" onclick="duAnswer(1)">${ic("check-circle")} نعم</button><button class="no" onclick="duAnswer(0)">${ic("x-circle")} لا</button></div>`
           + `<div class="du-wins"><button onclick="duWin(1)">${ic("trophy")} ${escapeHTML(livePlayerName(d, 1))} عرفها · فوز</button><button onclick="duWin(2)">${ic("trophy")} ${escapeHTML(livePlayerName(d, 2))} عرفها · فوز</button></div>`
           + `<button class="lv-link" onclick="duSkip()">إنهاء بدون نقطة</button>`;

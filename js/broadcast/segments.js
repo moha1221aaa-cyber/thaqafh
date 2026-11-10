@@ -325,7 +325,7 @@ function sgWheelStageHTML(d) {
     const chip = `<div class="sg-chip">${letter ? `التصنيف: <b>${escapeHTML(sg.cat)}</b> · ` : ""}${title}</div>`;
     let res;
     if (w) res = `<div class="sg-res ${sgHold(w, SG_SPIN_MS + 200)}" data-after="${w.at + SG_SPIN_MS + 200}">${letter ? `<span class="big">${escapeHTML(sg.letter)}</span>` : `<span class="lbl">${escapeHTML(sg.cat)}</span>`}${seg === 3 ? `<small>من ${sg.len} حروف</small>` : ""}</div>`;
-    else res = `<div class="sg-res idle">${isAdmin ? "اضغط ابدأ الاختيار" : "بانتظار المقدم يبدأ الاختيار..."}</div>`;
+    else res = `<div class="sg-res idle"></div>`;
     return `${chip}${sgReelHTML(items, w, letter)}${res}`;
 }
 function sgTurnHTML(d, me) {
@@ -333,14 +333,13 @@ function sgTurnHTML(d, me) {
     const left = Math.max(0, (sg.tEnd || 0) - bcNow());
     const ring = `<div class="st-ring"><svg viewBox="0 0 44 44"><circle class="bg" cx="22" cy="22" r="19"/><circle class="fg" id="sgRing" cx="22" cy="22" r="19" style="stroke-dashoffset:${(119.4 * (1 - Math.min(1, left / total))).toFixed(1)}"/></svg><b id="sgTimerNum">${Math.ceil(left / 1000)}</b></div>`;
     const mine = me && me === sg.turn;
-    return `<div class="sg-turn ${left <= 0 ? "over" : ""}" id="sgTurn">${ring}<div class="tx"><b>الدور على ${nm}</b><span class="ov">${ic("alarm")} انتهى الوقت · المقدم يقرر</span><span class="nm">${mine ? "دورك! جاوب بالمايك" : (d.seg === 2 ? "يجاوب بالمايك" : "يخمّن بالمايك")}</span></div></div>`;
+    return `<div class="sg-turn ${left <= 0 ? "over" : ""}" id="sgTurn">${ring}<div class="tx"><b>الدور على ${nm}</b><span class="ov">${ic("alarm")} انتهى الوقت</span>${mine ? `<span class="nm">دورك!</span>` : ""}</div></div>`;
 }
 function sgPlay2HTML(d, me) {
     const sg = d.sg;
     return `<div class="sg-prompt"><small>اذكر من</small><b>${escapeHTML(sg.cat)}</b><small>بحرف</small><span class="let">${escapeHTML(sg.letter)}</span></div>
 ${sgTurnHTML(d, me)}
-<div class="sg-cnt">${ic("check-circle")} أجوبة صحيحة في الجولة: <b>${sg.cnt || 0}</b></div>
-<div class="lv-muted">كل متسابق بدوره، واللي يغلط أو ينتهي وقته يخسر الجولة</div>`;
+<div class="sg-cnt">${ic("check-circle")} أجوبة صحيحة في الجولة: <b>${sg.cnt || 0}</b></div>`;
 }
 const SG_HITS = ["ولا حرف", "حرف صحيح", "حرفين صحيحة", "3 حروف صحيحة"];
 function sgFbHTML(g) {
@@ -354,18 +353,13 @@ function sgPlay3HTML(d, me) {
     return `<div class="sg-prompt"><small>${escapeHTML(sg.cat)}</small><b>من ${sg.len} حروف</b></div>
 ${sgTurnHTML(d, me)}
 <div class="sg-sks">${box(1)}${box(2)}</div>
-<div class="sg-gs">${rows || `<div class="lv-muted">لا تخمين للحين، ${escapeHTML(livePlayerName(d, sg.first))} يبدأ</div>`}</div>
+<div class="sg-gs">${rows}</div>
 `;
 }
-const SG_WHY = {
-    wrong: l => `${l} غلط أو انتهى وقته`, strikes: l => `${l} أخذ 3 استرايك`, found: (l, w) => `${w} عرف الكلمة!`, skip: () => "الجولة بدون نقطة"
-};
 function sgDoneHTML(d) {
-    const sg = d.sg, o = bcCur(d) || {}, w = sg.win, lose = w ? livePlayerName(d, sgOther(w)) : "";
-    const why = (SG_WHY[sg.why] || (() => ""))(escapeHTML(lose), escapeHTML(w ? livePlayerName(d, w) : ""));
+    const sg = d.sg, o = bcCur(d) || {}, w = sg.win;
     const word = d.seg === 3 && sg.reveal ? `<div class="sg-word"><small>الكلمة كانت</small>${Array.from(String(sg.reveal)).map(c => `<span>${escapeHTML(c)}</span>`).join("")}</div>` : "";
-    return `${w ? `<div class="sg-win"><img src="${safeSrc(bcAv(o, w))}" alt=""><div class="t">${ic("trophy")} ${escapeHTML(livePlayerName(d, w))}</div><div class="s">+1 نقطة</div></div>` : `<div class="sg-win none"><div class="t">بدون نقطة</div></div>`}
-<div class="lv-muted">${why}</div>${word}
+    return `${w ? `<div class="sg-win"><img src="${safeSrc(bcAv(o, w))}" alt=""><div class="t">${ic("trophy")} ${escapeHTML(livePlayerName(d, w))}</div><div class="s">+1 نقطة</div></div>` : `<div class="sg-win none"><div class="t">بدون نقطة</div></div>`}${word}
 <div class="sg-score">${escapeHTML(o.p1 || "")} <b>${d.s1 || 0}</b> - <b>${d.s2 || 0}</b> ${escapeHTML(o.p2 || "")}</div>`;
 }
 function bcSegHTML(d, me) {
@@ -393,8 +387,7 @@ function sgDockPaint(d) {
     const btn = (fn, cls, icon, txt, after) => `<button class="${cls} ${after ? hold(SG_SPIN_MS + 200) : ""}" ${after ? `data-after="${w.at + SG_SPIN_MS + 200}"` : ""} onclick="${fn}()">${icon ? ic(icon) : ""} ${txt}</button>`;
     const first = escapeHTML(livePlayerName(d, sg.first)), turn = escapeHTML(livePlayerName(d, sg.turn));
     let h = "";
-    const say = t => `<div class="sg-say">${ic("mic")} ${t}</div>`;
-    const wordBox = () => `<div class="sg-wordbox"><small>الكلمة (تشوفها أنت بس)</small><b>${escapeHTML(word || "…")}</b></div>`;
+    const wordBox = () => `<div class="sg-wordbox"><small>الكلمة</small><b>${escapeHTML(word || "…")}</b></div>`;
     if (sg.st === "cat" && d.seg === 2) {
         if (!w) {
             h = btn("sgSpin", "bc-go", "dice", "ابدأ اختيار التصنيف")
@@ -405,14 +398,13 @@ function sgDockPaint(d) {
         else h = btn("sgStart", "bc-go", "zap", "ابدأ الجولة (" + first + " يبدأ)", 1) + btn("sgSpinLetter", "bc-ghost", "dice", "اختيار حرف من جديد", 1);
     } else if (sg.st === "cat" && d.seg === 3) {
         if (!w) h = btn("sgSpin", "bc-go", "dice", "ابدأ اختيار نوع الكلمة");
-        else h = `<div class="${hold(SG_SPIN_MS + 200)}" data-after="${w.at + SG_SPIN_MS + 200}">${say(`قل: «${cat} من ${sg.len} حروف»`)}${wordBox()}<div class="sg-row2"><button class="bc-ghost" onclick="sgReword()">كلمة غيرها</button><button class="bc-ghost" onclick="sgCustomWord()">${ic("pencil")} كلمة من عندي</button></div></div>`
+        else h = `<div class="${hold(SG_SPIN_MS + 200)}" data-after="${w.at + SG_SPIN_MS + 200}">${wordBox()}<div class="sg-row2"><button class="bc-ghost" onclick="sgReword()">كلمة غيرها</button><button class="bc-ghost" onclick="sgCustomWord()">${ic("pencil")} كلمة من عندي</button></div></div>`
             + btn("sgStart", "bc-go", "zap", "ابدأ الجولة (" + first + " يبدأ)", 1);
     } else if (sg.st === "play" && d.seg === 2) {
-        h = say(`قل: «اذكروا من ${cat} بحرف ${escapeHTML(sg.letter)}، ${turn} الأول»`)
-          + `<div class="bc-verdict"><button class="ok" onclick="sgOk()">${ic("check-circle")} صح · الدور للثاني</button><button class="no" onclick="sgBad()">${ic("x-circle")} غلط / خلص وقته</button></div>`
+        h = `<div class="bc-verdict"><button class="ok" onclick="sgOk()">${ic("check-circle")} صح · الدور للثاني</button><button class="no" onclick="sgBad()">${ic("x-circle")} غلط / خلص وقته</button></div>`
           + `<button class="lv-link" onclick="sgSkip()">إنهاء الجولة بدون نقطة</button>`;
     } else if (sg.st === "play" && d.seg === 3) {
-        h = (sg.gs.length ? "" : say(`قل: «${cat} من 3 حروف، ${turn} يبدأ»`)) + wordBox()
+        h = wordBox()
           + `<div class="sg-hits"><button class="h0" onclick="sgHit(0)">ولا حرف</button><button class="h1" onclick="sgHit(1)">حرف صحيح</button><button class="h2" onclick="sgHit(2)">حرفين صحيحة</button><button class="h3" onclick="sgHit(3)">ثلاث حروف صحيحة</button></div>`
           + `<button class="sg-strike" onclick="sgStrike()">${ic("x-circle")} استرايك</button>`
           + `<div class="sg-row2">${sg.gs.length || sg.sk[0] || sg.sk[1] ? "" : `<button class="bc-ghost" onclick="sgReword()">كلمة غيرها</button><button class="bc-ghost" onclick="sgCustomWord()">${ic("pencil")} كلمة من عندي</button>`}<button class="lv-link" onclick="sgSkip()">إنهاء بدون نقطة</button></div>`;
