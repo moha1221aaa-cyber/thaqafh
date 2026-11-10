@@ -383,6 +383,15 @@
 <button class="ai-fab" onclick="aiOpenChat()" aria-label="مساعد الدوري"><svg class="ic" aria-hidden="true"><use href="#i-message"/></svg></button>
 
 <!-- مودال أصوات البث (المنظم بس، js/sfx.js) -->
+<div id="recModal" class="modal-overlay">
+<div class="modal-content">
+<div class="modal-header">
+<h3><svg class="ic" aria-hidden="true"><use href="#i-clapper"/></svg> تسجيلات البث</h3>
+<button class="modal-back-btn" onclick="goBackModal()"><svg class="ic" aria-hidden="true"><use href="#i-chevron-right"/></svg> رجوع</button>
+</div>
+<div id="recBody" class="rec-body"></div>
+</div>
+</div>
 <div id="sfxModal" class="modal-overlay">
 <div class="modal-content">
 <div class="modal-header">
@@ -514,6 +523,8 @@
 <script src="js/sfx.js"></script>
 <script src="js/broadcast/voice.js"></script>
 <script src="js/broadcast/screen.js"></script>
+<script src="js/broadcast/react.js"></script>
+<script src="js/broadcast/record.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/menu.js"></script>
 <script src="js/nav.js"></script>

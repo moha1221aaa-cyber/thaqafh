@@ -95,7 +95,7 @@ function cineGraph() {
     const master = c.createGain(); master.gain.value = 0.9;
     comp.connect(master); master.connect(c.destination);
     const bus = c.createGain(); bus.connect(comp);
-    Object.assign(CINE, { c, bus });
+    Object.assign(CINE, { c, bus, master });
     return CINE;
 }
 function cineNow() { return cineGraph().c.currentTime + 0.04; }
@@ -156,7 +156,7 @@ function cineLoadSamples(ids) {
    o.tail: نشغّل آخر جزء بس (الرايزر يخلص بالضبط لحظة الضربة)، o.dur: نقصّه بتلاشي ناعم */
 function cineS(id, t, v, o) {
     const b = CINE_BUF[id];
-    if (!b) return false;
+    if (!b || window.BC_REPLAY) return false;   /* المشاهدة المسجّلة: المؤثرات داخل التسجيل */
     /* وقت جوابي بالصوت ما يطلع أي مؤثر عندي (إلا صوت جرسي لحظة الضغط، قبل ما يبدأ التسجيل) */
     if (typeof VA !== "undefined" && VA.rec && id !== "buzz") return false;
     try {

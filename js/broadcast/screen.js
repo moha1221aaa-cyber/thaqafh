@@ -15,7 +15,7 @@ function openLiveScreen(id) {
     bcPrevKey = null;
     bcLastSpokenKey = "";
     bcAutoFx.prev = null;
-    bcRxSeenN = null;
+    if (typeof rxReset === "function") rxReset();
     bcTickerSig = "";
     bcEnterScene = ""; bcEnterPhase = "";
     TV.boardKey = ""; TV.sec = -1;
@@ -98,13 +98,16 @@ async function closeLiveScreen(fromPop) {
         window.history.back();
         return;
     }
+    if (typeof recOn === "function" && recOn()) recStop(d);   /* طلع المنظم من البث: التسجيل ينحفظ */
     openLiveId = null;
+    if (typeof recOnClose === "function") recOnClose();
     const scr = document.getElementById("liveScreen");
     if (scr) scr.classList.remove("open");
     document.body.classList.remove("live-open");
     if (liveTickTimer) { clearInterval(liveTickTimer); liveTickTimer = null; }
     bcPredListen("");
     sgDockPaint(null);
+    if (typeof rxSync === "function") rxSync(null);
     bcFlushPage();   /* اللي تأجل رسمه من صفحات الموقع وقت البث */
     bcStopSpeech();
     cineCloseAll();
@@ -118,6 +121,7 @@ async function closeLiveScreen(fromPop) {
 }
 
 function liveTick() {
+    if (typeof recTick === "function") recTick(liveMatchesCache[openLiveId]);   /* تسجيل البث ومشاهدته (record.js) */
     const d = liveMatchesCache[openLiveId];
     if (!d) return;
     if (d.status === "scheduled") { bcTickClock(d); return; }
@@ -340,7 +344,8 @@ function renderLiveScreenNow() {
 <div class="lv-top">
 <button class="rs-back" onclick="closeLiveScreen()">${ic("chevron-right")} خروج</button>
 <span class="lv-badge ${live ? "" : (sched ? "soon" : "off")}"><span class="dot"></span>${live ? `على الهواء <b id="bcAirClock" class="st-air">00:00</b>` : (sched ? "قريباً" : "انتهى البث")}</span>
-<span class="lv-round">الجولة ${escapeHTML(String(d.round || ""))}${live ? ` · ${ic("users")} <b id="bcListeners">…</b>` : ""}</span>
+${live && !(typeof BC_REPLAY !== "undefined" && BC_REPLAY) ? `<span class="lv-eye" title="الحضور">${ic("users")} <b id="bcListeners">…</b></span>` : ""}
+<span class="lv-round">الجولة ${escapeHTML(String(d.round || ""))}</span>
 ${isAdmin && (live || sched) ? `<button class="bc-endbtn" onclick="bcEnd()">${ic("power")} ${sched ? "إلغاء" : "إنهاء البث"}</button>` : ""}
 </div>`;
 
@@ -375,6 +380,7 @@ ${pod(2)}
     showAfterRender(body, d);
     bcEntrance(body, d);
     sgDockPaint(d);   /* أزرار المقدم في الفقرة الثانية والثالثة (برا الرسم الجزئي) */
+    if (typeof rxSync === "function") rxSync(d);   /* تفاعلات الجمهور (react.js) */
 
     const qc = body.querySelector(".st-qcard");
     /* still بس للوحة جديدة لنفس السؤال (انعاد بناء المشهد)، مو للوحة نفسها اللي للحين تتحرك (الرسم الجزئي ما يعيد بناءها) */
