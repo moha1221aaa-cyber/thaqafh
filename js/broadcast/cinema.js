@@ -472,5 +472,5 @@ function bcAutoFx(d) {
     const p = bcAutoFx.prev;
     bcAutoFx.prev = view;
     if (!p || d.status !== "live") return;
-    if (view.lt && view.lt !== p.lt) cinePlay("timeout", 0.5);
+    if (view.lt && view.lt !== p.lt) { if (typeof SG_SFX !== "undefined") SG_SFX.time(); else cinePlay("timeout", 0.5); }
 }

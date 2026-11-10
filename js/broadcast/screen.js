@@ -416,7 +416,7 @@ function liveSoundsOnChange(d) {
     if (!p) return;
     if (view.phase === "answer" && (p.phase !== "answer" || p.ans !== view.ans)) tvBuzzMoment(d);
     if (view.phase === "answer" && (p.phase !== "answer" || p.ans !== view.ans) && !d.passed && bcLocalBuzzQ !== openLiveId + "|" + d.cur + "|" + d.qIndex) cinePlay("buzz", 0.7);
-    if (view.phase === "answer" && d.passed && p.ans !== view.ans) cinePlay("wrong", 0.5);
+    if (view.phase === "answer" && d.passed && p.ans !== view.ans) SG_SFX.bad();
     if (view.phase === "buzz" && p.phase !== "buzz" && view.q > 0) cinePlay("whoosh", 0.4);
     if (view.phase === "reveal" && p.phase !== "reveal") {
         /* طبول تشويق تخلص بالضبط لحظة الكشف، وبعدها صح + تصفيق أو غلط + "آه" */
@@ -424,7 +424,7 @@ function liveSoundsOnChange(d) {
         cinePlay("reveal", 0.75, { tail: Math.max(0.4, wait / 1000 + 0.15) });
         setTimeout(() => {
             if (view.out) { SG_SFX.ok(); cinePlay("applause", 0.4, { dur: 3 }); }
-            else cinePlay("wrong", 0.55);
+            else SG_SFX.bad();
         }, wait);
     }
 }

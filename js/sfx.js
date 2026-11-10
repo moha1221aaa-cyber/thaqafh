@@ -27,6 +27,9 @@ SFX_EVENTS.forEach(e => {
 });
 
 function sfxId(k, n) { return "sx_" + k + "_" + n; }
+/* أصوات المسابقات (العلامة "G" في SFX_SAMPLES): أولها (61) هو الحالي، فيتحمّل مع أصوات البث الأساسية */
+function sfxIsGame(k, n) { return sfxSamples(k).some(x => String(x[0]) === String(n) && x[2] === "G"); }
+SFX_EVENTS.forEach(e => { const id = sfxId(e.k, 61); if (CINE_FILES[id] && CINE_CORE.indexOf(id) === -1) CINE_CORE.push(id); });
 /* خيارات الحدث: 1 إلى 6 أنماط مولّدة (SFX_STYLES) و7 وما فوق عينات استوديو (SFX_SAMPLES من js/sfx-catalog.js) */
 function sfxSamples(k) { return (typeof SFX_SAMPLES !== "undefined" && SFX_SAMPLES[k]) || []; }
 function sfxChosen(k) {
@@ -151,7 +154,7 @@ async function sfxResetAll() {
 }
 /* اسم الخيار المعروض (الحالي، نمط مولّد، أو عينة) */
 function sfxOptName(k, n) {
-    if (n === "d") return "الحالي";
+    if (n === "d") return "الحالي: " + ((sfxSamples(k).find(e => String(e[0]) === "61") || [0, "مسابقات"])[1]);
     const i = Number(n);
     if (i >= 1 && i <= 6) return i + " · " + SFX_STYLES[i - 1];
     const x = sfxSamples(k).find(e => String(e[0]) === String(n));
@@ -163,15 +166,16 @@ function sfxToggle(k) { SFX.openKey = SFX.openKey === k ? "" : k; sfxRender(); }
 function sfxRender() {
     const body = document.getElementById("sfxBody");
     if (!body) return;
-    let html = `<div class="sfx-hint">اضغط على الزر اللي تبي تغيّر صوته، واضغط أي صوت تسمعه: الأخير اللي تضغطه يصير المعتمد في البث عند كل المشاهدين. "الحالي" هو الصوت المعتمد قبل التعديل. لكل زر 6 أنماط مولّدة وعشرات العينات من مكتبات استوديو مختلفة (Mixkit و Sonniss).</div><div id="sfxDl" class="sfx-dl"></div>`;
+    let html = `<div class="sfx-hint">اضغط على الزر اللي تبي تغيّر صوته، واضغط أي صوت تسمعه: الأخير اللي تضغطه يصير المعتمد في البث عند كل المشاهدين. "الحالي" هو أول صوت من أصوات المسابقات. أول قسم في كل زر أصوات مسابقات (صفارة الغلط، رنة الصح، بوق الوقت، تكتكة العجلة، فانفير الفوز)، وتحتها خيارات ثانية من مكتبات استوديو (Mixkit و Sonniss).</div><div id="sfxDl" class="sfx-dl"></div>`;
     SFX_EVENTS.forEach(e => {
         if (e.g) html += `<div class="sfx-group">${escapeHTML(e.g)}</div>`;
         const cur = sfxChosen(e.k), open = SFX.openKey === e.k, all = sfxSamples(e.k);
         html += `<div class="sfx-card ${open ? "open" : ""}"><button class="sfx-head" onclick="sfxToggle(${jsArg(e.k)})"><span class="sfx-t">${escapeHTML(e.label)}</span><span class="sfx-cur">${escapeHTML(sfxOptName(e.k, cur))}</span><i>${open ? "▲" : "▼"} ${6 + all.length}</i></button>`;
         if (open) {
             const btn = (n, label) => `<button class="${cur === String(n) ? "on" : ""}" onclick="sfxPick(${jsArg(e.k)}, '${n}')">${escapeHTML(label)}</button>`;
-            const mix = all.filter(x => x.length < 3), son = all.filter(x => x.length >= 3);
-            html += `<div class="sfx-row">${btn("d", "الحالي")}${SFX_STYLES.map((st, i) => btn(i + 1, (i + 1) + " · " + st)).join("")}</div>`
+            const mix = all.filter(x => x.length < 3), son = all.filter(x => x[2] === "S"), game = all.filter(x => x[2] === "G");
+            html += `<div class="sfx-sub sfx-sub-g">أصوات مسابقات (${game.length + 1})</div><div class="sfx-row">${btn("d", "الحالي")}${game.filter(x => String(x[0]) !== "61").map(x => btn(x[0], x[1])).join("")}</div>`
+                + `<div class="sfx-sub">أنماط مولّدة (6)</div><div class="sfx-row">${SFX_STYLES.map((st, i) => btn(i + 1, (i + 1) + " · " + st)).join("")}</div>`
                 + (mix.length ? `<div class="sfx-sub">عينات Mixkit (${mix.length})</div><div class="sfx-row">${mix.map(x => btn(x[0], x[1])).join("")}</div>` : "")
                 + (son.length ? `<div class="sfx-sub">تسجيلات استوديو Sonniss (${son.length})</div><div class="sfx-row">${son.map(x => btn(x[0], x[1])).join("")}</div>` : "");
         }

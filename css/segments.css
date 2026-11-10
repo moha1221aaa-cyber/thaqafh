@@ -195,3 +195,4 @@
 .sfx-dl .sfx-bar{display:block;height:6px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;opacity:1}
 .sfx-dl .sfx-bar i{display:block;height:100%;background:var(--brand,#3b82f6);transition:width .25s}
 .sfx-dl button{align-self:flex-start;padding:8px 14px;border-radius:10px;border:0;background:var(--brand,#3b82f6);color:#fff;font:inherit;cursor:pointer}
+.sfx-sub.sfx-sub-g{color:var(--gold,#facc15);font-weight:700}

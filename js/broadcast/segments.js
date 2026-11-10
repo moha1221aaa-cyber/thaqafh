@@ -449,9 +449,9 @@ function sgTick(d) {
         }
     } else SG.lastSec = -1;
 }
-/* أصوات الفقرتين من نفس مؤثرات البث (audio/: impact و slam و braam و whoosh و riser و tick و wrong و correct و timeout و match_end و applause)
+/* الأصوات القديمة (سينمائية)، احتياط بس لو صوت المسابقات ما تحمّل. كانت من نفس مؤثرات البث (audio/: impact و slam و braam و whoosh و riser و tick و wrong و correct و timeout و match_end و applause)
    عشان تكون متناسقة مع باقي البث (طلب محمد 10 نوفمبر: بدون أجراس ولا رنين، كل شي قوي واحترافي). الأقوى مع زيادة الحروف الصحيحة */
-const SG_DEF = {
+const SG_OLD = {
     miss: () => cinePlay("sg_miss", 1),
     h1: () => cinePlay("sg_h1", 1),
     h2: () => { cinePlay("sg_h2", 1); cinePlay("impact", 0.35); },
@@ -466,7 +466,7 @@ const SG_DEF = {
     land: () => cinePlay("slam", 0.9)
 };
 /* الصوت الحالي لكل حدث (SG_DEF) أو اللي اختاره المنظم من القائمة (js/sfx.js: sfxPlay) */
-SG_DEF.spin = function (w) {
+SG_OLD.spin = function (w) {
     /* سويش البداية، وتكتكة ميكانيكية تتباعد لين تقف، وصاعد (riser) آخر 3 ث */
     w = w || { at: bcNow() };
     const now0 = bcNow();
@@ -478,13 +478,25 @@ SG_DEF.spin = function (w) {
     const rs = w.at + SG_SPIN_MS - 3000 - now0;
     setTimeout(() => cinePlay("riser", 0.6), Math.max(0, rs));
 };
+/* الصوت الحالي لكل حدث (10 نوفمبر، محمد: "أبي أصوات مسابقات مو سينمائية"): أول صوت من قسم "أصوات مسابقات"
+   (audio/sx_<حدث>_61.mp3 من tests/harness/audio/gen_gs.py)، ولو ما تحمّل للحين يشتغل القديم */
+const SG_GS_N = "61";
+const SG_DEF = {};
+Object.keys(SG_OLD).forEach(k => {
+    SG_DEF[k] = function () {
+        if (!cinePlay("sx_" + k + "_" + SG_GS_N, 1)) {
+            try { cineLoadSamples(["sx_" + k + "_" + SG_GS_N]); } catch (e) {}
+            SG_OLD[k].apply(null, arguments);
+        }
+    };
+});
 const SFX_DEFAULT = SG_DEF;
-const SG_EXTRA = { h3: ["applause", 0.4, { dur: 2.2 }], round: ["applause", 0.45, { dur: 2.6 }] };   /* صوت التصفيق مع الأصوات المختارة (الحالية فيها التصفيق) */
+const SG_EXTRA = { h3: ["applause", 0.4, { dur: 2.2 }], round: ["applause", 0.45, { dur: 2.6 }] };   /* صوت التصفيق مع الأصوات المختارة (أصوات المسابقات فيها التصفيق) */
 const SG_SFX = {};
 Object.keys(SG_DEF).forEach(k => {
     SG_SFX[k] = function () {
         const a = arguments;
-        if (typeof sfxChosen === "function" && sfxChosen(k) !== "d" && SG_EXTRA[k]) cinePlay(SG_EXTRA[k][0], SG_EXTRA[k][1], SG_EXTRA[k][2]);
+        if (typeof sfxChosen === "function" && sfxChosen(k) !== "d" && SG_EXTRA[k] && !(typeof sfxIsGame === "function" && sfxIsGame(k, sfxChosen(k)))) cinePlay(SG_EXTRA[k][0], SG_EXTRA[k][1], SG_EXTRA[k][2]);
         if (typeof sfxPlay === "function") sfxPlay(k, () => SG_DEF[k].apply(null, a)); else SG_DEF[k].apply(null, a);
     };
 });

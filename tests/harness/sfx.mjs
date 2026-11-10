@@ -23,6 +23,7 @@ try {
     check("المشاهد: openSfxModal ما يفتح شي", await fan.evaluate(() => !document.getElementById("sfxModal").classList.contains("active")));
     await host.evaluate(() => openSfxModal());
     check("13 بطاقة مطوية، وتنفتح بطاقة وحدة بس وفيها الحالي + 50 خيار على الأقل", await host.evaluate(() => document.querySelectorAll("#sfxBody .sfx-card").length === 13 && !document.querySelector("#sfxBody .sfx-row") && (sfxToggle("h1"), document.querySelectorAll("#sfxBody .sfx-card.open").length === 1 && document.querySelectorAll("#sfxBody .sfx-card.open button").length >= 50)));
+    check("أصوات المسابقات: أول قسم في البطاقة و5 خيارات على الأقل لكل حدث", await host.evaluate(() => /مسابقات/.test(document.querySelector("#sfxBody .sfx-card.open .sfx-sub").textContent) && SFX_EVENTS.every(e => sfxSamples(e.k).filter(x => x[2] === "G").length >= 5 && sfxIsGame(e.k, 61))));
     check("الافتراضي: الحالي مختار في كل حدث", await host.evaluate(() => sfxChosen("h1") === "d" && [...document.querySelectorAll("#sfxBody .sfx-card.open button.on")].every(b => b.textContent === "الحالي") && SFX_EVENTS.every(e => sfxChosen(e.k) === "d")));
     /* الاختيار */
     await host.evaluate(() => { SFX.openKey = ""; sfxRender(); sfxToggle("h2"); sfxPick("h2", "3"); });
@@ -46,12 +47,14 @@ try {
     await fan.evaluate(() => { window.__played = []; const o = window.cinePlay; window.cinePlay = (id, v, x) => { window.__played.push(id); return o(id, v, x); }; sfxListen(); });
     check("المشاهد يستلم الاختيار", !!await until(() => fan.evaluate(() => SFX.map.h2 === "3" && SFX.map.strike === "5"), 6000));
     await until(() => fan.evaluate(() => !!CINE_BUF[sfxId("h2", 3)] && !!CINE_BUF[sfxId("strike", 5)]), 8000);
+    await fan.evaluate(() => cineLoadSamples(["sx_h1_61", "sx_round_61", "sx_h3_61"]));
+    await until(() => fan.evaluate(() => ["sx_h1_61", "sx_round_61", "sx_h3_61"].every(id => !!CINE_BUF[id])), 8000);
     await fan.evaluate(() => { SG_SFX.h2(); SG_SFX.strike(); SG_SFX.h1(); });
     const played = await fan.evaluate(() => window.__played);
     check("المشاهد: الأحداث المختارة تشغّل الصوت المختار (حتى وبدون ما يفتح الإعدادات)", played.includes("sx_h2_3") && played.includes("sx_strike_5") && !played.includes("sg_h2") && !played.includes("sg_strike"), played);
-    check("وغير المختار يبقى على الصوت الحالي", played.includes("sg_h1"), played);
+    check("وغير المختار يشغّل الحالي (صوت المسابقات 61)", played.includes("sx_h1_61") && !played.includes("sg_h1"), played);
     await fan.evaluate(() => { window.__played.length = 0; SG_SFX.round(); SG_SFX.h3(); });
-    check("الحالي للجولة والثلاث حروف يشتغل زي قبل", (await fan.evaluate(() => window.__played)).includes("match_end"));
+    { const p2 = await fan.evaluate(() => window.__played); check("الحالي للجولة والثلاث حروف: أصوات المسابقات (بدون تصفيق زيادة)", p2.includes("sx_round_61") && p2.includes("sx_h3_61") && !p2.includes("match_end") && !p2.includes("applause"), p2); }
     /* تجربة صوت بدون اختيار */
     await host.evaluate(() => { window.__p2 = []; const o = window.cinePlay; window.cinePlay = (id, v, x) => { window.__p2.push(id); return o(id, v, x); }; });
     await host.evaluate(() => sfxPreview("land", "4"));
