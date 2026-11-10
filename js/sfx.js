@@ -20,10 +20,16 @@ const SFX_EVENTS = [
 ];
 const SFX = { map: {}, sub: null, loaded: false };
 try { SFX.map = JSON.parse(localStorage.getItem("sfx_map") || "{}") || {}; } catch (e) { SFX.map = {}; }
-SFX_EVENTS.forEach(e => { for (let n = 1; n <= 6; n++) CINE_FILES["sx_" + e.k + "_" + n] = { g: 1 }; });
+SFX_EVENTS.forEach(e => { for (let n = 1; n <= 40; n++) CINE_FILES["sx_" + e.k + "_" + n] = { g: 1 }; });
 
 function sfxId(k, n) { return "sx_" + k + "_" + n; }
-function sfxChosen(k) { const n = String(SFX.map[k] || "d"); return /^[1-6]$/.test(n) ? n : "d"; }
+/* خيارات الحدث: 1 إلى 6 أنماط مولّدة (SFX_STYLES) و7 وما فوق عينات استوديو (SFX_SAMPLES من js/sfx-catalog.js) */
+function sfxSamples(k) { return (typeof SFX_SAMPLES !== "undefined" && SFX_SAMPLES[k]) || []; }
+function sfxChosen(k) {
+    const n = String(SFX.map[k] || "d");
+    if (/^[1-6]$/.test(n)) return n;
+    return /^\d{1,2}$/.test(n) && sfxSamples(k).some(x => String(x[0]) === n) ? n : "d";
+}
 /* يشغّل الصوت المختار للحدث، ولو ما فيه اختيار (أو ما تحمّل بعد) يشغّل الصوت الحالي (fallback) */
 function sfxPlay(k, fallback) {
     const n = sfxChosen(k);
@@ -87,14 +93,17 @@ async function sfxResetAll() {
 function sfxRender() {
     const body = document.getElementById("sfxBody");
     if (!body) return;
-    let html = `<div class="sfx-hint">اضغط أي صوت تسمعه، والصوت اللي تضغطه آخر مرة يصير هو اللي يطلع في البث عند كل المشاهدين. "الحالي" هو الصوت المعتمد قبل التعديل.</div>`;
+    let html = `<div class="sfx-hint">اضغط أي صوت تسمعه، والصوت اللي تضغطه آخر مرة يصير هو اللي يطلع في البث عند كل المشاهدين. "الحالي" هو الصوت المعتمد قبل التعديل. لكل زر 6 أنماط مولّدة وعينات استوديو كثيرة.</div>`;
     SFX_EVENTS.forEach(e => {
         if (e.g) html += `<div class="sfx-group">${escapeHTML(e.g)}</div>`;
         const cur = sfxChosen(e.k);
         html += `<div class="sfx-card"><div class="sfx-t">${escapeHTML(e.label)}</div><div class="sfx-row">`
             + `<button class="${cur === "d" ? "on" : ""}" onclick="sfxPick(${jsArg(e.k)}, 'd')">الحالي</button>`
             + SFX_STYLES.map((s, i) => `<button class="${cur === String(i + 1) ? "on" : ""}" onclick="sfxPick(${jsArg(e.k)}, '${i + 1}')">${i + 1} · ${escapeHTML(s)}</button>`).join("")
-            + `</div></div>`;
+            + `</div>`
+            + (sfxSamples(e.k).length ? `<div class="sfx-sub">عينات استوديو (${sfxSamples(e.k).length})</div><div class="sfx-row">`
+                + sfxSamples(e.k).map(x => `<button class="${cur === String(x[0]) ? "on" : ""}" onclick="sfxPick(${jsArg(e.k)}, '${x[0]}')">${escapeHTML(x[1])}</button>`).join("") + `</div>` : "")
+            + `</div>`;
     });
     html += `<button class="sfx-reset" onclick="sfxResetAll()">رجّع كل الأصوات للحالي</button>`;
     const y = body.scrollTop;
