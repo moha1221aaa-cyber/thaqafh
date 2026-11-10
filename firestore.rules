@@ -407,6 +407,18 @@ service cloud.firestore {
       allow create, update: if signedIn() && request.auth.uid == uid && baraVoteOk(uid);
       allow delete: if isAdmin();
     }
+    // الفقرة الرابعة في البث "ضد وند" (js/broadcast/duel.js): اللي في بال المتسابق سري، صاحبه والمنظم بس يقرونه
+    match /duelPicks/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['bid', 'cur', 'cat', 'pick', 'at'])
+        && request.resource.data.bid is string && request.resource.data.bid.size() > 0 && request.resource.data.bid.size() <= 64
+        && request.resource.data.cur is int && request.resource.data.cur >= 0 && request.resource.data.cur < 100
+        && request.resource.data.cat is string && request.resource.data.cat.size() <= 20
+        && request.resource.data.pick is string && request.resource.data.pick.size() > 0 && request.resource.data.pick.size() <= 40
+        && request.resource.data.at is number;
+      allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
+    }
     // أي شي ثاني تحت الغرفة: المنظم
     match /room/main/{rest=**} {
       allow read: if true;

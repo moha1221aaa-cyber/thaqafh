@@ -113,17 +113,19 @@ function sgNewWord(cat, avoid) {
 
 /* ===== الدخول للفقرات والخروج منها (engine.js يناديها) ===== */
 function sgEnter(d, seg, now) {
-    return { scene: "playing", seg: seg, phase: "s" + seg, deadline: 0, lastAnswer: null, sg: sgNewRound(seg, 0, now, null) };
+    return { scene: "playing", seg: seg, phase: "s" + seg, deadline: 0, lastAnswer: null, sg: seg === 4 ? duNewRound(d, now) : sgNewRound(seg, 0, now, null) };
 }
+/* عدد جولات الفقرة (الرابعة "ضد وند" جولة وحدة) */
+function sgRounds(seg) { return seg === 4 ? DU_ROUNDS : SG_ROUNDS; }
 function sgNextUpd(x, now) {
     const sg = x.sg;
-    if (sg.r + 1 < SG_ROUNDS) return { phase: "s" + x.seg, sg: sgNewRound(x.seg, sg.r + 1, now, sg) };
-    if (x.seg === 2) return sgEnter(x, 3, now);
+    if (sg.r + 1 < sgRounds(x.seg)) return { phase: "s" + x.seg, sg: x.seg === 4 ? duNewRound(x, now) : sgNewRound(x.seg, sg.r + 1, now, sg) };
+    if (x.seg === 2 || x.seg === 3) return sgEnter(x, x.seg + 1, now);
     return bcFinishUpd(x, now);
 }
 
 /* ===== أفعال المقدم (كلها transaction على وثيقة البث، والمنظم بس) ===== */
-function sgCur() { const d = liveMatchesCache[openLiveId]; return (d && isAdmin && d.status === "live" && d.scene === "playing" && d.sg && (d.seg === 2 || d.seg === 3)) ? d : null; }
+function sgCur() { const d = liveMatchesCache[openLiveId]; return (d && isAdmin && d.status === "live" && d.scene === "playing" && d.sg && (d.seg === 2 || d.seg === 3 || d.seg === 4)) ? d : null; }
 function sgAct(build) {
     const id = openLiveId, d0 = sgCur();
     if (!id || !d0) return Promise.resolve();
@@ -314,7 +316,7 @@ function sgHeadHTML(d) {
     const step = (n, t) => `<span class="${n < seg ? "done" : (n === seg ? "cur" : "")}">${n < seg ? ic("check") : n}<b>${t}</b></span>`;
     const sp = d.sp || {}, o = bcCur(d) || {};
     const pts = k => { const v = sp[k]; return v ? ` <em>${v[0]}-${v[1]}</em>` : ""; };
-    return `<div class="sg-steps">${step(1, "الأسئلة")}${step(2, "الحروف" + (seg > 2 ? pts("g2") : ""))}${step(3, "الكلمات")}</div>`;
+    return `<div class="sg-steps">${step(1, "الأسئلة")}${step(2, "الحروف" + (seg > 2 ? pts("g2") : ""))}${step(3, "الكلمات" + (seg > 3 ? pts("g3") : ""))}${step(4, "ضد وند")}</div>`;
 }
 function sgWheelStageHTML(d) {
     const sg = d.sg, seg = d.seg, letter = seg === 2 && sg.st === "letter", w = sg.wheel;
@@ -370,6 +372,7 @@ function bcSegHTML(d, me) {
     const sg = d.sg;
     if (!sg) return `<div class="lv-muted">...</div>`;
     let h = sgHeadHTML(d);
+    if (d.seg === 4) return h + duHTML(d, me);
     if (sg.st === "play") h += d.seg === 2 ? sgPlay2HTML(d, me) : sgPlay3HTML(d, me);
     else if (sg.st === "done") h += sgDoneHTML(d);
     else h += sgWheelStageHTML(d);
@@ -379,9 +382,11 @@ function bcSegHTML(d, me) {
 /* ===== لوحة المقدم تحت الشاشة (#sgDock) ===== */
 function sgDockPaint(d) {
     const scr = document.getElementById("liveScreen");
+    duPaint(d);   /* الفقرة الرابعة: الخلفية وصوتها، واختيار المتسابق (برا الرسم الجزئي) */
     let dock = document.getElementById("sgDock");
-    const on = !!(scr && isAdmin && d && d.status === "live" && d.scene === "playing" && (d.seg === 2 || d.seg === 3) && d.sg);
+    const on = !!(scr && isAdmin && d && d.status === "live" && d.scene === "playing" && (d.seg === 2 || d.seg === 3 || d.seg === 4) && d.sg);
     if (!on) { if (dock) dock.remove(); if (scr) scr.classList.remove("sg-dock-on"); SG.dockSig = ""; return; }
+    if (d.seg === 4) return duDockPaint(d, scr, dock);
     sgLoadWord(d);
     const sg = d.sg, w = sg.wheel, word = sgWordOf(d), cat = escapeHTML(sg.cat || "");
     const hold = (ms, cls) => `${cls || ""} ${sgHold(w, ms)}`;
@@ -413,10 +418,10 @@ function sgDockPaint(d) {
           + `<div class="sg-row2">${sg.gs.length || sg.sk[0] || sg.sk[1] ? "" : `<button class="bc-ghost" onclick="sgReword()">كلمة غيرها</button><button class="bc-ghost" onclick="sgCustomWord()">${ic("pencil")} كلمة من عندي</button>`}<button class="lv-link" onclick="sgSkip()">إنهاء بدون نقطة</button></div>`;
     } else if (sg.st === "done") {
         const last = sg.r + 1 >= SG_ROUNDS;
-        h = btn("sgNext", "bc-go", last ? "trophy" : "zap", d.seg === 2 ? (last ? "فقرة خمّن الكلمة" : "الجولة التالية") : (last ? "نتيجة المواجهة" : "الجولة التالية"));
+        h = btn("sgNext", "bc-go", last ? (d.seg === 2 ? "zap" : "target") : "zap", d.seg === 2 ? (last ? "فقرة خمّن الكلمة" : "الجولة التالية") : (last ? "الفقرة الرابعة: ضد وند" : "الجولة التالية"));
     }
     /* البث الخاص التجريبي: تخطي الفقرة الثانية للثالثة */
-    if (bcIsReh(openLiveId) && d.seg === 2) h += `<button class="lv-link" onclick="bcRehSkip()">تخطي للفقرة الثالثة (التجربة)</button>`;
+    if (bcIsReh(openLiveId) && (d.seg === 2 || d.seg === 3)) h += `<button class="lv-link" onclick="bcRehSkip()">تخطي للفقرة ${d.seg === 2 ? "الثالثة" : "الرابعة"} (التجربة)</button>`;
     /* التركيب يتغير بس لو تغيّر المحتوى: الخانة المكتوبة فيها ما تنمسح مع الرسم */
     const sig = d.seg + "|" + sg.r + "|" + sg.st + "|" + sg.n + "|" + (w ? w.at : 0) + "|" + (word ? 1 : 0) + "|" + sg.items.length + "|" + sg.turn + "|" + (sg.wheel ? 1 : 0);
     if (!dock) {
@@ -433,6 +438,7 @@ function sgDockPaint(d) {
 function sgTick(d) {
     const sg = d.sg;
     if (!sg) return;
+    if (d.seg === 4) duBed(d.status === "live" && sg.st !== "done");   /* صوت خلفية الفقرة الرابعة يبدأ أول ما يتحمّل */
     document.querySelectorAll("#liveScreen .sg-hold").forEach(el => { if (bcNow() >= Number(el.dataset.after || 0)) el.classList.remove("sg-hold"); });
     if (sg.st === "play" && sg.tEnd) {
         const total = d.seg === 2 ? SG_TURN2_MS : SG_TURN3_MS, left = Math.max(0, sg.tEnd - bcNow()), pct = Math.min(1, left / total);
@@ -506,6 +512,8 @@ function sgHitSound(key) {
 /* أصوات وستينجر (تنادى مع كل رسم للشاشة) */
 function sgFx(d) {
     const sg = d && d.sg;
+    if (sg && d.scene === "playing" && d.seg === 4) { SG.prevKey = ""; SG.prevSnap = null; return duFx(d); }
+    duFx(null);
     if (!sg || d.scene !== "playing" || !(d.seg === 2 || d.seg === 3)) { SG.prevKey = ""; SG.prevSnap = null; return; }
     const key = d.cur + ":" + d.seg + ":" + sg.r + ":" + sg.st;
     const snap = { cnt: sg.cnt || 0, gs: (sg.gs || []).length, sk: (sg.sk || [0, 0]).join(), turn: sg.turn };
