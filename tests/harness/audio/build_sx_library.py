@@ -11,14 +11,16 @@ HERE = os.path.dirname(os.path.abspath(__file__)); ROOT = os.path.join(HERE, "..
 AUDIO = os.path.join(ROOT, "audio"); CATJS = os.path.join(ROOT, "js", "sfx-catalog.js")
 TMP = os.path.join(os.environ.get("TMPDIR", "/tmp"), "sx_lib"); os.makedirs(TMP, exist_ok=True)
 PER_EVENT = int(sys.argv[1]) if len(sys.argv) > 1 else 40
+ONLY = set(sys.argv[2:])   # اختياري: أحداث محددة بس (مثل: miss pass)، والباقي يبقى زي ما هو
 SR = 22050
+PACKCAP = 4
 BUNDLES = ["sonniss-gdc-2015-game-audio-bundle-normalized", "sonniss-gdc-2016-game-audio-bundle-normalized", "sonniss-gdc-2017-game-audio-bundle-normalized",
            "sonniss-gdc-2018-game-audio-bundle-normalized", "sonniss-gdc-2019-game-audio-bundle-normalized", "sonniss-gdc-2020-game-audio-bundle-normalized",
            "sonniss-gdc-2023-game-audio-bundle-normalized", "sonniss-gdc-2024-game-audio-bundle-normalized", "sonniss-gdc-2026-game-audio-bundle-normalized"]
 BAD = re.compile(r"music|melod|chord|piano|guitar|violin|cello|string|harp|bell|chime|xylo|marimba|ukulele|banjo|choir|vocal|voice|song|jingle|ambien|drone|\bpad\b|tonal|\bnote\b|keyboard|organ|flute|trumpet|brass|speech|dialog|talk|scream|laugh|walla|moan|breath|cough|animal|bird|dog|cat\b|horse|insect|water|rain|wind\b|engine|car\b|vehicle|footstep|gun|shot|weapon|monster|creature|zombie|horror|scary|pain|death|die\b|kill|blood|gore", re.I)
 # حدث: (regex مطلوب، أقل مدة، أكبر مدة، أقصى مركز طيفي أو None، أقل مركز طيفي، يسمح بنغمة ثابتة، مدة القص، peak dB)
 EV = {
- "miss":  (r"thud|dull|drop|punch|knock|body|heavy hit|low hit|impact|kick|slam|bump|deflate|fall", 0.25, 2.5, 1400, 0, False, 1.9, -3),
+ "miss":  (r"thud|dull|drop|punch|knock|body|heavy hit|low hit|impact|kick|slam|bump|deflate|fall|wood|door|stone|rock|box|crate|book|bag|bang|clunk|dud|thump|hit|smack|slap|tap|stomp|crash|heavy|low", 0.2, 2.8, 1800, 0, False, 1.9, -3),
  "h1":    (r"click|tap|pop|snap|knock|small|light|soft|tick|slap|clap|coin|clink|ping|knob|button|switch|latch|hit", 0.12, 1.4, None, 700, False, 1.5, -8),
  "h2":    (r"hit|impact|slap|snare|stinger|stab|clap|smack|thwack|crack|whoosh.?hit|strike|swish.?hit|metal|glass", 0.3, 2.6, None, 400, False, 2.0, -4),
  "h3":    (r"cinematic|boom|epic|big|huge|slam|explosion|impact|hit|stinger|reveal|trailer|massive|sub", 1.2, 6.0, None, 0, False, 3.2, -1),
@@ -26,7 +28,7 @@ EV = {
  "ok":    (r"coin|pick|collect|confirm|success|snap|pop|click|clink|reward|swish|slap|tap|spark|cash|register|drop", 0.2, 1.8, None, 600, False, 1.7, -3),
  "bad":   (r"fail|fall|drop|deflate|power.?down|shut|denied|descend|down|sad|thud|error|negative|glitch|wobble", 0.5, 3.2, None, 0, True, 2.3, -3),
  "time":  (r"alarm|siren|horn|whistle|gong|klaxon|buzzer|timer|clock|countdown|beep|ring", 0.6, 3.2, None, 300, True, 2.3, -1.5),
- "pass":  (r"whoosh|whsh|swish|swipe|flyby|fly.?by|pass.?by|swoosh|sweep|air", 0.2, 1.6, None, 0, False, 1.2, -9),
+ "pass":  (r"whoosh|whsh|swish|swipe|flyby|fly.?by|pass.?by|swoosh|sweep|air|move|throw|wave|fast|zip|zoom|blur|rush|slide|cloth|whip|spin|woosh|swing", 0.15, 1.8, None, 0, False, 1.2, -9),
  "spin":  (r"riser|rise|build|swell|tension|sweep|tick|clock|spin|rotat|whir|turbine|accelerat|rev\b|countdown|loop", 3.4, 12, None, 0, True, 4.95, -3),
  "land":  (r"impact|slam|boom|hit|thud|stomp|crash|explosion|drum|timpani|cinematic|heavy", 0.8, 4.5, None, 0, False, 2.6, -1.5),
  "seg":   (r"transition|whoosh|stinger|reveal|logo|intro|sweep|impact|cinematic|riser|hit", 1.5, 6.0, None, 0, False, 3.6, -2),
@@ -100,6 +102,7 @@ rng = random.Random(20261110)
 # 2) مرشحين لكل حدث
 cands = {}
 for ev, (rx, dmin, dmax, cmax, cmin, tonal_ok, cut, pk) in EV.items():
+    if ONLY and ev not in ONLY: continue
     pat = re.compile(rx, re.I); ok = []
     for base, (b, nm, secs, pack) in files.items():
         if not (dmin <= secs <= max(dmax, dmin) + 6 if ev in ("spin",) else dmin * 0.8 <= secs <= dmax + 3): continue
@@ -107,7 +110,7 @@ for ev, (rx, dmin, dmax, cmax, cmin, tonal_ok, cut, pk) in EV.items():
         if BAD.search(text) and not (ev in EXTRA_OK and re.search(EXTRA_OK[ev], text, re.I)): continue
         if not pat.search(text): continue
         ok.append((b, nm, secs, pack))
-    rng.shuffle(ok); cands[ev] = ok[:PER_EVENT * 5]
+    rng.shuffle(ok); cands[ev] = ok[:PER_EVENT * 10]
     print(ev, "candidates", len(ok), "->", len(cands[ev]), flush=True)
 # 3) تحليل (تنزيل + قياس) بالتوازي
 allc = {(b, nm): None for ev in cands for (b, nm, s, p) in cands[ev]}
@@ -121,15 +124,16 @@ with ThreadPoolExecutor(10) as ex:
         if i % 200 == 0: print("analyzed", i, "/", len(allc), flush=True)
 # 4) انتقاء + معالجة
 cat = {}; txt = open(CATJS, encoding="utf-8").read(); m = re.search(r"const SFX_SAMPLES = (\{.*\});", txt, re.S)
-old = json.loads(m.group(1)); cat = {ev: [e for e in old.get(ev, []) if len(e) < 3] for ev in EV}    # يبقي Mixkit فقط ويعيد بناء Sonniss
+old = json.loads(m.group(1)); cat = {ev: ([e for e in old.get(ev, []) if len(e) < 3] if (not ONLY or ev in ONLY) else old.get(ev, [])) for ev in EV}    # يبقي Mixkit فقط ويعيد بناء Sonniss
 for ev in EV:
     for fn in os.listdir(AUDIO):
         pass
 used_credit = collections.Counter()
 for ev, (rx, dmin, dmax, cmax, cmin, tonal_ok, cut, pk) in EV.items():
-    n = max([e[0] for e in cat[ev]] + [6]) + 1
+    if ONLY and ev not in ONLY: continue
+    n = max([e[0] for e in cat[ev] if len(e) < 3] + [6]) + 1
     # امسح ملفات Sonniss القديمة لهذا الحدث (أكبر من آخر Mixkit)
-    keep = max([e[0] for e in cat[ev]] + [6])
+    keep = max([e[0] for e in cat[ev] if len(e) < 3] + [6])
     for fn in os.listdir(AUDIO):
         mm = re.match(r"sx_%s_(\d+)\.mp3$" % ev, fn)
         if mm and int(mm.group(1)) > keep: os.remove(os.path.join(AUDIO, fn))
@@ -144,7 +148,7 @@ for ev, (rx, dmin, dmax, cmax, cmin, tonal_ok, cut, pk) in EV.items():
         if not tonal_ok and f["ton"] > 0.75 and f["stab"] > 0.88 and f["cen"] > 700: continue
         if ev in ("h1", "h2", "miss", "land", "h3", "ok", "pass") and f["head"] < 0.35: continue   # بداية فورية
         stem = re.sub(r"[\d_\- ]+", "", nm.rsplit("/", 1)[-1].lower())[:24]
-        if per_pack[pack] >= 3 or stem in per_stem: continue
+        if per_pack[pack] >= PACKCAP or stem in per_stem: continue
         per_pack[pack] += 1; per_stem.add(stem); chosen.append((b, nm, pack, p, f))
         if len(chosen) >= PER_EVENT: break
     for (b, nm, pack, p, f) in chosen:
