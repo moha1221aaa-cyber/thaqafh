@@ -90,20 +90,33 @@ async function sfxResetAll() {
     sfxRender();
     try { await firebaseDB.collection("room").doc("main").collection("liveDiag").doc("_sfx").set({ map: {}, at: Date.now() }); } catch (e) {}
 }
+/* اسم الخيار المعروض (الحالي، نمط مولّد، أو عينة) */
+function sfxOptName(k, n) {
+    if (n === "d") return "الحالي";
+    const i = Number(n);
+    if (i >= 1 && i <= 6) return i + " · " + SFX_STYLES[i - 1];
+    const x = sfxSamples(k).find(e => String(e[0]) === String(n));
+    return x ? x[1] : "الحالي";
+}
+SFX.openKey = "";
+function sfxToggle(k) { SFX.openKey = SFX.openKey === k ? "" : k; sfxRender(); }
+/* الأحداث 13 كل واحد فيه 50+ خيار: البطاقات مطوية، وتنفتح وحدة وحدة (الأزرار ما تنرسم إلا للمفتوحة) */
 function sfxRender() {
     const body = document.getElementById("sfxBody");
     if (!body) return;
-    let html = `<div class="sfx-hint">اضغط أي صوت تسمعه، والصوت اللي تضغطه آخر مرة يصير هو اللي يطلع في البث عند كل المشاهدين. "الحالي" هو الصوت المعتمد قبل التعديل. لكل زر 6 أنماط مولّدة وعينات استوديو كثيرة.</div>`;
+    let html = `<div class="sfx-hint">اضغط على الزر اللي تبي تغيّر صوته، واضغط أي صوت تسمعه: الأخير اللي تضغطه يصير المعتمد في البث عند كل المشاهدين. "الحالي" هو الصوت المعتمد قبل التعديل. لكل زر 6 أنماط مولّدة وعشرات العينات من مكتبات استوديو مختلفة (Mixkit و Sonniss).</div>`;
     SFX_EVENTS.forEach(e => {
         if (e.g) html += `<div class="sfx-group">${escapeHTML(e.g)}</div>`;
-        const cur = sfxChosen(e.k);
-        html += `<div class="sfx-card"><div class="sfx-t">${escapeHTML(e.label)}</div><div class="sfx-row">`
-            + `<button class="${cur === "d" ? "on" : ""}" onclick="sfxPick(${jsArg(e.k)}, 'd')">الحالي</button>`
-            + SFX_STYLES.map((s, i) => `<button class="${cur === String(i + 1) ? "on" : ""}" onclick="sfxPick(${jsArg(e.k)}, '${i + 1}')">${i + 1} · ${escapeHTML(s)}</button>`).join("")
-            + `</div>`
-            + (sfxSamples(e.k).length ? `<div class="sfx-sub">عينات استوديو (${sfxSamples(e.k).length})</div><div class="sfx-row">`
-                + sfxSamples(e.k).map(x => `<button class="${cur === String(x[0]) ? "on" : ""}" onclick="sfxPick(${jsArg(e.k)}, '${x[0]}')">${escapeHTML(x[1])}</button>`).join("") + `</div>` : "")
-            + `</div>`;
+        const cur = sfxChosen(e.k), open = SFX.openKey === e.k, all = sfxSamples(e.k);
+        html += `<div class="sfx-card ${open ? "open" : ""}"><button class="sfx-head" onclick="sfxToggle(${jsArg(e.k)})"><span class="sfx-t">${escapeHTML(e.label)}</span><span class="sfx-cur">${escapeHTML(sfxOptName(e.k, cur))}</span><i>${open ? "▲" : "▼"} ${6 + all.length}</i></button>`;
+        if (open) {
+            const btn = (n, label) => `<button class="${cur === String(n) ? "on" : ""}" onclick="sfxPick(${jsArg(e.k)}, '${n}')">${escapeHTML(label)}</button>`;
+            const mix = all.filter(x => x.length < 3), son = all.filter(x => x.length >= 3);
+            html += `<div class="sfx-row">${btn("d", "الحالي")}${SFX_STYLES.map((st, i) => btn(i + 1, (i + 1) + " · " + st)).join("")}</div>`
+                + (mix.length ? `<div class="sfx-sub">عينات Mixkit (${mix.length})</div><div class="sfx-row">${mix.map(x => btn(x[0], x[1])).join("")}</div>` : "")
+                + (son.length ? `<div class="sfx-sub">تسجيلات استوديو Sonniss (${son.length})</div><div class="sfx-row">${son.map(x => btn(x[0], x[1])).join("")}</div>` : "");
+        }
+        html += `</div>`;
     });
     html += `<button class="sfx-reset" onclick="sfxResetAll()">رجّع كل الأصوات للحالي</button>`;
     const y = body.scrollTop;
