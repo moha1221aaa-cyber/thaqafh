@@ -13,22 +13,34 @@ try {
     await until(() => host.evaluate(() => !!currentUser && isAdmin), 15000);
     await sleep(800);
     /* الملفات */
-    const files = await host.evaluate(async () => { const r = []; for (const e of SFX_EVENTS) for (let n = 1; n <= 6; n++) r.push(await fetch("audio/" + sfxId(e.k, n) + ".mp3").then(x => x.ok && (x.headers.get("content-type") || "").includes("audio"))); return { n: r.length, ok: r.every(Boolean) }; });
-    check("78 ملف صوت (13 حدث × 6 أنماط) كلها موجودة", files.n === 78 && files.ok, files);
+    const files = await host.evaluate(async () => { const r = []; for (const e of SFX_EVENTS) { const ns = [1, 2, 3, 4, 5, 6].concat(sfxSamples(e.k).map(x => x[0])); for (const n of ns) r.push(await fetch("audio/" + sfxId(e.k, n) + ".mp3").then(x => x.ok && (x.headers.get("content-type") || "").includes("audio"))); } return { n: r.length, ok: r.every(Boolean), perEvent: SFX_EVENTS.map(e => 6 + sfxSamples(e.k).length) }; });
+    check("كل الملفات موجودة (6 مولّدة + عينات استوديو لكل حدث)", files.ok && files.n >= 200 && files.perEvent.every(x => x >= 16), { n: files.n, min: Math.min(...files.perEvent) });
     /* القائمة للمنظم */
     check("المنظم: زر أصوات البث في القائمة الجانبية", await host.evaluate(() => { renderSideMenu(); return /أصوات البث/.test(document.getElementById("sideMenuBody").innerText); }));
     check("المشاهد: ما فيه الزر", await fan.evaluate(() => { renderSideMenu(); return !/أصوات البث/.test(document.getElementById("sideMenuBody").innerText); }));
     await fan.evaluate(() => openSfxModal());
     check("المشاهد: openSfxModal ما يفتح شي", await fan.evaluate(() => !document.getElementById("sfxModal").classList.contains("active")));
     await host.evaluate(() => openSfxModal());
-    check("13 حدث، لكل واحد الحالي + 6 أصوات", await host.evaluate(() => document.querySelectorAll("#sfxBody .sfx-card").length === 13 && [...document.querySelectorAll("#sfxBody .sfx-card")].every(c => c.querySelectorAll("button").length === 7)));
+    check("13 حدث، لكل واحد الحالي + 6 أنماط + 10 عينات استوديو على الأقل", await host.evaluate(() => document.querySelectorAll("#sfxBody .sfx-card").length === 13 && [...document.querySelectorAll("#sfxBody .sfx-card")].every(c => c.querySelectorAll("button").length >= 17)));
     check("الافتراضي: الحالي مختار في كل حدث", await host.evaluate(() => document.querySelectorAll("#sfxBody .sfx-row button.on").length === 13 && [...document.querySelectorAll("#sfxBody .sfx-row button.on")].every(b => b.textContent === "الحالي")));
     /* الاختيار */
     await host.evaluate(() => sfxPick("h2", "3"));
+    await sleep(500);
     await host.evaluate(() => sfxPick("strike", "5"));
+    await sleep(500);
     const saved = await until(() => { const d = db.data("room/main/liveDiag/_sfx"); return d && d.map && d.map.h2 === "3" && d.map.strike === "5" ? d : null; }, 6000);
     check("الاختيار ينحفظ في liveDiag/_sfx", !!saved, saved && saved.map);
     check("البطاقة تبيّن الاختيار", await host.evaluate(() => { const c = [...document.querySelectorAll("#sfxBody .sfx-card")].find(x => /حرفين صحيحة/.test(x.querySelector(".sfx-t").textContent)); return c.querySelector("button.on").textContent.startsWith("3 ·"); }));
+    /* عينة استوديو (رقم 7+) تنختار وتنحفظ وتشتغل */
+    await host.evaluate(() => sfxPick("h1", String(sfxSamples("h1")[3][0])));
+    await sleep(500);
+    const sm = await until(() => { const d = db.data("room/main/liveDiag/_sfx"); return d && d.map && d.map.h1 === "10" ? d : null; }, 6000);
+    check("اختيار عينة استوديو ينحفظ (h1 = 10)", !!sm, sm && sm.map);
+    check("البطاقة تعرض اسم العينة المختارة", !!await until(() => host.evaluate(() => { const c = [...document.querySelectorAll("#sfxBody .sfx-card")].find(x => /^حرف صحيح/.test(x.querySelector(".sfx-t").textContent)); return c.querySelector("button.on").textContent === sfxSamples("h1")[3][1]; }), 4000));
+    await host.evaluate(() => sfxPick("h1", "d"));
+    await sleep(500);
+    await sleep(300);
+    check("رقم غير موجود يرجع للحالي (حماية)", await host.evaluate(() => { SFX.map.h1 = "39"; const r = sfxChosen("h1"); SFX.map.h1 = "99"; const r2 = sfxChosen("h1"); delete SFX.map.h1; return r === "d" && r2 === "d"; }));
     /* المشاهد يسمع الاختيار */
     await fan.evaluate(() => { window.__played = []; const o = window.cinePlay; window.cinePlay = (id, v, x) => { window.__played.push(id); return o(id, v, x); }; sfxListen(); });
     check("المشاهد يستلم الاختيار", !!await until(() => fan.evaluate(() => SFX.map.h2 === "3" && SFX.map.strike === "5"), 6000));
