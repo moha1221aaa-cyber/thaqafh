@@ -13,6 +13,7 @@ try {
     await until(() => host.evaluate(() => !!currentUser && isAdmin), 15000);
     await sleep(800);
     /* الملفات */
+    const sfxCount = await host.evaluate(() => sfxAllIds().length);
     const files = await host.evaluate(async () => { const r = []; for (const e of SFX_EVENTS) { const ns = [1, 2, 3, 4, 5, 6].concat(sfxSamples(e.k).map(x => x[0])); for (const n of ns) r.push(await fetch("audio/" + sfxId(e.k, n) + ".mp3").then(x => x.ok && (x.headers.get("content-type") || "").includes("audio"))); } return { n: r.length, ok: r.every(Boolean), perEvent: SFX_EVENTS.map(e => 6 + sfxSamples(e.k).length) }; });
     check("كل الملفات موجودة (6 مولّدة + Mixkit + Sonniss: أكثر من 50 لكل حدث)", files.ok && files.n >= 700 && files.perEvent.every(x => x >= 50), { n: files.n, min: Math.min(...files.perEvent) });
     /* القائمة للمنظم */
@@ -55,6 +56,19 @@ try {
     await host.evaluate(() => { window.__p2 = []; const o = window.cinePlay; window.cinePlay = (id, v, x) => { window.__p2.push(id); return o(id, v, x); }; });
     await host.evaluate(() => sfxPreview("land", "4"));
     check("التجربة تشغّل الصوت وما تغيّر الاختيار", (await host.evaluate(() => window.__p2)).includes("sx_land_4") && await host.evaluate(() => sfxChosen("land") === "d"));
+    check("كل الخيارات مسجّلة وتقدر تشتغل (حتى رقم 60)", await host.evaluate(() => sfxAllIds().every(id => !!CINE_FILES[id])));
+    /* الحفظ في الجهاز: فتح القائمة يحفظ كل الأصوات، وبعدها التجربة تشتغل بدون نت */
+    const dl = await until(() => host.evaluate(() => SFX.dl.ready ? { total: SFX.dl.total, fail: SFX.dl.fail } : null), 60000);
+    check("فتح القائمة يحفظ كل الأصوات في الجهاز", !!dl && dl.fail === 0 && dl.total === sfxCount, dl);
+    check("كل ملف موجود في مخزن الأصوات", await host.evaluate(async () => { const c = await caches.open(AUDIO_CACHE); const have = (await c.keys()).map(r => r.url); return sfxAllIds().every(id => have.includes(cineAudioUrl(id))); }));
+    check("شريط الحفظ يقول محفوظة", await host.evaluate(() => /محفوظة في جهازك/.test(document.getElementById("sfxDl").textContent)));
+    await host.context().setOffline(true);
+    await host.evaluate(() => { window.__p3 = []; const o = window.cinePlay; window.cinePlay = (id, v, x) => { window.__p3.push(id); return o(id, v, x); }; for (const id of ["sx_miss_2", "sx_round_" + sfxSamples("round").slice(-1)[0][0]]) { delete CINE_BUF[id]; delete CINE_LOADING[id]; } });
+    const t0 = Date.now();
+    await host.evaluate(() => Promise.all([sfxPreview("miss", "2"), sfxPreview("round", String(sfxSamples("round").slice(-1)[0][0]))]));
+    const offMs = Date.now() - t0;
+    check("بدون نت: التجربة تشتغل من الجهاز وبسرعة", (await host.evaluate(() => window.__p3)).length === 2 && offMs < 1500, offMs + "ms");
+    await host.context().setOffline(false);
     /* تراجع */
     await host.evaluate(() => { window.uiConfirm = () => Promise.resolve(true); return sfxResetAll(); });
     check("رجّع كل الأصوات للحالي", !!await until(() => { const d = db.data("room/main/liveDiag/_sfx"); return d && d.map && Object.keys(d.map).length === 0 ? d : null; }, 5000));

@@ -20,7 +20,11 @@ const SFX_EVENTS = [
 ];
 const SFX = { map: {}, sub: null, loaded: false };
 try { SFX.map = JSON.parse(localStorage.getItem("sfx_map") || "{}") || {}; } catch (e) { SFX.map = {}; }
-SFX_EVENTS.forEach(e => { for (let n = 1; n <= 40; n++) CINE_FILES["sx_" + e.k + "_" + n] = { g: 1 }; });
+/* تسجيل كل الملفات (المولّدة 1-6 وكل العينات مهما كان رقمها) عشان cineLoadSamples يقبلها */
+SFX_EVENTS.forEach(e => {
+    for (let n = 1; n <= 6; n++) CINE_FILES["sx_" + e.k + "_" + n] = { g: 1 };
+    ((typeof SFX_SAMPLES !== "undefined" && SFX_SAMPLES[e.k]) || []).forEach(x => { CINE_FILES["sx_" + e.k + "_" + x[0]] = { g: 1 }; });
+});
 
 function sfxId(k, n) { return "sx_" + k + "_" + n; }
 /* خيارات الحدث: 1 إلى 6 أنماط مولّدة (SFX_STYLES) و7 وما فوق عينات استوديو (SFX_SAMPLES من js/sfx-catalog.js) */
@@ -60,17 +64,72 @@ function sfxListen() {
         }, () => {});
     } catch (e) {}
 }
-/* تجربة صوت (يحمّله لو ما تحمّل) بدون ما يغيّر الاختيار */
+/* تجربة صوت بدون ما يغيّر الاختيار: من الجهاز لو تنزّل (فوري)، وإلا ينزل الحين */
 async function sfxPreview(k, n) {
     try {
         const ctx = liveCtx(); if (ctx.state === "suspended") await ctx.resume();
         if (n === "d") { const f = SFX_DEFAULT[k]; if (f) f(); return; }
         const id = sfxId(k, n);
-        cineLoadSamples([id]);
-        const t0 = Date.now();
-        while (!CINE_BUF[id] && Date.now() - t0 < 6000) await new Promise(r => setTimeout(r, 60));
-        if (CINE_BUF[id]) cinePlay(id, 1); else roomToast("ما تحمّل الصوت، جرّب مرة ثانية", "alert");
+        if (!CINE_BUF[id]) {
+            if (!CINE_LOADING[id]) cineLoadSamples([id]);
+            await Promise.race([CINE_LOADING[id], new Promise(r => setTimeout(r, 8000))]);
+        }
+        if (CINE_BUF[id]) cinePlay(id, 1);
+        else { delete CINE_LOADING[id]; roomToast("ما تحمّل الصوت (النت؟)، جرّب مرة ثانية", "alert"); }
     } catch (e) {}
+}
+/* كل ملفات الأصوات (المختارة والحالية وكل الخيارات) */
+function sfxAllIds() {
+    const ids = CINE_CORE.slice();
+    SFX_EVENTS.forEach(e => {
+        for (let n = 1; n <= 6; n++) ids.push(sfxId(e.k, n));
+        sfxSamples(e.k).forEach(x => ids.push(sfxId(e.k, x[0])));
+    });
+    return ids.filter((x, i, a) => a.indexOf(x) === i);
+}
+/* تنزيل كل الأصوات على الجهاز (Cache Storage) عشان التجربة والبث يشتغلون فوري وبدون نت.
+   يتخطى اللي تنزّل قبل، 4 ملفات بنفس الوقت، والتقدم في #sfxDl */
+SFX.dl = { run: null, done: 0, total: 0, fail: 0, ready: false };
+function sfxDlPaint() {
+    const el = document.getElementById("sfxDl");
+    if (!el) return;
+    const D = SFX.dl, pct = D.total ? Math.round(D.done * 100 / D.total) : 0;
+    if (D.ready && !D.fail) el.innerHTML = `<b>✓ كل الأصوات (${D.total}) محفوظة في جهازك</b><span>تشتغل فوري وبدون نت</span>`;
+    else if (D.run) el.innerHTML = `<b>جاري حفظ الأصوات في جهازك ${D.done} من ${D.total}</b><span class="sfx-bar"><i style="width:${pct}%"></i></span>`;
+    else if (D.fail) el.innerHTML = `<b>انحفظ ${D.done - D.fail} من ${D.total}</b><button onclick="sfxDownloadAll()">كمّل التحميل</button>`;
+    else el.innerHTML = `<button onclick="sfxDownloadAll()">احفظ كل الأصوات في جهازي</button>`;
+}
+function sfxDownloadAll() {
+    if (SFX.dl.run) return SFX.dl.run;
+    const D = SFX.dl;
+    D.run = (async () => {
+        let cache;
+        try { cache = await caches.open(AUDIO_CACHE); } catch (e) { D.run = null; return; }
+        try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+        const ids = sfxAllIds();
+        let have = [];
+        try { have = (await cache.keys()).map(r => r.url); } catch (e) {}
+        const need = ids.filter(id => have.indexOf(cineAudioUrl(id)) === -1);
+        D.total = ids.length; D.done = ids.length - need.length; D.fail = 0; D.ready = false;
+        sfxDlPaint();
+        let i = 0, last = 0;
+        const worker = async () => {
+            while (i < need.length) {
+                const id = need[i++];
+                try {
+                    const r = await fetch(cineAudioUrl(id));
+                    if (!r.ok || (r.headers.get("Content-Type") || "").indexOf("audio") === -1) throw new Error("bad");
+                    await cache.put(cineAudioUrl(id), r);
+                } catch (e) { D.fail++; }
+                D.done++;
+                if (Date.now() - last > 250) { last = Date.now(); sfxDlPaint(); }
+            }
+        };
+        await Promise.all([worker(), worker(), worker(), worker()]);
+        D.ready = true; D.run = null;
+        sfxDlPaint();
+    })();
+    return D.run;
 }
 /* المنظم يختار: يجرّب الصوت وينحفظ لكل المشاهدين */
 async function sfxPick(k, n) {
@@ -104,7 +163,7 @@ function sfxToggle(k) { SFX.openKey = SFX.openKey === k ? "" : k; sfxRender(); }
 function sfxRender() {
     const body = document.getElementById("sfxBody");
     if (!body) return;
-    let html = `<div class="sfx-hint">اضغط على الزر اللي تبي تغيّر صوته، واضغط أي صوت تسمعه: الأخير اللي تضغطه يصير المعتمد في البث عند كل المشاهدين. "الحالي" هو الصوت المعتمد قبل التعديل. لكل زر 6 أنماط مولّدة وعشرات العينات من مكتبات استوديو مختلفة (Mixkit و Sonniss).</div>`;
+    let html = `<div class="sfx-hint">اضغط على الزر اللي تبي تغيّر صوته، واضغط أي صوت تسمعه: الأخير اللي تضغطه يصير المعتمد في البث عند كل المشاهدين. "الحالي" هو الصوت المعتمد قبل التعديل. لكل زر 6 أنماط مولّدة وعشرات العينات من مكتبات استوديو مختلفة (Mixkit و Sonniss).</div><div id="sfxDl" class="sfx-dl"></div>`;
     SFX_EVENTS.forEach(e => {
         if (e.g) html += `<div class="sfx-group">${escapeHTML(e.g)}</div>`;
         const cur = sfxChosen(e.k), open = SFX.openKey === e.k, all = sfxSamples(e.k);
@@ -122,10 +181,12 @@ function sfxRender() {
     const y = body.scrollTop;
     body.innerHTML = html;
     body.scrollTop = y;
+    sfxDlPaint();
 }
 function openSfxModal() {
     if (!isAdmin) return;
     sfxListen();
     sfxRender();
     openModal("sfxModal");
+    sfxDownloadAll();
 }
