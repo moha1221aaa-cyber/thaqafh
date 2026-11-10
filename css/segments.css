@@ -186,3 +186,12 @@
 .sfx-head i{font-style:normal;font-size:11px;color:#94a3b8;white-space:nowrap;}
 .sfx-card.open{border-color:#facc15;}
 .sfx-card .sfx-row{max-height:34vh;overflow-y:auto;}
+
+/* حفظ الأصوات في الجهاز (قائمة أصوات البث) */
+.sfx-dl{display:flex;flex-direction:column;gap:6px;margin:0 0 12px;padding:10px 12px;border-radius:12px;background:var(--surface,rgba(255,255,255,.06));font-size:13px}
+.sfx-dl:empty{display:none}
+.sfx-dl b{font-weight:600}
+.sfx-dl span{opacity:.75}
+.sfx-dl .sfx-bar{display:block;height:6px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;opacity:1}
+.sfx-dl .sfx-bar i{display:block;height:100%;background:var(--brand,#3b82f6);transition:width .25s}
+.sfx-dl button{align-self:flex-start;padding:8px 14px;border-radius:10px;border:0;background:var(--brand,#3b82f6);color:#fff;font:inherit;cursor:pointer}

@@ -124,13 +124,25 @@ function cineNeedFor(d) {
     if (d.scene === "intro") return ["ident"];
     return [];
 }
+/* مخزن الأصوات (نفس الاسم في sw.js): كل صوت ينزل مرة وحدة وبعدها يشتغل بدون نت */
+const AUDIO_CACHE = "thaqafah-audio-v1";
+function cineAudioUrl(id) { return new URL("audio/" + id + ".mp3", location.href).href; }
+async function cineAudioFetch(id) {
+    const url = cineAudioUrl(id);
+    let cache = null;
+    try { cache = await caches.open(AUDIO_CACHE); } catch (e) {}
+    if (cache) { try { const hit = await cache.match(url); if (hit) return hit; } catch (e) {} }
+    const r = await fetch(url);
+    if (r.ok && r.status === 200 && cache && (r.headers.get("Content-Type") || "").indexOf("audio") !== -1) { try { await cache.put(url, r.clone()); } catch (e) {} }
+    return r;
+}
 function cineLoadSamples(ids) {
     let c;
     try { c = cineGraph().c; } catch (e) { return; }
     (ids || CINE_CORE).forEach(id => {
         if (!CINE_FILES[id]) return;
         if (CINE_BUF[id] || CINE_LOADING[id]) return;
-        CINE_LOADING[id] = fetch("audio/" + id + ".mp3")
+        CINE_LOADING[id] = cineAudioFetch(id)
             .then(r => {
                 if (!r.ok || (r.headers.get("Content-Type") || "").indexOf("audio") === -1) throw new Error("no file");
                 return r.arrayBuffer();
