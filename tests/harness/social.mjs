@@ -40,8 +40,20 @@ try {
     check("المشاهد ما يسجّل", await fan.evaluate(() => !REC.id));
     await host.evaluate(() => liveTx(openLiveId, () => ({ s1: 1 })));
     await sleep(1200);
+    /* الجوال علّق: ساعة الصوت توقف 3 ث وساعة البث تمشي (التسجيل يقصر عن الوقت الحقيقي) */
+    await host.evaluate(() => {
+        const real = REC.ctx; let frozenAt = null, shift = 0;
+        window.__freeze = on => { if (on) frozenAt = real.currentTime; else { shift += real.currentTime - frozenAt; frozenAt = null; } };
+        REC.ctx = { get currentTime() { return (frozenAt !== null ? frozenAt : real.currentTime) - shift; } };
+        window.__freeze(true);
+    });
+    await sleep(3000);
+    await host.evaluate(() => window.__freeze(false));
+    await sleep(600);
     await host.evaluate(() => liveTx(openLiveId, () => ({ s2: 2 })));
     await sleep(1500);
+    const syncInfo = await host.evaluate(() => { const ev = REC.ev.find(e => e[1].s2 === 2); const S = REC.t0 + ev[0]; let a = 0; while (recMap(REC.sync, a) < S) a += 10; return { a, wall: ev[0], jump: (() => { const f = REC.sync[0], l = REC.sync[REC.sync.length - 1]; return (l[1] - f[1]) - (l[0] - f[0]) > 2500; })() }; });
+    check("التعليق انحفظ في نقاط المزامنة (الصوت أقصر من الوقت بـ 3 ث)", syncInfo.jump && syncInfo.wall - syncInfo.a > 2500, syncInfo);
     check("الأحداث تنحفظ بالمفاتيح اللي تغيّرت بس", await host.evaluate(() => REC.ev.length >= 3 && Object.keys(REC.ev[0][1]).length > 10 && REC.ev.some(e => e[1].s1 === 1 && Object.keys(e[1]).length < 6) && REC.ev.some(e => e[1]._rx)), await host.evaluate(() => REC.ev.map(e => Object.keys(e[1]).length)));
     await host.evaluate(() => liveTx(openLiveId, () => ({ status: "ended" })));
     const meta = await until(() => { const l = db.data("liveSecrets/_recs"); return l && l.list && l.list.length ? l.list[0] : null; }, 15000);
@@ -63,6 +75,13 @@ try {
     await host.evaluate(() => recSeek(9999));
     await sleep(600);
     check("التقديم للآخر: نتيجة البث مثل ما صار", await host.evaluate(() => liveMatchesCache.__replay.status === "ended" && liveMatchesCache.__replay.s1 === 1 && liveMatchesCache.__replay.s2 === 2), await host.evaluate(() => ({ st: liveMatchesCache.__replay.status, s1: liveMatchesCache.__replay.s1 })));
+    /* بعد التعليق: الحدث يطلع على مكانه في الصوت مو على الوقت الحقيقي */
+    await host.evaluate(a => { BC_REPLAY.audio.pause(); recSeek((a - 900) / 1000); }, syncInfo.a);
+    await sleep(500);
+    check("قبل مكان الحدث في الصوت بشوي: ما طلع", await host.evaluate(() => liveMatchesCache.__replay.s2 !== 2), await host.evaluate(() => liveMatchesCache.__replay.s2));
+    await host.evaluate(a => recSeek((a + 400) / 1000), syncInfo.a);
+    await sleep(500);
+    check("بعد مكانه في الصوت: طلع (الصوت والصورة متوافقين)", await host.evaluate(() => liveMatchesCache.__replay.s2 === 2));
     await host.evaluate(() => recSeek(0));
     await sleep(600);
     check("الرجوع لأول: يرجع البث من البداية", await host.evaluate(() => liveMatchesCache.__replay.status === "live" && !liveMatchesCache.__replay.s1));
