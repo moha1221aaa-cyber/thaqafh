@@ -2,12 +2,12 @@
    - يخزن الصفحة الرئيسية والشعار مؤقتاً ليفتح الموقع بسرعة حتى مع نت ضعيف.
    - لا يخزن بيانات الدوري نفسها (النتائج، الشات، الغرفة)، فهذي دائماً تجي محدثة من الإنترنت.
    - رقم الإصدار CACHE_NAME: لازم يتغيّر مع كل تحديث كبير للموقع حتى يحمّل الأجهزة النسخة الجديدة. */
-const CACHE_NAME = "thaqafah-shell-v7";
+const CACHE_NAME = "thaqafah-shell-v8";
 /* أصوات البث (audio/*.mp3) في مخزن لحالها، تنقرا منه أول (بدون نت)، وما ينمسح مع تحديث الموقع.
    لو تغيّر ملف صوت بنفس الاسم: غيّر الرقم هنا وفي AUDIO_CACHE حق cinema.js */
 const AUDIO_CACHE = "thaqafah-audio-v1";
 /* ملفات الموقع الأساسية (الشكل في css/ والكود في js/) */
-const SHELL_FILES = ["/", "/index.html", "/logo.png", "/icon-192.png", "/manifest.json", "/css/main.css", "/css/room.css", "/css/design.css", "/css/som.css", "/css/bara.css", "/css/tournaments.css", "/css/dialogs.css", "/css/broadcast.css", "/css/segments.css", "/js/core.js", "/js/pwa.js", "/js/wake.js", "/js/dialogs.js", "/js/config.js", "/js/voice.js", "/js/app.js", "/js/notifications.js", "/js/users.js", "/js/league.js", "/js/knockout.js", "/js/tournaments.js", "/js/majlis.js", "/js/account.js", "/js/videos.js", "/js/room.js", "/js/room-tools.js", "/js/room-screen.js", "/js/som.js", "/js/bara.js", "/js/broadcast/engine.js", "/js/broadcast/presenter.js", "/js/broadcast/studio.js", "/js/broadcast/cinema.js", "/js/broadcast/tv.js", "/js/broadcast/show.js", "/js/broadcast/segments.js", "/js/broadcast/duel.js", "/js/sfx-catalog.js", "/js/sfx.js", "/js/broadcast/voice.js", "/js/broadcast/screen.js", "/js/ai.js", "/js/menu.js", "/js/nav.js"];
+const SHELL_FILES = ["/", "/index.html", "/logo.png", "/icon-192.png", "/manifest.json", "/css/main.css", "/css/room.css", "/css/design.css", "/css/som.css", "/css/bara.css", "/css/tournaments.css", "/css/dialogs.css", "/css/broadcast.css", "/css/segments.css", "/js/core.js", "/js/pwa.js", "/js/wake.js", "/js/dialogs.js", "/js/config.js", "/js/voice.js", "/js/app.js", "/js/notifications.js", "/js/users.js", "/js/league.js", "/js/knockout.js", "/js/tournaments.js", "/js/majlis.js", "/js/account.js", "/js/videos.js", "/js/room.js", "/js/room-tools.js", "/js/room-screen.js", "/js/som.js", "/js/bara.js", "/js/broadcast/engine.js", "/js/broadcast/presenter.js", "/js/broadcast/studio.js", "/js/broadcast/cinema.js", "/js/broadcast/tv.js", "/js/broadcast/show.js", "/js/broadcast/segments.js", "/js/broadcast/duel.js", "/js/sfx-catalog.js", "/js/sfx.js", "/js/broadcast/voice.js", "/js/broadcast/screen.js", "/js/broadcast/react.js", "/js/broadcast/record.js", "/js/ai.js", "/js/menu.js", "/js/nav.js"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

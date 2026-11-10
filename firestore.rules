@@ -419,6 +419,13 @@ service cloud.firestore {
         && request.resource.data.at is number;
       allow delete: if isAdmin() || (signedIn() && request.auth.uid == uid);
     }
+    // تفاعلات الجمهور بالإيموجي (js/broadcast/react.js): كل مشاهد يكتب وثيقته بس (عداد تراكمي لكل إيموجي)، والملخص للمنظم (تحت)
+    match /room/main/liveRx/{bid}/u/{uid} {
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['c', 'n', 'at'])
+        && request.resource.data.c is map && request.resource.data.c.size() <= 6
+        && request.resource.data.n is int && request.resource.data.at is number;
+    }
     // أي شي ثاني تحت الغرفة: المنظم
     match /room/main/{rest=**} {
       allow read: if true;

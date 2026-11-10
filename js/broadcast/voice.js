@@ -167,6 +167,7 @@ function bcShouldPublish(d) {
 }
 
 function bcSyncAudio() {
+    if (window.BC_REPLAY) return;
     if (bcSyncBusy) { bcSyncAgain = true; return; }
     bcSyncBusy = true;
     (async () => {

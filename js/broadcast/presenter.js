@@ -56,6 +56,7 @@ function bcStopSpeech() {
 const BC_SPEAK_SEEK_MAX = 1.2;
 let bcSpeakSeq = 0;
 function bcSpeak(text, at, joinedLate) {
+    if (window.BC_REPLAY) return;   /* المشاهدة المسجّلة: صوت المذيع داخل التسجيل */
     const list = (Array.isArray(text) ? text : [text]).filter(Boolean);
     if (!bcVoiceOn || !list.length) return;
     bcStopSpeech();
@@ -71,6 +72,7 @@ function bcSpeak(text, at, joinedLate) {
             const src = c.createBufferSource();
             const g = c.createGain(); g.gain.value = 1.0;
             src.buffer = buf; src.connect(g); g.connect(c.destination);
+            if (typeof recTap === "function") { const tp = recTap(); if (tp) g.connect(tp); }   /* تسجيل البث (record.js) */
             src.onended = () => { if (bcSpeechSrc === src) { bcSpeechSrc = null; setTimeout(() => playAt(i + 1), 250); } };
             const late = i === 0 && at ? (bcNow() - at) / 1000 : 0;
             if (joinedLate && late > buf.duration + 1) return playAt(i + 1);   /* فتح البث متأخر والجملة خلصت عند الكل */

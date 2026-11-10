@@ -26,7 +26,15 @@ export function serve(port) {
         if (p === "/") p = "/index.html";
         const f = path.join(ROOT, p);
         if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end("nf"); }
-        res.writeHead(200, { "Content-Type": MIME[path.extname(f)] || "application/octet-stream", "Cache-Control": "no-store" });
+        const type = MIME[path.extname(f)] || "application/octet-stream", size = fs.statSync(f).size;
+        /* Range (المتصفح يحتاجه عشان يقدّم الصوت والفيديو: مشاهدة البث المسجّل) */
+        const m = /bytes=(\d*)-(\d*)/.exec(req.headers.range || "");
+        if (m) {
+            const a = m[1] ? Number(m[1]) : 0, b = m[2] ? Math.min(size - 1, Number(m[2])) : size - 1;
+            res.writeHead(206, { "Content-Type": type, "Cache-Control": "no-store", "Accept-Ranges": "bytes", "Content-Range": `bytes ${a}-${b}/${size}`, "Content-Length": b - a + 1 });
+            return fs.createReadStream(f, { start: a, end: b }).pipe(res);
+        }
+        res.writeHead(200, { "Content-Type": type, "Cache-Control": "no-store", "Accept-Ranges": "bytes", "Content-Length": size });
         fs.createReadStream(f).pipe(res);
     });
     return new Promise(r => srv.listen(port, () => r(srv)));

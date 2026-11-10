@@ -66,7 +66,7 @@ const BC_TRIAL_ROUND = "التجريبية";
 /* ===== وقت السيرفر: فرق ساعة الجوال عن السيرفر، عشان المؤقتات تكون عادلة للكل ===== */
 let bcClockOffset = 0, bcClockSynced = false;
 try { bcClockOffset = Number(sessionStorage.getItem("bcClockOffset")) || 0; } catch (e) {}
-function bcNow() { return Date.now() + bcClockOffset; }
+function bcNow() { return window.BC_REPLAY ? window.BC_REPLAY.now() : Date.now() + bcClockOffset; }   /* المشاهدة المسجّلة (record.js): وقت التسجيل */
 async function bcSyncClock() {
     let best = null;
     for (let i = 0; i < 3; i++) {
@@ -132,9 +132,9 @@ function initLiveMatches() {
         snap.forEach(doc => {
             const x = doc.data();
             if (x && x.type === "round") next[doc.id] = x;
-            else if (x && x.type === "rx" && openLiveId && doc.id === "rx_" + openLiveId) bcOnRx(x);
         });
-        if (liveMatchesCache[BC_REH]) next[BC_REH] = liveMatchesCache[BC_REH];   /* البث الخاص من مستمع ثاني (bcRehListen) */
+        if (liveMatchesCache[BC_REH]) next[BC_REH] = liveMatchesCache[BC_REH];
+        if (liveMatchesCache.__replay) next.__replay = liveMatchesCache.__replay;   /* المشاهدة المسجّلة (record.js) */   /* البث الخاص من مستمع ثاني (bcRehListen) */
         bcNotifyChanges(liveMatchesCache, next);
         liveMatchesCache = next;
 
@@ -187,7 +187,7 @@ function bcNotifyChanges(prev, next) {
 
 function renderLiveBars() {
     let html = "";
-    Object.keys(liveMatchesCache).filter(id => isLiveActive(liveMatchesCache[id])).forEach(id => {
+    Object.keys(liveMatchesCache).filter(id => id !== "__replay" && isLiveActive(liveMatchesCache[id])).forEach(id => {
         const d = liveMatchesCache[id];
         const o = bcCur(d);
         let info = "الافتتاح";
@@ -406,6 +406,7 @@ async function bcStartRound(r) {
 
 /* تنفيذ تعديل على البث داخل Transaction (عشان أسرع ضغطة جرس هي اللي تفوز فعلاً) */
 function liveTx(id, fn) {
+    if (window.BC_REPLAY) return Promise.resolve(null);   /* المشاهدة المسجّلة ما تكتب شي */
     const ref = liveRef(id);
     return firebaseDB.runTransaction(async tx => {
         const snap = await tx.get(ref);
@@ -514,6 +515,7 @@ async function bcOpenNext(id, skip) {
 /* المنظم يجيب الأجوبة الأصلية (لو فتح البث من جهاز ثاني أو بعد تحديث الصفحة) */
 let bcSecretTry = {};
 function bcLoadSecret(id, force) {
+    if (window.BC_REPLAY) return;
     if (!isAdmin || bcIsReh(id) || (bcSecrets[id] && bcPlans[id])) return Promise.resolve();   /* البث الخاص: الأجوبة في وثيقته نفسها */
     if (bcSecretTry[id] && !force) return bcSecretTry[id];
     bcSecretTry[id] = firebaseDB.collection("liveSecrets").doc(id).get().then(s => {

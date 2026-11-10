@@ -248,6 +248,7 @@ function duPaint(d) {
 }
 /* صوت الخلفية (بدون موسيقى): يدخل بهدوء ويطلع بهدوء، ويرجع يحاول لو ما تحمّل للحين */
 function duBed(on) {
+    if (window.BC_REPLAY) on = false;
     if (on === DU.bedOn && (!on || DU.bed)) return;
     if (!on) {
         DU.bedOn = false;
