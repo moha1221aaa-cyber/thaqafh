@@ -151,7 +151,7 @@ try {
         await dockBtn(r === 2 ? "الفقرة الرابعة: ضد وند" : "الجولة التالية");
     }
     /* الفقرة 4 (ضد وند، تفاصيلها في duel.mjs): هنا ننهيها بدون نقطة ونتأكد إن النتيجة تطلع بعدها */
-    check("بعد الفقرة 3: الفقرة الرابعة ضد وند", !!await until(() => { const d = D(); return d.seg === 4 && d.phase === "s4" && d.sg.st === "pick" ? d : null; }, 6000));
+    check("بعد الفقرة 3: الفقرة الرابعة ضد وند", !!await until(() => { const d = D(); return d.seg === 4 && d.phase === "s4" && d.sg.st === "cat" ? d : null; }, 6000));
     await waitBtn("إنهاء الفقرة بدون نقطة");
     await dockBtn("إنهاء الفقرة بدون نقطة");
     await until(() => D().sg.st === "done", 5000);
