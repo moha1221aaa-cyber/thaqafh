@@ -110,7 +110,7 @@ try {
         await dockBtn("ابدأ الجولة");
         const p = await until(() => D().sg.st === "play" ? D().sg : null, 5000);
         check(`ف3 ج${r + 1}: اللعب يبدأ`, p && p.turn === (r % 2 === 0 ? 1 : 2) && p.len === 3);
-        check(`ف3 ج${r + 1}: ما فيه خانة كتابة، والأزرار 4 + استرايك`, await host.evaluate(() => !document.querySelector("#sgDock input") && [...document.querySelectorAll("#sgDock .sg-hits button")].map(b => b.textContent.trim()).join("|") === "ولا حرف|حرف صحيح|حرفين صحيحة|ثلاث حروف صحيحة" && /استرايك/.test(document.querySelector("#sgDock .sg-strike").textContent)));
+        check(`ف3 ج${r + 1}: ما فيه خانة كتابة، والأزرار 4 + استرايك`, !!await until(() => host.evaluate(() => !document.querySelector("#sgDock input") && [...document.querySelectorAll("#sgDock .sg-hits button")].map(b => b.textContent.trim()).join("|") === "ولا حرف|حرف صحيح|حرفين صحيحة|ثلاث حروف صحيحة" && /استرايك/.test((document.querySelector("#sgDock .sg-strike") || {}).textContent || "")), 4000));
         if (r === 0) {
             const first = p.turn;
             /* ولا حرف، حرف، حرفين: تنسجل والدور يتنقل */
