@@ -21,11 +21,12 @@ function recTick(d) {
     if (window.BC_REPLAY) return recReplayTick();
     if (REC.id && (REC.id !== openLiveId || !d || d.status !== "live")) recStop(REC.id === openLiveId ? d : null);
     if (!REC.id && !REC.stopping && recWant(d)) recStart(d);
-    if (REC.id) { recSnap(d); recAttach(); }
+    if (REC.id) { recSyncPoint(); recSnap(d); recAttach(); }
 }
 function recStart(d) {
     try {
         const G = cineGraph(), c = G.c;
+        if (c.state !== "running") { try { c.resume(); } catch (e) {} return; }   /* المحرك الصوتي واقف: نحاول نشغّله ونبدأ التسجيل التيك الجاي */
         const mime = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg;codecs=opus"].find(m => { try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; } }) || "";
         const tap = c.createGain(), dest = c.createMediaStreamDestination();
         tap.connect(dest);
@@ -35,7 +36,23 @@ function recStart(d) {
             title: bcIsReh(openLiveId) ? "بث خاص" : ("الجولة " + (d.round || "")) });
         mr.ondataavailable = e => { if (e.data && e.data.size) REC.chunks.push(e.data); };
         mr.start(10000);
+        /* ساعة الصوت (وقت المحرك الصوتي) مع ساعة البث: لو الجوال علّق أو الصوت وقف لحظات، التسجيل يقصر عن الوقت الحقيقي،
+           فنحفظ نقاط مزامنة [وقت الصوت, وقت البث] والمشاهدة تحسب وقت الصورة من مكان الصوت (تأخير وبطء، شكوى محمد 10 نوفمبر) */
+        REC.ctx = c; REC.a0 = c.currentTime; REC.sync = [[0, Math.round(bcNow())]];
     } catch (e) { console.error("تسجيل البث: ما بدأ", e); REC.id = ""; }
+}
+function recAudioMs() { return REC.ctx ? Math.round((REC.ctx.currentTime - REC.a0) * 1000) : 0; }
+/* نقطة مزامنة لو ساعة الصوت بعدت عن ساعة البث أكثر من 60ms (أو كل 5 ث) */
+function recSyncPoint() {
+    if (!REC.sync) return;
+    const a = recAudioMs(), sv = Math.round(bcNow()), last = REC.sync[REC.sync.length - 1];
+    if (Math.abs(sv - (last[1] + (a - last[0]))) > 60 || a - last[0] >= 5000) REC.sync.push([a, sv]);
+}
+/* وقت البث المقابل لمكان في الصوت (ms): آخر نقطة مزامنة قبله (ولو تكرر نفس المكان، الأخيرة: يقفز فوق اللحظات اللي ما انسجلت) */
+function recMap(sync, a) {
+    let lo = 0, hi = sync.length - 1;
+    while (lo < hi) { const m = (lo + hi + 1) >> 1; if (sync[m][0] <= a) lo = m; else hi = m - 1; }
+    return sync[lo][1] + (a - sync[lo][0]);
 }
 /* حدث جديد بالمفاتيح اللي تغيّرت بس (وأول حدث فيه الوثيقة كاملة) */
 function recSnap(d) {
@@ -68,8 +85,9 @@ function recAttach() {
 function recStop(dLast) {
     if (!REC.id || !REC.mr) { REC.id = ""; return; }
     if (dLast) recSnap(dLast);
-    const r = { id: REC.id, mr: REC.mr, chunks: REC.chunks, ev: REC.ev, t0: REC.t0, t1: bcNow(), mime: REC.mime, title: REC.title, tap: REC.tap, srcs: REC.srcs };
-    Object.assign(REC, { id: "", mr: null, chunks: [], ev: [], last: {}, lastObj: null, tap: null, dest: null, srcs: new Map() });
+    recSyncPoint();
+    const r = { id: REC.id, mr: REC.mr, chunks: REC.chunks, ev: REC.ev, t0: REC.t0, t1: bcNow(), mime: REC.mime, title: REC.title, tap: REC.tap, srcs: REC.srcs, sync: REC.sync, adur: recAudioMs() };
+    Object.assign(REC, { id: "", mr: null, chunks: [], ev: [], last: {}, lastObj: null, tap: null, dest: null, srcs: new Map(), sync: null, ctx: null });
     REC.stopping = new Promise(res => {
         r.mr.onstop = () => res();
         try { r.mr.state !== "inactive" ? r.mr.stop() : res(); } catch (e) { res(); }
@@ -79,9 +97,9 @@ function recStop(dLast) {
         r.srcs.forEach(s => { try { s.disconnect(); } catch (e) {} });
         if (r.t1 - r.t0 < 5000 || !r.ev.length) return;   /* أقل من 5 ث: ما يستاهل */
         const rid = String(r.t0) + "_" + String(r.id).replace(/[^\w]/g, "").slice(0, 30);
-        const meta = { rid, bid: String(r.id), title: r.title, at: Math.round(r.t0), dur: Math.round(r.t1 - r.t0), mime: r.mime };
+        const meta = { rid, bid: String(r.id), title: r.title, at: Math.round(r.t0), dur: Math.round(r.adur || (r.t1 - r.t0)), mime: r.mime };
         const audio = new Blob(r.chunks, { type: r.mime });
-        const tl = JSON.stringify({ v: 1, t0: Math.round(r.t0), ev: r.ev });
+        const tl = JSON.stringify({ v: 2, t0: Math.round(r.t0), sync: r.sync, ev: r.ev });
         await recLocalPut({ rid, meta, audio, tl });
         roomToast("انحفظ تسجيل البث", "save");
         recUpload(rid).catch(() => {});
@@ -200,7 +218,18 @@ async function recPlay(rid) {
     if (/res\.cloudinary\.com\/.+\/video\/upload\//.test(src)) src = src.replace(/\.(webm|m4a|mp4|ogg)(\?.*)?$/i, ".mp3");
     const audio = new Audio(safeSrc(src));
     audio.preload = "auto";
-    const R = { tl, audio, i: 0, st: {}, t: -1, adminWas: isAdmin, now() { return tl.t0 + audio.currentTime * 1000; } };
+    if (!tl.sync || !tl.sync.length) tl.sync = [[0, tl.t0]];   /* التسجيلات الأولى (قبل نقاط المزامنة) */
+    const R = { tl, audio, i: 0, st: {}, t: -1, adminWas: isAdmin, ct: -1, perf: 0, am: 0,
+        /* مكان الصوت (ms) بنعومة: currentTime يتحدث على دفعات في بعض المتصفحات، فبين التحديثات نكمّل بساعة الجهاز (بحد 300ms) */
+        audioMs() {
+            const ct = audio.currentTime, p = performance.now();
+            if (ct !== this.ct) { this.ct = ct; this.perf = p; }
+            const playing = !audio.paused && !audio.ended && audio.readyState >= 3;
+            return ct * 1000 + (playing ? Math.min(300, (p - this.perf) * (audio.playbackRate || 1)) : 0);
+        },
+        last: 0,
+        /* ما يرجع ورا بفروقات صغيرة (الصورة ما ترتجف)، إلا لو رجع بالشريط */
+        now() { const v = recMap(tl.sync, this.audioMs()); if (v < this.last && this.last - v < 400) return this.last; this.last = v; return v; } };
     R.audio.addEventListener("ended", () => recCtlPaint());
     window.BC_REPLAY = BC_REPLAY = R;
     isAdmin = false;   /* تشوفه كمشاهد (بدون أزرار المقدم ولا كتابة) */
@@ -212,7 +241,7 @@ async function recPlay(rid) {
 /* يطبّق الأحداث لين الوقت t (ms من البداية)؛ لو رجع ورا يبني من أول */
 function recApply(t, silent) {
     const R = BC_REPLAY, ev = R.tl.ev;
-    if (t < R.t) { R.i = 0; R.st = {}; silent = true; }
+    if (t < R.t - 1) { R.i = 0; R.st = {}; silent = true; }
     let changed = false;
     while (R.i < ev.length && ev[R.i][0] <= t) {
         const e = ev[R.i++];
@@ -228,8 +257,9 @@ function recApply(t, silent) {
 function recReplayTick() {
     const R = BC_REPLAY;
     if (!R) return;
-    const t = R.audio.currentTime * 1000;
-    const jump = t < R.t - 400 || t > R.t + 1500;
+    const am = R.audioMs(), t = R.now() - R.tl.t0;
+    const jump = am < R.am - 400 || am > R.am + 1500;   /* تقديم أو رجوع بالشريط: بدون تفاعلات ولا أصوات */
+    R.am = am;
     if (recApply(t, jump) && openLiveId === "__replay") renderLiveScreen();
     recCtlPaint();
 }
@@ -253,7 +283,7 @@ function recCtlPaint() {
     if (tm.textContent !== txt) tm.textContent = txt;
 }
 function recToggle() { const R = BC_REPLAY; if (!R) return; if (R.audio.paused) R.audio.play().catch(() => {}); else R.audio.pause(); recCtlPaint(); }
-function recSeek(v) { const R = BC_REPLAY; if (!R) return; R.audio.currentTime = Number(v) || 0; recReplayTick(); }
+function recSeek(v) { const R = BC_REPLAY; if (!R) return; R.audio.currentTime = Number(v) || 0; R.ct = -1; R.last = 0; recReplayTick(); }
 /* closeLiveScreen يناديها: يرجع كل شي زي ما كان */
 function recOnClose() {
     const R = BC_REPLAY;
