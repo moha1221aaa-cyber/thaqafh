@@ -1,5 +1,5 @@
-/* الفقرة الرابعة "ضد وند" (10 نوفمبر 2026، طلب محمد): كل متسابق يختار شي في باله من تصنيف (أندية، لاعبين، دول، أكلات، شخصيات)،
-   وبعدها بالدور كل واحد يسأل سؤال عن اللي في بال خصمه ويخمّن، لين واحد يجيب تخمين الثاني. جولة وحدة، والفائز +1.
+/* الفقرة الرابعة "ضد وند" (10 نوفمبر 2026، طلب محمد): المقدم يختار تصنيف واحد للاثنين (أندية، لاعبين، دول، أكلات، شخصيات)، وكل متسابق يختار شي في باله منه،
+   وبعدها بالدور كل واحد يسأل خصمه سؤال جوابه نعم أو لا (مثل: هل شخصيتك يوتيوبر؟) والمقدم يحط الجواب وينتقل الدور، ولما واحد يعرف اللي في بال الثاني المقدم يضغط فوزه. جولة وحدة، والفائز +1.
    - الاختيار سري: المتسابق يكتبه من جواله في duelPicks/<uid> (صاحبه والمنظم بس يقرون، firestore.rules)،
      وجهاز المنظم يسمع اختيار الاثنين ويكتب في وثيقة البث التصنيف و"جاهز" بس (sg.c و sg.rd)، واللي في بالهم يطلع للكل بعد نهاية الجولة (sg.reveal).
    - المنظم يقدر يدخل الاختيار بدل متسابق (بدون جوال)، وفي البث الخاص التجريبي يختار عن المتسابقين الوهميين لحاله.
@@ -19,32 +19,25 @@ CINE_FILES.du_bed = { g: 1 };
 function duNewRound(d, now) {
     /* اللي متأخر بالنقاط يبدأ يسأل (ولو متعادلين المتسابق الأول) */
     const first = (d.s1 || 0) <= (d.s2 || 0) ? 1 : 2;
-    return { r: 0, st: "pick", at: now, n: 0, first: first, turn: 0, c: ["", ""], rd: [0, 0], q: 0, gs: [], win: 0, why: "", reveal: [], items: [], used: [], ul: [], sk: [0, 0], cnt: 0, wheel: null, tEnd: 0 };
+    return { r: 0, st: "cat", cat: "", at: now, n: 0, first: first, turn: 0, c: ["", ""], rd: [0, 0], q: 0, gs: [], win: 0, why: "", reveal: [], items: [], used: [], ul: [], sk: [0, 0], cnt: 0, wheel: null, tEnd: 0 };
 }
 function duKey(d) { return openLiveId + "|" + d.cur; }
 function duPickOf(d, n) { return DU.picks[duKey(d) + "|" + n] || null; }
 function duOpp(d, n) { return livePlayerName(d, n === 1 ? 2 : 1); }
 
 /* ===== المتسابق: يختار ويثبّت من جواله (#duPick برا الرسم الجزئي عشان الكتابة ما تنمسح) ===== */
-function duSetCat(c) {
-    if (DU_CATS.indexOf(c) === -1) return;
-    DU.myCat = c;
-    document.querySelectorAll("#duPick .du-cats button").forEach(b => b.classList.toggle("on", b.dataset.c === c));
-    const inp = document.getElementById("duPickIn");
-    if (inp) { inp.placeholder = "اكتب " + DU_HINT[c]; inp.focus(); }
-}
 const DU_HINT = { "أندية": "اسم النادي", "لاعبين": "اسم اللاعب", "دول": "اسم الدولة", "أكلات": "اسم الأكلة", "شخصيات": "اسم الشخصية" };
 async function duSubmit() {
     const d = liveMatchesCache[openLiveId], me = myLiveNum(d);
     if (!d || !me || d.seg !== 4 || !d.sg || d.sg.st !== "pick" || !currentUser || DU.sending) return;
     const inp = document.getElementById("duPickIn");
     const pick = String(inp ? inp.value : "").replace(/\s+/g, " ").trim().slice(0, 40);
-    if (!DU.myCat) return roomToast("اختر التصنيف أول", "alert");
+    const cat = d.sg.cat || "";
     if (!pick) return roomToast("اكتب اللي في بالك", "alert");
     DU.sending = true;
     try {
-        await firebaseDB.collection("duelPicks").doc(currentUser.uid).set({ bid: String(openLiveId), cur: d.cur, cat: DU.myCat, pick: pick, at: Date.now() });
-        DU.mine[duKey(d)] = { cat: DU.myCat, pick: pick };
+        await firebaseDB.collection("duelPicks").doc(currentUser.uid).set({ bid: String(openLiveId), cur: d.cur, cat: cat, pick: pick, at: Date.now() });
+        DU.mine[duKey(d)] = { cat: cat, pick: pick };
         DU.pickSig = "";
         roomToast("تم، اختيارك سري (المقدم بس يشوفه)", "lock");
     } catch (e) { roomToast("ما انحفظ: " + (e && e.message), "alert"); }
@@ -55,7 +48,7 @@ function duEditMine() { const d = liveMatchesCache[openLiveId]; if (d) { delete 
 function duPickPaint(d, scr) {
     let el = document.getElementById("duPick");
     const me = d ? myLiveNum(d) : 0;
-    const on = !!(scr && d && me && d.status === "live" && d.scene === "playing" && d.seg === 4 && d.sg && d.sg.st !== "done");
+    const on = !!(scr && d && me && d.status === "live" && d.scene === "playing" && d.seg === 4 && d.sg && (d.sg.st === "pick" || d.sg.st === "play"));
     if (!on) { if (el) el.remove(); DU.pickSig = ""; return; }
     const sg = d.sg, mine = DU.mine[duKey(d)];
     /* لو المتسابق أعاد تحميل الصفحة: اختياره يرجع من duelPicks حقه */
@@ -69,10 +62,9 @@ function duPickPaint(d, scr) {
     }
     let h, sig;
     if (sg.st === "pick" && !mine) {
-        sig = "form|" + duKey(d);
-        h = `<div class="du-ptitle">${ic("lock")} اختر شي في بالك، و${escapeHTML(duOpp(d, me))} يحاول يخمّنه</div>
-<div class="du-cats">${DU_CATS.map(c => `<button data-c="${escapeHTML(c)}" class="${DU.myCat === c ? "on" : ""}" onclick="duSetCat(${jsArg(c)})">${escapeHTML(c)}</button>`).join("")}</div>
-<div class="du-prow"><input id="duPickIn" maxlength="40" autocomplete="off" placeholder="${DU.myCat ? "اكتب " + DU_HINT[DU.myCat] : "اختر التصنيف أول"}" onkeydown="if(event.key==='Enter')duSubmit()"><button class="bc-go" onclick="duSubmit()">${ic("lock")} ثبّت</button></div>
+        sig = "form|" + duKey(d) + "|" + sg.cat;
+        h = `<div class="du-ptitle">${ic("lock")} اختر من <b>${escapeHTML(sg.cat)}</b> شي في بالك، و${escapeHTML(duOpp(d, me))} يحاول يخمّنه</div>
+<div class="du-prow"><input id="duPickIn" maxlength="40" autocomplete="off" placeholder="اكتب ${escapeHTML(DU_HINT[sg.cat] || "اللي في بالك")}" onkeydown="if(event.key==='Enter')duSubmit()"><button class="bc-go" onclick="duSubmit()">${ic("lock")} ثبّت</button></div>
 <div class="du-pnote">ما يشوفه إلا المقدم لين تنتهي الفقرة</div>`;
     } else {
         sig = "mine|" + duKey(d) + "|" + sg.st + "|" + (mine ? mine.pick : "");
@@ -98,10 +90,10 @@ function duListen(d) {
     [1, 2].forEach(n => {
         const uid = n === 1 ? o.uid1 : o.uid2;
         if (!uid) return;
-        if (/^bot_/.test(uid)) { if (!duPickOf(d, n)) { const c = DU_CATS[sgRand(DU_CATS.length)]; duGot(d, n, c, DU_BOT[c][sgRand(DU_BOT[c].length)], 2500 + 1500 * n); } return; }
+        if (/^bot_/.test(uid)) { if (!duPickOf(d, n)) { const c = DU_BOT[d.sg.cat] ? d.sg.cat : DU_CATS[0]; duGot(d, n, c, DU_BOT[c][sgRand(DU_BOT[c].length)], 2500 + 1500 * n); } return; }
         DU.subs.push(firebaseDB.collection("duelPicks").doc(uid).onSnapshot(s => {
             const v = s.exists ? s.data() : null;
-            if (v && v.bid === String(openLiveId) && v.cur === d.cur && v.pick) duGot(d, n, v.cat, v.pick, 0);
+            if (v && v.bid === String(openLiveId) && v.cur === d.cur && v.pick) duGot(d, n, d.sg.cat, v.pick, 0);
         }, () => {}));
     });
 }
@@ -137,67 +129,75 @@ async function duHostPick(n) {
     const d = sgCur();
     if (!d || d.seg !== 4 || d.sg.st !== "pick") return;
     const name = livePlayerName(d, n);
-    const t = await uiPrompt("وش في بال " + name + "؟ اكتب التصنيف ثم الشي، مثل: دول: اليابان\nالتصنيفات: " + DU_CATS.join("، "), "");
-    if (!t) return;
-    const m = String(t).split(/[:：،,-]/);
-    let cat = String(m[0] || "").trim(), pick = m.slice(1).join(" ").trim();
-    if (DU_CATS.indexOf(cat) === -1) { pick = String(t).trim(); cat = ""; }
-    if (!pick) return roomToast("اكتب الشي اللي في باله", "alert");
-    duGot(d, n, cat, pick, 0);
+    const t = await uiPrompt("وش في بال " + name + "؟ (" + d.sg.cat + ")", "");
+    const pick = String(t || "").replace(/\s+/g, " ").trim();
+    if (!pick) return;
+    duGot(d, n, d.sg.cat, pick, 0);
 }
 
-/* ===== أفعال المقدم وقت اللعب ===== */
+/* ===== أفعال المقدم ===== */
+/* التصنيف موحد للاثنين والمقدم يختاره (طلب محمد 10 نوفمبر) */
+function duSetRoundCat(i) {
+    const d0 = sgCur(), c = DU_CATS[i];
+    if (!d0 || d0.seg !== 4 || d0.sg.st !== "cat" || !c) return;
+    sgAct((x, now) => sgUpd(x, { st: "pick", cat: c }, null, now));
+}
 function duStart() {
     const d0 = sgCur();
     if (!d0 || d0.seg !== 4 || d0.sg.st !== "pick") return;
     if (!(d0.sg.rd[0] && d0.sg.rd[1])) return roomToast("انتظر الاثنين يختارون", "hourglass");
     sgAct((x, now) => sgUpd(x, { st: "play", turn: x.sg.first }, null, now));
 }
-/* سأل سؤال (أو خمّن غلط) ← الدور للثاني */
-function duPass(wrong) {
+/* صاحب الدور يسأل خصمه سؤال (مثل: هل شخصيتك يوتيوبر؟) والخصم يجاوب، والمقدم يحط الجواب (نعم أو لا) ← الدور للثاني */
+function duAnswer(yes) {
     const d0 = sgCur();
     if (!d0 || d0.seg !== 4 || d0.sg.st !== "play") return;
-    sgAct((x, now) => sgUpd(x, { turn: sgOther(x.sg.turn), q: (x.sg.q || 0) + 1, gs: x.sg.gs.concat([{ p: x.sg.turn, x: wrong ? 1 : 0 }]).slice(-30) }, null, now));
+    sgAct((x, now) => sgUpd(x, { turn: sgOther(x.sg.turn), q: (x.sg.q || 0) + 1, gs: x.sg.gs.concat([{ p: x.sg.turn, a: yes ? 1 : 0 }]).slice(-30) }, null, now));
 }
-/* خمّن صح ← يفوز بالجولة، واللي في بالهم يطلع للكل */
-function duWin() {
+/* الفوز: واحد عرف اللي في بال الثاني ← +1، واللي في بالهم يطلع للكل */
+function duWin(n) {
     const d0 = sgCur();
-    if (!d0 || d0.seg !== 4 || d0.sg.st !== "play") return;
+    if (!d0 || d0.seg !== 4 || d0.sg.st !== "play" || !(n === 1 || n === 2)) return;
     const rv = duRevealOf(d0);
-    sgAct((x, now) => sgEndRound(x, now, x.sg.turn, "found", { reveal: rv, q: (x.sg.q || 0) + 1 }));
+    sgAct((x, now) => sgEndRound(x, now, n, "found", { reveal: rv }));
 }
 function duSkip() {
     const d0 = sgCur();
-    if (!d0 || d0.seg !== 4 || !(d0.sg.st === "play" || d0.sg.st === "pick")) return;
+    if (!d0 || d0.seg !== 4 || !(d0.sg.st === "play" || d0.sg.st === "pick" || d0.sg.st === "cat")) return;
     const rv = duRevealOf(d0);
     sgAct((x, now) => sgEndRound(x, now, 0, "skip", { reveal: rv }));
 }
-function duRevealOf(d) { return [1, 2].map(n => { const p = duPickOf(d, n); return p ? (p.pick + (p.cat ? " · " + p.cat : "")) : ""; }); }
+function duRevealOf(d) { return [1, 2].map(n => { const p = duPickOf(d, n); return p ? p.pick : ""; }); }
 
 /* ===== الرسم للكل ===== */
 function duCard(d, n, sg) {
-    const o = bcCur(d) || {}, ready = sg.rd[n - 1], cat = sg.c[n - 1];
-    const state = sg.st === "pick" ? (ready ? `${ic("check-circle")} اختار${cat ? " من: <b>" + escapeHTML(cat) + "</b>" : ""}` : `<span class="du-dots">يختار<i></i><i></i><i></i></span>`)
-        : (sg.st === "done" ? `<b class="du-rv">${escapeHTML((sg.reveal || [])[n - 1] || "—")}</b>` : `في باله: <b>${escapeHTML(cat || "؟")}</b>`);
+    const o = bcCur(d) || {}, ready = sg.rd[n - 1];
+    const state = sg.st === "cat" ? "" : sg.st === "pick" ? (ready ? `${ic("check-circle")} اختار` : `<span class="du-dots">يختار<i></i><i></i><i></i></span>`)
+        : (sg.st === "done" ? `<b class="du-rv">${escapeHTML((sg.reveal || [])[n - 1] || "—")}</b>` : (sg.turn === n ? "يسأل الحين" : "يجاوب"));
     const on = sg.st === "play" && sg.turn === n, won = sg.st === "done" && sg.win === n;
     return `<div class="du-card ${on ? "on" : ""} ${won ? "won" : ""} ${ready ? "ready" : ""}"><img src="${safeSrc(bcAv(o, n))}" alt=""><div class="nm">${escapeHTML(livePlayerName(d, n))}</div><div class="st">${state}</div>${sg.st === "done" ? "" : `<div class="lk">${ic("lock")}</div>`}</div>`;
 }
 function duHTML(d, me) {
     const sg = d.sg;
     const cards = `<div class="du-vs">${duCard(d, 1, sg)}<div class="du-x">ضد</div>${duCard(d, 2, sg)}</div>`;
-    if (sg.st === "pick") {
-        return `<div class="du-title"><b>ضد وند</b><small>كل متسابق يختار شي في باله، والثاني يخمّنه بالأسئلة</small></div>${cards}
+    const catBox = sg.cat ? `<div class="du-cat"><small>التصنيف</small><b>${escapeHTML(sg.cat)}</b></div>` : "";
+    if (sg.st === "cat") {
+        return `<div class="du-title"><b>ضد وند</b><small>كل متسابق يختار شي في باله، والثاني يخمّنه بأسئلة جوابها نعم أو لا</small></div>${cards}
 <div class="du-catsrow">${DU_CATS.map(c => `<span>${escapeHTML(c)}</span>`).join("")}</div>
-<div class="lv-muted">${me ? "اختر من تحت (سري)" : "بانتظار الاختيار..."}</div>`;
+<div class="lv-muted">بانتظار المقدم يختار التصنيف...</div>`;
+    }
+    if (sg.st === "pick") {
+        return `<div class="du-title"><b>ضد وند</b><small>كل متسابق يختار شي في باله، والثاني يخمّنه بأسئلة جوابها نعم أو لا</small></div>${catBox}${cards}
+<div class="lv-muted">${me ? "اكتب اللي في بالك تحت (سري)" : "بانتظار الاختيار..."}</div>`;
     }
     if (sg.st === "play") {
         const nm = escapeHTML(livePlayerName(d, sg.turn)), opp = escapeHTML(livePlayerName(d, sgOther(sg.turn)));
-        const rows = sg.gs.slice().reverse().slice(0, 4).map(g => `<div class="du-g p${g.p}"><span>${escapeHTML(livePlayerName(d, g.p))}</span><i class="${g.x ? "x" : ""}">${g.x ? "خمّن غلط" : "سأل"}</i></div>`).join("");
-        return `<div class="du-turn"><small>${me === sg.turn ? "دورك!" : "الدور على"}</small><b>${me === sg.turn ? "اسأل أو خمّن" : nm}</b><span>يسأل ${opp} أو يخمّن اللي في باله</span></div>${cards}
+        const rows = sg.gs.slice().reverse().slice(0, 5).map(g => `<div class="du-g p${g.p}"><span>سؤال ${escapeHTML(livePlayerName(d, g.p))}</span><i class="${g.a ? "y" : "x"}">${g.a ? "نعم" : "لا"}</i></div>`).join("");
+        return `<div class="du-turn"><small>${me === sg.turn ? "دورك!" : "الدور على"}</small><b>${me === sg.turn ? "اسأل " + opp : nm}</b><span>${me === sg.turn ? "سؤال جوابه نعم أو لا" : "يسأل " + opp + " سؤال جوابه نعم أو لا"}</span></div>${catBox}${cards}
 <div class="du-q">${ic("ball")} أسئلة: <b>${sg.q || 0}</b></div><div class="du-gs">${rows}</div>`;
     }
     const w = sg.win;
-    return `<div class="du-title"><b>${w ? ic("trophy") + " " + escapeHTML(livePlayerName(d, w)) + " خمّنها!" : "بدون نقطة"}</b><small>${w ? "+1 نقطة بعد " + (sg.q || 0) + " سؤال وتخمين" : "انتهت الجولة"}</small></div>${cards}
+    return `<div class="du-title"><b>${w ? ic("trophy") + " " + escapeHTML(livePlayerName(d, w)) + " عرفها!" : "بدون نقطة"}</b><small>${w ? "+1 نقطة بعد " + (sg.q || 0) + " سؤال" : "انتهت الجولة"}</small></div>${catBox}${cards}
 <div class="sg-score">${escapeHTML((bcCur(d) || {}).p1 || "")} <b>${d.s1 || 0}</b> - <b>${d.s2 || 0}</b> ${escapeHTML((bcCur(d) || {}).p2 || "")}</div>`;
 }
 
@@ -208,19 +208,22 @@ function duDockPaint(d, scr, dock) {
     const sec = n => { const p = duPickOf(d, n); return `<div class="du-sec ${sg.turn === n && sg.st === "play" ? "on" : ""}"><small>في بال ${escapeHTML(livePlayerName(d, n))}</small><b>${escapeHTML(p ? p.pick : "…")}</b>${p && p.cat ? `<i>${escapeHTML(p.cat)}</i>` : ""}</div>`; };
     const first = escapeHTML(livePlayerName(d, sg.first)), turn = escapeHTML(livePlayerName(d, sg.turn)), opp = escapeHTML(livePlayerName(d, sgOther(sg.turn)));
     let h = "";
-    if (sg.st === "pick") {
+    if (sg.st === "cat") {
+        h = `<div class="du-ptitle">اختر التصنيف (نفسه للاثنين)</div><div class="du-cats">${DU_CATS.map((c, i) => `<button onclick="duSetRoundCat(${i})">${escapeHTML(c)}</button>`).join("")}</div>`
+          + `<button class="lv-link" onclick="duSkip()">إنهاء الفقرة بدون نقطة</button>`;
+    } else if (sg.st === "pick") {
         const both = sg.rd[0] && sg.rd[1];
-        h = say(`قل: «كل واحد يختار شي في باله من: ${DU_CATS.join("، ")}، ويثبّته من جواله»`)
+        h = say(`قل: «التصنيف ${escapeHTML(sg.cat)}، كل واحد يختار شي في باله ويثبّته من جواله»`)
           + `<div class="du-secs">${sec(1)}${sec(2)}</div>`
           + `<div class="sg-row2"><button class="bc-ghost" onclick="duHostPick(1)">${ic("pencil")} أدخل بدل ${escapeHTML(livePlayerName(d, 1))}</button><button class="bc-ghost" onclick="duHostPick(2)">${ic("pencil")} أدخل بدل ${escapeHTML(livePlayerName(d, 2))}</button></div>`
           + `<button class="bc-go ${both ? "" : "off"}" onclick="duStart()">${ic("zap")} ${both ? "ابدأ (" + first + " يسأل أول)" : "بانتظار الاثنين يختارون"}</button>`
           + `<button class="lv-link" onclick="duSkip()">إنهاء الفقرة بدون نقطة</button>`;
     } else if (sg.st === "play") {
-        h = (sg.q ? "" : say(`قل: «${first} يبدأ، اسأل ${escapeHTML(livePlayerName(d, sgOther(sg.first)))} أو خمّن»`))
+        h = (sg.q ? "" : say(`قل: «${first} يبدأ، اسأل ${escapeHTML(livePlayerName(d, sgOther(sg.first)))} سؤال جوابه نعم أو لا»`))
           + `<div class="du-secs">${sec(1)}${sec(2)}</div>`
-          + `<div class="du-act"><button class="win" onclick="duWin()">${ic("trophy")} ${turn} خمّن صح!</button>`
-          + `<button class="pass" onclick="duPass(0)">${ic("ball")} سأل · الدور لـ ${opp}</button>`
-          + `<button class="bad" onclick="duPass(1)">${ic("x-circle")} خمّن غلط · الدور لـ ${opp}</button></div>`
+          + `<div class="du-ask">${turn} يسأل · جواب ${opp}:</div>`
+          + `<div class="du-act"><button class="yes" onclick="duAnswer(1)">${ic("check-circle")} نعم</button><button class="no" onclick="duAnswer(0)">${ic("x-circle")} لا</button></div>`
+          + `<div class="du-wins"><button onclick="duWin(1)">${ic("trophy")} ${escapeHTML(livePlayerName(d, 1))} عرفها · فوز</button><button onclick="duWin(2)">${ic("trophy")} ${escapeHTML(livePlayerName(d, 2))} عرفها · فوز</button></div>`
           + `<button class="lv-link" onclick="duSkip()">إنهاء بدون نقطة</button>`;
     } else if (sg.st === "done") {
         h = `<button class="bc-go" onclick="sgNext()">${ic("trophy")} نتيجة المواجهة</button>`;
@@ -278,11 +281,12 @@ function duFx(d) {
     DU.prev = snap;
     const fresh = bcNow() - (Number(sg.at) || 0) < 2500;
     if (!p || p.key !== key) {
-        if (sg.st === "pick") { bcStinger("الفقرة الرابعة", "ضد وند", sg.at); if (fresh) SG_SFX.seg(); }
+        if (sg.st === "cat") { bcStinger("الفقرة الرابعة", "ضد وند", sg.at); if (fresh) SG_SFX.seg(); }
+        if (sg.st === "pick" && fresh) SG_SFX.land();
         if (sg.st === "play") showSound(sg.at, "start_q", 0.8);
         if (sg.st === "done" && fresh && sg.win) { SG_SFX.ok(); setTimeout(SG_SFX.round, 900); }
         return;
     }
     if (sg.st === "pick" && snap.rd !== p.rd && fresh) SG_SFX.h1();
-    if (sg.st === "play" && snap.gs > p.gs) { const g = sg.gs[sg.gs.length - 1]; if (g && g.x) { SG_SFX.bad(); setTimeout(SG_SFX.pass, 800); } else SG_SFX.pass(); }
+    if (sg.st === "play" && snap.gs > p.gs) { const g = sg.gs[sg.gs.length - 1]; if (g) { (g.a ? SG_SFX.ok : SG_SFX.miss)(); setTimeout(SG_SFX.pass, 750); } }
 }

@@ -67,8 +67,11 @@ try {
     check("rehearsal: dock has the skip-to-segment-4 button", await until(() => host.evaluate(() => /تخطي للفقرة الرابعة/.test(document.getElementById("sgDock")?.textContent || "")), 6000));
     await host.evaluate(() => bcRehSkip());
     const sk4 = await until(() => db.data(REH).seg === 4 ? db.data(REH) : null, 6000);
-    check("skip → segment 4 (ضد وند)", sk4 && sk4.phase === "s4" && sk4.sg.st === "pick", sk4 && { seg: sk4.seg });
-    check("rehearsal bots pick by themselves (host gets ready for both)", !!await until(() => { const d = db.data(REH); return d.sg.rd[0] && d.sg.rd[1] && d.sg.c[0] && d.sg.c[1] ? d : null; }, 9000));
+    check("skip → segment 4 (ضد وند)", sk4 && sk4.phase === "s4" && sk4.sg.st === "cat", sk4 && { seg: sk4.seg });
+    await sleep(500);
+    await host.evaluate(() => duSetRoundCat(2));
+    check("host picks one category for both", !!await until(() => db.data(REH).sg.st === "pick" && db.data(REH).sg.cat === "دول", 6000));
+    check("rehearsal bots pick by themselves (host gets ready for both)", !!await until(() => { const d = db.data(REH); return d.sg.rd[0] && d.sg.rd[1] ? d : null; }, 9000));
     await sleep(500);
     await host.evaluate(() => bcRehSkip());
     await sleep(600);

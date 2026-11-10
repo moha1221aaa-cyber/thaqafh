@@ -273,3 +273,15 @@
 .du-act .bad{background:#b91c1c;}
 .sg-dock .bc-go.off{opacity:.5;}
 @media (prefers-reduced-motion:reduce){.du-bg i,.du-dots i{animation:none !important;}}
+/* ضد وند: التصنيف الموحد، وأزرار نعم/لا والفوز (تعديل 10 نوفمبر) */
+.du-cat{text-align:center;margin:2px auto 8px;padding:6px 18px;border-radius:14px;background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.45);width:max-content;max-width:100%;}
+.du-cat small{display:block;font-size:11px;color:#fde68a;}
+.du-cat b{font-size:20px;color:#fff;}
+.sg-dock>.du-cats{flex-direction:row;flex-wrap:wrap;justify-content:center;}
+.sg-dock>.du-cats button{padding:10px 16px;font-size:15px;}
+.du-ask{font-size:13px;color:#cbd5e1;text-align:center;}
+.du-act .yes{background:#16a34a;}
+.du-act .no{background:#b91c1c;}
+.sg-dock>.du-wins{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.du-wins button{margin:0;padding:9px 4px;border-radius:12px;font-size:13px;font-weight:700;color:#111827;background:#facc15;border:0;}
+.du-g i.y{color:#4ade80;}
