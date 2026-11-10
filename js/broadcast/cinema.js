@@ -98,14 +98,14 @@ function cineGraph() {
     Object.assign(CINE, { c, bus });
     return CINE;
 }
-function cineNow() { return cineGraph().c.currentTime + 0.02; }
+function cineNow() { return cineGraph().c.currentTime + 0.04; }
 
 /* ===== مكتبة الأصوات الحقيقية =====
    g: تسوية مستوى كل ملف (عشان كلها تطلع بنفس العلو تقريباً قبل ما نحدد مستواها في المشهد) */
 const CINE_FILES = {
     braam: { g: 0.4 }, riser: { g: 0.65 }, impact: { g: 0.53 }, whoosh: { g: 1 }, slam: { g: 0.57 },
     heartbeat: { g: 1 }, fireworks: { g: 0.7 },
-    buzz: { g: 1.3 }, correct: { g: 1 }, wrong: { g: 0.78 }, tick: { g: 1.4 }, timeout: { g: 0.85 },
+    buzz: { g: 1.3 }, correct: { g: 0.8, fi: 0.045 }, wrong: { g: 0.78 }, tick: { g: 1.4 }, timeout: { g: 0.85 },
     /* طابع برامج المسابقات (مؤثرات قصيرة). الموسيقى (lobby، show_intro، interlude، decider، think2، outro، big_win) انشالت */
     reveal: { g: 0.83 }, match_end: { g: 0.81 }, applause: { g: 1 }, start_q: { g: 0.87 },
     /* نغمة شارة البداية (5.8 ث، مقطوعة من show_intro بتلاشي): طلب محمد 23 أكتوبر 2026، قبل الترحيب بالمتسابقين */
@@ -153,10 +153,14 @@ function cineS(id, t, v, o) {
         CINE.fxUntil = Math.max(CINE.fxUntil || 0, performance.now() + (Math.max(0, t - c.currentTime) + b.duration) * 1000);
         const g = c.createGain();
         const vol = (v == null ? 1 : v) * ((CINE_FILES[id] || {}).g || 1);
-        g.gain.value = vol;
+        /* بداية ناعمة (6ms): الملفات تبدأ فجأة بصوت عالي، والمضغوط (compressor) كان يقطّع أول جزء ويطلع كأن بداية الصوت مقطوعة */
+        const st0 = t || cineNow();
+        g.gain.setValueAtTime(0.0001, st0);
+        /* correct: ملف مقصوص بدايته (يبدأ بصوت عالي بدون attack، شكوى محمد 10 نوفمبر) فبدايته أنعم (45ms)، وأي صوت يبدأ من نص الملف (tail) 50ms */
+        g.gain.linearRampToValueAtTime(vol, st0 + ((o && o.tail) ? 0.05 : ((CINE_FILES[id] || {}).fi || 0.006)));
         src.connect(g); g.connect(G.bus);
         const off = (o && o.tail) ? Math.max(0, b.duration - o.tail) : 0;
-        src.start(t || cineNow(), off);
+        src.start(st0, off);
         if (o && o.dur) {
             const st = t || cineNow();
             g.gain.setValueAtTime(vol, st + Math.max(0, o.dur - 0.5));

@@ -141,3 +141,30 @@
 .sg-strike{width:100%;margin:0;padding:9px;font-size:15px;font-weight:800;border-radius:12px;background:#7f1d1d;color:#fecaca;border:1px solid #dc2626;display:flex;align-items:center;justify-content:center;gap:6px;}
 @media (max-height:700px){.sg-reel{--h:54px;}.sg-reel.let{--h:60px;}.sg-reel .c{font-size:21px;}.sg-reel.let .c{font-size:36px;}}
 @media (prefers-reduced-motion:reduce){.sg-strip,.sg-reel.go .sg-sel,.sg-reel.idle .sg-sel{animation:none!important;}.sg-reel.go .sg-sel{opacity:1;}.sg-reel.go .sg-strip{transform:translateY(var(--to));}}
+
+/* تمويه حركة البكرة (ما أحد يقرا اللي يمر قبل الاختيار)، وبدون تمويه في الوضع الخفيف (الجوالات) */
+@keyframes sgMotion{0%{filter:blur(0)}8%{filter:blur(5px)}82%{filter:blur(4px)}100%{filter:blur(0)}}
+.sg-reel.go .sg-strip{animation-name:sgReel,sgMotion;animation-duration:var(--dur,4800ms),var(--dur,4800ms);}
+@keyframes sgDim{0%{opacity:.5}86%{opacity:.35}100%{opacity:1}}
+.bc-lite .sg-reel.go .sg-strip{animation-name:sgReel,sgDim;}
+/* لحظة الاختيار السينمائية */
+@keyframes sgCineIn{0%{opacity:0}12%{opacity:1}78%{opacity:1}100%{opacity:0}}
+@keyframes sgBarT{0%{transform:translateY(-100%)}14%{transform:none}84%{transform:none}100%{transform:translateY(-100%)}}
+@keyframes sgBarB{0%{transform:translateY(100%)}14%{transform:none}84%{transform:none}100%{transform:translateY(100%)}}
+@keyframes sgGlow{0%{transform:scale(.2);opacity:0}16%{opacity:.95}100%{transform:scale(2.6);opacity:0}}
+@keyframes sgRing{0%{transform:scale(.1);opacity:.9}100%{transform:scale(3.2);opacity:0}}
+@keyframes sgPush{0%{transform:scale(1.9);opacity:0;letter-spacing:.3em}16%{opacity:1}30%{transform:scale(1);letter-spacing:0}100%{transform:scale(1.07)}}
+@keyframes sgStreak{0%{transform:translateX(-130%) skewX(-20deg)}100%{transform:translateX(130%) skewX(-20deg)}}
+.sg-cine{position:absolute;inset:0;z-index:6;pointer-events:none;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(ellipse at center,rgba(2,6,23,.78),rgba(2,6,23,.94));animation:sgCineIn 2.3s ease both;}
+.sg-cine .sgc-bar{position:absolute;left:0;right:0;height:11%;background:#000;}
+.sg-cine .sgc-bar.top{top:0;animation:sgBarT 2.3s cubic-bezier(.7,0,.2,1) both;}
+.sg-cine .sgc-bar.bot{bottom:0;animation:sgBarB 2.3s cubic-bezier(.7,0,.2,1) both;}
+.sg-cine .sgc-glow{position:absolute;width:62vmin;height:62vmin;border-radius:50%;background:radial-gradient(circle,rgba(250,204,21,.9),rgba(245,158,11,.35) 45%,transparent 70%);animation:sgGlow 1.5s ease-out .15s both;}
+.sg-cine .sgc-ring{position:absolute;width:30vmin;height:30vmin;border-radius:50%;border:3px solid rgba(253,230,138,.9);animation:sgRing 1.3s ease-out .2s both;}
+.sg-cine .sgc-ring.r2{animation-delay:.45s;border-color:rgba(56,189,248,.8);}
+.sg-cine .sgc-streak{position:absolute;top:0;bottom:0;width:30%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);animation:sgStreak 1.1s ease-in-out .3s both;}
+.sg-cine .sgc-txt{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:0 16px;animation:sgPush 2.3s cubic-bezier(.16,1,.3,1) both;}
+.sg-cine .sgc-txt small{font-size:15px;color:#bae6fd;font-weight:700;letter-spacing:2px;}
+.sg-cine .sgc-txt b{font-size:clamp(38px,12vw,64px);line-height:1.15;font-weight:900;color:#fff;text-shadow:0 0 28px rgba(250,204,21,.85),0 4px 18px rgba(0,0,0,.7);}
+.sg-cine.let .sgc-txt b{font-size:clamp(110px,40vw,190px);line-height:1;color:#facc15;}
+.sg-cine .sgc-txt span{font-size:17px;color:#fde68a;font-weight:700;}
