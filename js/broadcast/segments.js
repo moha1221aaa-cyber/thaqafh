@@ -128,7 +128,7 @@ function sgNextUpd(x, now) {
 function sgCur() { const d = liveMatchesCache[openLiveId]; return (d && isAdmin && d.status === "live" && d.scene === "playing" && d.sg && (d.seg === 2 || d.seg === 3 || d.seg === 4)) ? d : null; }
 function sgAct(build) {
     const id = openLiveId, d0 = sgCur();
-    if (!id || !d0) return Promise.resolve();
+    if (!id || !d0) { bcUndoNext = ""; return Promise.resolve(); }
     const dock = document.getElementById("sgDock");
     if (dock) dock.classList.add("busy");
     return liveTx(id, (x, now) => {
@@ -185,12 +185,14 @@ function sgEndRound(x, now, win, why, extra) {
 function sgOk() {
     const d0 = sgCur();
     if (!d0 || d0.seg !== 2 || d0.sg.st !== "play") return;
+    bcUndoArm("sg");
     sgAct((x, now) => sgUpd(x, { turn: sgOther(x.sg.turn), tEnd: now + SG_TURN2_MS, cnt: (x.sg.cnt || 0) + 1 }, null, now));
 }
 /* غلط (أو انتهى وقته وما جاوب) ← يخسر الجولة والثاني ياخذ النقطة */
 function sgBad() {
     const d0 = sgCur();
     if (!d0 || d0.seg !== 2 || d0.sg.st !== "play") return;
+    bcUndoArm("sg");
     sgAct((x, now) => sgEndRound(x, now, sgOther(x.sg.turn), "wrong"));
 }
 function sgSkip() {
@@ -275,6 +277,7 @@ async function sgCustomWord() {
 function sgHit(n) {
     const d0 = sgCur();
     if (!d0 || d0.seg !== 3 || d0.sg.st !== "play" || !(n >= 0 && n <= 3)) return;
+    bcUndoArm("sg");
     sgAct((x, now) => {
         const t = x.sg.turn, gs = x.sg.gs.concat([{ p: t, n: n }]);
         /* 3 حروف صحيحة = عرف الكلمة */
@@ -286,6 +289,7 @@ function sgHit(n) {
 function sgStrike() {
     const d0 = sgCur();
     if (!d0 || d0.seg !== 3 || d0.sg.st !== "play") return;
+    bcUndoArm("sg");
     sgAct((x, now) => {
         const t = x.sg.turn, sk = x.sg.sk.slice(), gs = x.sg.gs.concat([{ p: t, x: 1 }]);
         sk[t - 1]++;
@@ -523,7 +527,7 @@ function sgFx(d) {
     if (same && d.seg === 2 && snap.cnt > prev.cnt) { SG_SFX.ok(); pass(700); }
     if (key !== was) {
         if (sg.st === "cat" && sg.r === 0) {
-            bcStinger(d.seg === 2 ? "الفقرة الثانية" : "الفقرة الثالثة", d.seg === 2 ? "عجلة الحروف" : "خمّن الكلمة", sg.at);
+            bcSegIdent(d.seg, sg.at);
             if (fresh) SG_SFX.seg();
         }
         if (sg.st === "play") { showSound(sg.at, "start_q", 0.8); }
