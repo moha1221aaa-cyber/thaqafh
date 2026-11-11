@@ -617,13 +617,19 @@ function bcRevealFetch(id) {
 function liveQuestionUpd(i, now) {
     return { scene: "playing", qIndex: i, phase: "buzz", buzzer: 0, answerer: 0, tried1: false, tried2: false, passed: false, lastAnswer: null, outcome: 0, qAt: now, deadline: now + LIVE_BUZZ_MS };
 }
+/* آخر سؤال في فقرة الأسئلة بنقطتين (11 نوفمبر 2026، طلب محمد) عشان المتأخر يقدر يرجع. بس للبث بالفقرات (seg)، والقديم نقطة زي قبل */
+function bcQPts(d, qi) {
+    const n = (d && d.questions || []).length;
+    return d && d.seg === 1 && n && qi === n - 1 && qi < LIVE_Q_COUNT ? 2 : 1;
+}
 function liveRevealUpd(d, winner, now, last) {
     const log = (d.log || Array(LIVE_Q_COUNT).fill(-1)).slice();
     log[d.qIndex] = winner;
     const u = { phase: "reveal", outcome: winner, log: log, deadline: now + LIVE_REVEAL_MS, pend: null };
     if (last !== undefined) u.lastAnswer = last;
-    if (winner === 1) u.s1 = (d.s1 || 0) + 1;
-    if (winner === 2) u.s2 = (d.s2 || 0) + 1;
+    const pts = bcQPts(d, d.qIndex);
+    if (winner === 1) u.s1 = (d.s1 || 0) + pts;
+    if (winner === 2) u.s2 = (d.s2 || 0) + pts;
     /* أكبر تأخر لكل متسابق (عشان نعرف العودة) */
     const s1 = u.s1 != null ? u.s1 : (d.s1 || 0), s2 = u.s2 != null ? u.s2 : (d.s2 || 0);
     u.bh1 = Math.max(d.bh1 || 0, s2 - s1);

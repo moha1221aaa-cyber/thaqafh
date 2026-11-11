@@ -68,8 +68,9 @@ function bcMatchContext(d) {
 /* النقاط قبل السؤال الحالي (عشان لحظة الكشف ما تغيّر حالة الحسم) */
 function bcPreScores(d) {
     let s1 = d.s1 || 0, s2 = d.s2 || 0;
-    if (d.phase === "reveal" && d.outcome === 1) s1--;
-    if (d.phase === "reveal" && d.outcome === 2) s2--;
+    const p = d.phase === "reveal" ? bcQPts(d, d.qIndex) : 0;
+    if (d.phase === "reveal" && d.outcome === 1) s1 -= p;
+    if (d.phase === "reveal" && d.outcome === 2) s2 -= p;
     return [s1, s2];
 }
 /* سؤال الحسم: آخر سؤال والفرق نقطة أو تعادل */
@@ -80,7 +81,7 @@ function bcIsDecider(d) {
     const n = (d.questions || []).length;
     if (!d || d.status !== "live" || d.scene !== "playing" || !n || d.qIndex !== n - 1) return false;
     const [a, b] = bcPreScores(d);
-    return Math.abs(a - b) <= 1;
+    return Math.abs(a - b) <= bcQPts(d, d.qIndex);
 }
 /* نوع الفوز: ساحق (فرق 3+) أو عودة (كان متأخر بنقطتين وفاز) */
 function bcWinKind(it) {

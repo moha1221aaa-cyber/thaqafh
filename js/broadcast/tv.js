@@ -52,9 +52,17 @@ function tvTick(d) {
         if (sec > 0) {
             const num = document.getElementById("lvTimerNum");
             bcRestartAnim(num, "beat");
-            if (d.phase === "buzz") cinePlay("tick", sec <= 3 ? 0.45 : 0.3);
+            /* آخر 3 ثواني تكتكة أقوى، ووقت الجواب بعد (11 نوفمبر 2026) */
+            if (d.phase === "buzz") cinePlay("tick", sec <= 3 ? 0.8 : 0.3);
+            else if (sec <= 3) cinePlay("tick", 0.8);
         }
     }
+    /* ضغط آخر 3 ثواني في أي دور: فقرة الأسئلة، ودور المتسابق في الحروف والكلمات */
+    const sgLeft = playing && d.seg > 1 && d.sg && d.sg.st === "play" && d.sg.tEnd ? d.sg.tEnd - bcNow() : 0;
+    const press = (final && left <= 3000) || (sgLeft > 0 && sgLeft <= 3000);
+    if (press) tvLayer("bcPress", "bc-press");
+    scr.classList.toggle("bc-pressing", press);
+    if (typeof rxHeatPaint === "function") rxHeatPaint();
     tvBoard(d);
 }
 

@@ -446,7 +446,7 @@ function sgTick(d) {
         if (s !== SG.lastSec) {
             const first = SG.lastSec === -1;   /* أول قراءة (فتحت البث متأخر): بدون صوت */
             SG.lastSec = s;
-            if (!first && s > 0 && s <= 3) cinePlay("tick", 0.6);
+            if (!first && s > 0 && s <= 3) cinePlay("tick", 0.85);
             else if (!first && s === 0) SG_SFX.time();
         }
     } else SG.lastSec = -1;

@@ -66,7 +66,9 @@ function recSnap(d) {
         if (REC.last[k] !== s) { REC.last[k] = s; patch[k] = JSON.parse(s); any = true; }
     });
     Object.keys(REC.last).forEach(k => { if (!(k in d)) { delete REC.last[k]; del.push(k); any = true; } });
-    if (any) REC.ev.push(del.length ? [Math.round(bcNow() - REC.t0), patch, del] : [Math.round(bcNow() - REC.t0), patch]);
+    /* أول حدث (الوثيقة كاملة) دايماً على الصفر: كان ينحفظ أحياناً على 1ms فالمشاهدة تبدأ بشاشة فاضية */
+    const t = REC.ev.length ? Math.max(0, Math.round(bcNow() - REC.t0)) : 0;
+    if (any) REC.ev.push(del.length ? [t, patch, del] : [t, patch]);
 }
 /* تفاعلات الجمهور (react.js) تنحفظ مع الأحداث وتطير وقت المشاهدة */
 function recRx(b) { if (REC.id) REC.ev.push([Math.round(bcNow() - REC.t0), { _rx: b }]); }
@@ -243,7 +245,7 @@ function recApply(t, silent) {
     const R = BC_REPLAY, ev = R.tl.ev;
     if (t < R.t - 1) { R.i = 0; R.st = {}; silent = true; }
     let changed = false;
-    while (R.i < ev.length && ev[R.i][0] <= t) {
+    while (R.i < ev.length && (ev[R.i][0] <= t || R.i === 0)) {   /* أول حدث هو بداية البث، ينطبق دايماً (والتسجيلات القديمة اللي أول حدث فيها مو على الصفر) */
         const e = ev[R.i++];
         if (e[1]._rx) { if (!silent) rxBurst(e[1]._rx, ""); continue; }
         Object.assign(R.st, JSON.parse(JSON.stringify(e[1])));
