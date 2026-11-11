@@ -993,3 +993,33 @@ body.live-open #mainHeader *,body.live-open .section *,body.room-open #mainHeade
   .bc-segid{display:none;}
   .st-mom .m1{transition:none;}
 }
+/* ===== إضافات 11 نوفمبر 2026 (الدفعة الثانية) ===== */
+/* لون الفقرة طول وقتها: إضاءة فوق، وإطار المقدم، والمرحلة الحالية، ولوحة أزرار المقدم */
+#liveScreen{--segc:#60a5fa;--segc2:rgba(59,130,246,.28);}
+#liveScreen[data-seg="2"]{--segc:#4ade80;--segc2:rgba(34,197,94,.26);}
+#liveScreen[data-seg="3"]{--segc:#c084fc;--segc2:rgba(168,85,247,.28);}
+#liveScreen[data-seg="4"]{--segc:#f87171;--segc2:rgba(239,68,68,.26);}
+.bc-segtint{position:absolute;left:0;right:0;top:0;height:55%;z-index:0;pointer-events:none;opacity:0;transition:opacity .8s ease;background:radial-gradient(ellipse 85% 70% at 50% 0%,var(--segc2),transparent 72%);}
+#liveScreen[data-seg] .bc-segtint{opacity:1;}
+#liveScreen[data-seg] .st-hostrow .st-host{border-color:var(--segc);transition:border-color .6s;}
+#liveScreen[data-seg] .st-mid .st-qn{color:var(--segc);transition:color .6s;}
+#liveScreen[data-seg] .sg-steps span.cur{border-color:var(--segc);color:var(--segc);background:var(--segc2);}
+#liveScreen[data-seg] .sg-dock{border-color:var(--segc);}
+/* آخر سؤال بنقطتين */
+.st-x2{display:inline-block;margin-inline-start:6px;padding:1px 8px;border-radius:99px;background:linear-gradient(135deg,#f59e0b,#dc2626);color:#fff;font-size:13px;font-weight:900;vertical-align:1px;box-shadow:0 0 12px rgba(245,158,11,.7);animation:stX2 1.2s ease-in-out infinite;}
+@keyframes stX2{50%{transform:scale(1.12);box-shadow:0 0 20px rgba(245,158,11,.95)}}
+#liveScreen.bc-lite .st-x2{animation:stX2 1.2s ease-in-out 3;}
+/* ضغط آخر 3 ثواني: إطار أحمر ينبض (opacity بس، خفيف حتى على الجوال) */
+.bc-press{position:absolute;inset:0;z-index:5;pointer-events:none;opacity:0;box-shadow:inset 0 0 0 3px rgba(239,68,68,.95),inset 0 0 70px 8px rgba(239,68,68,.5);}
+#liveScreen.bc-pressing .bc-press{animation:bcPress .5s ease-in-out infinite alternate;}
+@keyframes bcPress{from{opacity:.35}to{opacity:1}}
+#liveScreen.bc-pressing #lvTimerNum,#liveScreen.bc-pressing #sgTimerNum{color:#f87171;}
+/* مقياس حماس الجمهور: تحت أزرار البث الصغيرة */
+.st-side .rx-heat{grid-column:1/-1;align-self:center;height:5px;border-radius:99px;background:rgba(148,163,184,.25);overflow:hidden;margin-top:2px;}
+.st-side .rx-heat i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#facc15,#f97316,#ef4444);transition:width .4s ease;}
+.st-side .rx-heat.full{animation:rxFull .9s ease-out;}
+@keyframes rxFull{0%{box-shadow:0 0 0 0 rgba(250,204,21,.9)}100%{box-shadow:0 0 0 10px rgba(250,204,21,0)}}
+@media (prefers-reduced-motion: reduce){
+  .st-x2,#liveScreen.bc-pressing .bc-press,.st-side .rx-heat.full{animation:none!important;}
+  #liveScreen.bc-pressing .bc-press{opacity:.8;}
+}

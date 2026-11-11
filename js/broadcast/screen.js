@@ -389,6 +389,9 @@ function renderLiveScreenNow() {
     if (scrEl) {
         scrEl.dataset.scene = d.status === "live" ? (d.scene || "") : (d.status === "scheduled" ? "waiting" : "ended");
         if (bcIsDecider(d)) scrEl.dataset.decider = "1"; else delete scrEl.dataset.decider;
+        /* لون الفقرة طول وقتها (11 نوفمبر 2026): الأسئلة أزرق، الحروف أخضر، الكلمات بنفسجي، ضد وند أحمر */
+        if (d.status === "live" && d.scene === "playing") scrEl.dataset.seg = String(d.seg > 1 ? d.seg : 1); else delete scrEl.dataset.seg;
+        if (!scrEl.querySelector(".bc-segtint")) { const t = document.createElement("div"); t.className = "bc-segtint"; t.setAttribute("aria-hidden", "true"); scrEl.insertBefore(t, document.getElementById("liveScreenBody")); }
     }
     bcDirector(d);
     cineLoadSamples(cineNeedFor(d));
@@ -687,7 +690,8 @@ ${adminBar(`<button class="bc-go" onclick="bcForceStart()">${ic("rocket")} اب�
         const pc = x => Math.round((x / nq) * 100) + "%";
         const fb = x => x > 0 ? bcSec(x) + " ث" : "—";
         const fb1 = d.fb1 || 0, fb2 = d.fb2 || 0;
-        const qw1 = (d.log || []).filter(x => x === 1).length, qw2 = (d.log || []).filter(x => x === 2).length;   /* نقاط فقرة الأسئلة بس */
+        const qwOf = n => (d.log || []).reduce((t, x, i) => t + (x === n ? bcQPts(d, i) : 0), 0);
+        const qw1 = qwOf(1), qw2 = qwOf(2);   /* نقاط فقرة الأسئلة بس */
         const fastest = fb1 && (!fb2 || fb1 <= fb2) ? 1 : (fb2 ? 2 : 0);
         return `
 <div class="lv-final ${kind}">
@@ -747,7 +751,7 @@ function bcQuizHTML(d, me) {
 <div class="lv-dots">${dots}</div>
 ${decider ? `<div class="st-decider ${bcIsGolden(d) ? "gold" : ""}">${ic(bcIsGolden(d) ? "crown" : "zap")} ${bcIsGolden(d) ? "السؤال الذهبي · أول إجابة صحيحة تفوز" : "سؤال الحسم"}</div>` : ""}
 <div class="st-qcard ${decider ? "decider" : ""}" data-q="${d.cur}-${d.qIndex}">
-<div class="st-qhead"><span>${d.qIndex >= LIVE_Q_COUNT ? "السؤال الذهبي" : `السؤال ${d.qIndex + 1} من ${LIVE_Q_COUNT}`}</span>${ring}</div>
+<div class="st-qhead"><span>${d.qIndex >= LIVE_Q_COUNT ? "السؤال الذهبي" : `السؤال ${d.qIndex + 1} من ${LIVE_Q_COUNT}`}${bcQPts(d, d.qIndex) > 1 ? ` <b class="st-x2" dir="ltr">×2</b>` : ""}</span>${ring}</div>
 ${d.phase === "answer" && !d.passed
     /* أحد ضغط الجرس: السؤال يختفي (23 أكتوبر 2026)، فاللي يضغط بدري عشان السرعة يجاوب من اللي سمعه بس، مثل برامج المسابقات.
        ولما ينتقل السؤال للمتسابق الثاني يرجع يطلع كامل (طلب محمد نفس اليوم) */
@@ -791,7 +795,7 @@ ${bcLateHTML(d)}
 <div class="st-reveal ${hold ? "hold" : ""}" id="stReveal">
 <div class="st-wait">والإجابة الصحيحة هي<span>.</span><span>.</span><span>.</span><i class="tv-drum" style="animation-delay:${-Math.max(0, 1600 - Math.max(0, bcRevealAt(d) - bcNow()))}ms"></i></div>
 <div class="lv-reveal ${w ? "" : "none"}">
-<div class="t">${w ? ic("check-circle") + " " + escapeHTML(livePlayerName(d, w)) + " جاوب صح! +1" : ic("x-circle") + " محد جاوب صح"}</div>
+<div class="t">${w ? ic("check-circle") + " " + escapeHTML(livePlayerName(d, w)) + " جاوب صح! +" + bcQPts(d, d.qIndex) : ic("x-circle") + " محد جاوب صح"}</div>
 <div class="lv-muted">الإجابة الصحيحة</div>
 <div class="a">${escapeHTML(String(bcAnswerOf(d, d.qIndex) || "…").split("|")[0])}</div>
 </div>

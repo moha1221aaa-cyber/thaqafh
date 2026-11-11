@@ -4,7 +4,7 @@
    ويكتب كل 2.5 ث بالكثير ملخص واحد room/main/liveRx/<البث> {b: {uid: {إيموجي: كم جديد}}, n, at}، والكل يسمع الملخص ويطيّر اللي جا من غيره
    (اللي ضغطه هو طار عنده على طول). الضيف (بدون حساب) يشوف إيموجيه عنده بس. البث المسجّل (record.js) ياخذ الملخصات ويعيدها وقت المشاهدة */
 const BC_RX = ["👏", "🔥", "❤️", "😂", "😮", "🎉"];
-const RX = { open: false, mine: {}, sentN: 0, pend: false, timer: 0, sub: null, subId: "", agg: null, aggId: "", seen: {}, hostPend: {}, hostTimer: 0, aggN: 0, lastAgg: null };
+const RX = { open: false, heat: 0, heatAt: 0, cheerAt: 0, mine: {}, sentN: 0, pend: false, timer: 0, sub: null, subId: "", agg: null, aggId: "", seen: {}, hostPend: {}, hostTimer: 0, aggN: 0, lastAgg: null };
 function rxReset() { RX.open = false; RX.lastAgg = null; }
 function rxDoc(id) { return firebaseDB.collection("room").doc("main").collection("liveRx").doc(String(id)); }
 
@@ -25,7 +25,33 @@ function bcFloat(e, mine) {
    الزر مع أزرار البث الصغيرة جنب المقدم (bcSideCtlHTML في screen.js)، والصف يطلع تحته لما ينفتح.
    كان زر عائم تحت يسار ويركب على أزرار المقدم ونتيجة المواجهة (فحص 11 نوفمبر 2026) */
 function rxOn(d) { return !!(d && d.status === "live" && !(typeof BC_REPLAY !== "undefined" && BC_REPLAY)); }
-function rxBtnHTML(d) { return rxOn(d) ? `<button class="rx-side ${RX.open ? "on" : ""}" onclick="rxToggle()" aria-label="تفاعل" aria-expanded="${RX.open}">${RX.open ? ic("x") : "😀"}</button>` : ""; }
+function rxBtnHTML(d) {
+    if (!rxOn(d)) return "";
+    return `<button class="rx-side ${RX.open ? "on" : ""}" onclick="rxToggle()" aria-label="تفاعل" aria-expanded="${RX.open}">${RX.open ? ic("x") : "😀"}</button>`
+        + (bcIsReh(openLiveId) ? "" : `<div class="rx-heat" aria-label="حماس الجمهور"><i style="width:${Math.round(rxHeatLevel())}%"></i></div>`);
+}
+/* ===== مقياس حماس الجمهور (11 نوفمبر 2026، طلب محمد): يمتلي مع الإيموجيات اللي توصل من الملخص (نفس الأرقام عند الكل)
+   وينقص مع الوقت، ولو امتلى يطلع تصفيق قصير ولمعة (مرة كل 12 ث بالكثير) ===== */
+const RX_HEAT_PER = 7, RX_HEAT_DECAY = 6, RX_HEAT_GAP = 12000;
+function rxHeatLevel(now) { now = now || Date.now(); return Math.max(0, (RX.heat || 0) - ((now - (RX.heatAt || now)) / 1000) * RX_HEAT_DECAY); }
+function rxHeatAdd(n) {
+    if (!n) return;
+    const now = Date.now();
+    RX.heat = Math.min(100, rxHeatLevel(now) + n * RX_HEAT_PER); RX.heatAt = now;
+    if (RX.heat >= 100 && now - (RX.cheerAt || 0) > RX_HEAT_GAP) {
+        RX.cheerAt = now; RX.heat = 0;
+        cinePlay("applause", 0.4, { dur: 2.6 });
+        const m = document.querySelector("#liveScreen .rx-heat");
+        if (m) bcRestartAnim(m, "full");
+    }
+    rxHeatPaint();
+}
+function rxHeatPaint() {
+    const f = document.querySelector("#liveScreen .rx-heat i");
+    if (!f) return;
+    const v = Math.round(rxHeatLevel()) + "%";
+    if (f.style.width !== v) f.style.width = v;
+}
 function rxBarHTML(d) {
     if (!rxOn(d) || !RX.open) return "";
     return `<div class="rx-bar open" id="rxBar"><div class="rx-row">${BC_RX.map((e, i) => `<button onclick="bcReact(${i})" aria-label="${e}">${e}</button>`).join("")}</div></div>`;
@@ -112,6 +138,9 @@ function rxListen(d) {
         RX.lastAgg = x.n;
         if (typeof recRx === "function") recRx(x.b);
         rxBurst(x.b, currentUser ? currentUser.uid : "");
+        let n = 0;
+        Object.keys(x.b).forEach(uid => BC_RX.forEach(e => { n += Math.min(20, Number((x.b[uid] || {})[e]) || 0); }));
+        rxHeatAdd(n);
     }, () => {});
 }
 /* يطيّر الإيموجيات (بالكثير 12 بالدفعة، موزعة على ثانيتين) */

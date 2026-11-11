@@ -107,6 +107,49 @@ try {
         check("واللي وصله متأخر كثير (4 ث) ما يسمع صوت قديم", await o2.fan.evaluate(() => !window.__s.includes("start_q")), await o2.fan.evaluate(() => window.__s));
         await close(o2);
     }
+    /* ===== 6) الدفعة الثانية: لون الفقرة، وآخر سؤال بنقطتين، وضغط آخر 3 ثواني، ومقياس الحماس ===== */
+    {
+        const now = Date.now();
+        const o = await fresh({ scene: "playing", seg: 3, phase: "s3", sp: { g2: [2, 1] }, s1: 5, s2: 3, sg: Object.assign(sg2(now), { items: ["جماد"], cat: "جماد", letter: "", len: 3, tEnd: now + 2600 }) }, ["fan"]);
+        check("لون الفقرة: الشاشة عليها رقم الفقرة وطبقة اللون", !!await until(() => o.fan.evaluate(() => document.getElementById("liveScreen").dataset.seg === "3" && !!document.querySelector("#liveScreen .bc-segtint") && getComputedStyle(document.getElementById("liveScreen")).getPropertyValue("--segc").trim() === "#c084fc"), 4000));
+        check("ضغط آخر 3 ثواني في دور الفقرة (إطار أحمر)", !!await until(() => o.fan.evaluate(() => document.getElementById("liveScreen").classList.contains("bc-pressing") && !!document.getElementById("bcPress")), 3000));
+        check("ويروح لما يخلص الوقت", !!await until(() => o.fan.evaluate(() => !document.getElementById("liveScreen").classList.contains("bc-pressing")), 5000));
+        await close(o);
+        const o2 = await fresh({ scene: "playing", seg: 1, phase: "buzz", qIndex: 1, qAt: now - 3000, deadline: now + 9000, s1: 1, log: [1, -1, -1, -1, -1] }, ["fan"]);
+        await sleep(1200);
+        check("قبل آخر 3 ثواني ما فيه ضغط، وما فيه ×2 في سؤال عادي", await o2.fan.evaluate(() => !document.getElementById("liveScreen").classList.contains("bc-pressing") && !document.querySelector(".st-x2")));
+        await close(o2);
+        const o3 = await fresh({ scene: "result", s1: 4, s2: 2, sceneAt: Date.now() - 20000 }, ["fan"]);
+        check("برا اللعب ما فيه لون فقرة", await o3.fan.evaluate(() => !document.getElementById("liveScreen").dataset.seg));
+        await close(o3);
+    }
+    {
+        const now = Date.now();
+        const o = await fresh({ scene: "playing", seg: 1, phase: "answer", answerer: 2, buzzer: 2, qIndex: 4, qAt: now - 6000, deadline: now + 7000, s1: 2, s2: 1, log: [1, 1, 2, 0, -1] }, ["host", "fan"]);
+        check("آخر سؤال عليه شارة ×2", !!await until(() => o.fan.evaluate(() => !!document.querySelector(".st-qhead .st-x2")), 5000));
+        check("والفرق نقطة يعتبر سؤال حسم", await o.fan.evaluate(() => bcIsDecider(liveMatchesCache[openLiveId])));
+        await o.host.evaluate(() => bcHostVerdict(true));
+        const d1 = await until(() => { const d = liveDoc(o.db); return d.phase === "reveal" ? d : null; }, 5000);
+        check("آخر سؤال صح = نقطتين (فهد 1 ← 3)", d1 && d1.s2 === 3 && d1.s1 === 2, d1 && { s1: d1.s1, s2: d1.s2 });
+        check("والكشف يقول +2", !!await until(() => o.fan.evaluate(() => /\+2/.test(document.querySelector(".lv-reveal .t")?.textContent || "")), 6000));
+        check("لوحة النتيجة تحسب النقاط قبل السؤال صح (bcPreScores)", await o.fan.evaluate(() => JSON.stringify(bcPreScores(liveMatchesCache[openLiveId])) === "[2,1]"));
+        await o.host.evaluate(() => bcUndo());
+        check("والتراجع يرجّع النقطتين", !!await until(() => { const d = liveDoc(o.db); return d.phase === "answer" && d.s2 === 1; }, 5000));
+        await close(o);
+    }
+    {
+        const o = await fresh({ scene: "playing", seg: 1, phase: "buzz", qIndex: 1, qAt: Date.now() - 3000, deadline: Date.now() + 12000, s1: 1, log: [1, -1, -1, -1, -1] }, ["host", "fan"]);
+        check("مقياس الحماس تحت أزرار البث", !!await until(() => o.fan.$("#liveScreen .st-side .rx-heat"), 5000));
+        await o.fan.evaluate(() => { window.__s = []; const f = window.cineS; window.cineS = (id, t, v, x) => { window.__s.push(id); return f(id, t, v, x); }; });
+        const agg = n => o.host.evaluate(n => rxDoc(openLiveId).set({ b: { u_x: { "👏": n } }, n: Date.now() * 10 + Math.floor(Math.random() * 9), at: Date.now() }), n);
+        await agg(1); await sleep(700);
+        await agg(6); await sleep(900);
+        const w = await o.fan.evaluate(() => parseFloat(document.querySelector("#liveScreen .rx-heat i").style.width));
+        check("يمتلي مع الإيموجيات", w > 20 && w < 100, w);
+        await agg(20); await sleep(900);
+        check("لو امتلى: تصفيق ويرجع يبدأ من الصفر", await o.fan.evaluate(() => window.__s.includes("applause") && RX.cheerAt > 0 && rxHeatLevel() < 20), await o.fan.evaluate(() => ({ s: window.__s, lv: rxHeatLevel() })));
+        await close(o);
+    }
     /* ===== 5) احتفال الفائز ===== */
     {
         const o = await fresh({ scene: "result", s1: 4, s2: 2, sceneAt: Date.now() }, ["fan"]);
