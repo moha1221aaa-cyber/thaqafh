@@ -285,3 +285,15 @@
 .sg-dock>.du-wins{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
 .du-wins button{margin:0;padding:9px 4px;border-radius:12px;font-size:13px;font-weight:700;color:#111827;background:#facc15;border:0;}
 .du-g i.y{color:#4ade80;}
+/* المراحل فوق سطر واحد دايماً (كانت "ضد وند" والنتيجة تنكسر لسطرين على الجوال، فحص 11 نوفمبر 2026) */
+.sg-steps{flex-wrap:nowrap;max-width:100%;gap:4px;}
+.sg-steps span{white-space:nowrap;min-width:0;padding:4px 8px;gap:4px;}
+.sg-steps span em{margin-inline-start:2px;}
+@media (max-width: 420px){
+  .sg-steps span{font-size:11px;padding:4px 7px;}
+  .sg-steps span.done .ic{display:none;}
+}
+/* بطاقتين ضد وند بعرض ثابت (كانت تضيق على قد الصورة والقفل يركب على الصورة، فحص 11 نوفمبر 2026) */
+.du-vs{width:100%;max-width:340px;margin-inline:auto;box-sizing:border-box;}
+.du-card .lk{top:6px;inset-inline-end:6px;line-height:0;}
+.du-card .lk .ic{width:14px;height:14px;}

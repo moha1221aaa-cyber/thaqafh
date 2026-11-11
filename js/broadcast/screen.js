@@ -383,6 +383,7 @@ ${pod(2)}
     bcEntrance(body, d);
     sgDockPaint(d);   /* أزرار المقدم في الفقرة الثانية والثالثة (برا الرسم الجزئي) */
     if (typeof rxSync === "function") rxSync(d);   /* تفاعلات الجمهور (react.js) */
+    bcFitStage();
 
     const qc = body.querySelector(".st-qcard");
     /* still بس للوحة جديدة لنفس السؤال (انعاد بناء المشهد)، مو للوحة نفسها اللي للحين تتحرك (الرسم الجزئي ما يعيد بناءها) */
@@ -409,10 +410,25 @@ function bcFitTop() {
     const t = document.querySelector("#liveScreen .lv-top");
     if (!t) return;
     const over = () => t.scrollWidth > t.clientWidth + 1;
-    t.classList.remove("tight", "tight2", "tight3");
+    t.classList.remove("tight", "tight2", "tight3", "noround");
     for (const c of ["tight", "tight2", "tight3"]) { if (!over()) break; t.classList.add(c); }
+    /* اسم الجولة يختفي بدل ما يطلع مقصوص ("الـ...") */
+    const rd = t.querySelector(".lv-round");
+    if (rd && rd.offsetWidth && rd.scrollWidth > rd.clientWidth + 1) t.classList.add("noround");
 }
-window.addEventListener("resize", () => { if (openLiveId) bcFitTop(); });
+window.addEventListener("resize", () => { if (openLiveId) { bcFitTop(); bcFitStage(); } });
+/* المشهد ياخذ اللي يبقى من الشاشة، ولوحة أزرار المقدم في الفقرات تاخذ مكان كبير تحت، فكان المحتوى ينقص بدون ما يبان إن فيه تكملة
+   (فحص 11 نوفمبر 2026). بالقياس: لو ما وسع يصغر الرأس والمنصات على مراحل (fit1، fit2)، ولو للحين ما وسع يبان ظل تحت (more) والمشهد يتمرر */
+function bcFitStage() {
+    const scr = document.getElementById("liveScreen"), st = scr && scr.querySelector("#liveScreenBody .lv-stage");
+    if (!st) return;
+    const over = () => st.scrollHeight > st.clientHeight + 4;
+    scr.classList.remove("fit1", "fit2");
+    for (const c of ["fit1", "fit2"]) { if (!over()) break; scr.classList.add(c); }
+    bcStageMore(st);
+    if (!st.__more) { st.__more = 1; st.addEventListener("scroll", () => bcStageMore(st), { passive: true }); }
+}
+function bcStageMore(st) { st.classList.toggle("more", st.scrollHeight - st.clientHeight - st.scrollTop > 6); }
 function bcPatchRegions(body, R) {
     if (!body.__bcR || !body.__bcR.stage || !body.__bcR.stage.isConnected) {
         body.innerHTML = BC_REGIONS.map(k => `<div class="bc-r" data-r="${k}"></div>`).join("");
@@ -462,6 +478,7 @@ function bcSideCtlHTML() {
 <button onclick="bcShare()" aria-label="رابط البث">${ic("share")}</button>
 <button class="${bcVoiceOn ? "" : "off"}" onclick="bcToggleVoice()" aria-label="صوت المقدم">${ic(bcVoiceOn ? "volume-2" : "volume-x")}</button>
 ${isAdmin ? `<button class="${bcDiagOpen ? "" : "off"}" onclick="bcToggleDiag()" aria-label="التشخيص">${ic("chart")}</button>` : ""}
+${typeof rxBtnHTML === "function" ? rxBtnHTML(liveMatchesCache[openLiveId]) : ""}
 </div>`;
 }
 /* تحكم مايكي: يطلع بس في صفحة بداية المواجهة */
@@ -608,6 +625,7 @@ ${kind ? `<div class="st-kind">${kind === "big" ? "فوز ساحق!" : "عودة
 ${wAv ? `<img class="bc-win-av" src="${safeSrc(wAv)}" alt="">` : `<div class="tro">${ic("trophy")}</div>`}
 <div class="w">${winner ? "الفوز لـ " + escapeHTML(winner) : "تعادل!"}</div>
 </div>
+${adminBar(`<button class="bc-go" onclick="bcNext(false)">${ic("zap")} ${nx ? "المواجهة التالية" : "ختام الجولة"}</button>`) /* زر المقدم تحت الفائز على طول (كان آخر الصفحة ويحتاج تمرير طويل، فحص 11 نوفمبر 2026) */}
 <div class="st-stats">
 <div class="h"><span>${escapeHTML(o.p1)}</span><span></span><span>${escapeHTML(o.p2)}</span></div>
 <div><b class="${s1 > s2 ? "hi" : ""}">${s1}</b><span>${d.sp ? "مجموع النقاط" : "إجابات صحيحة"}</span><b class="${s2 > s1 ? "hi" : ""}">${s2}</b></div>
@@ -617,9 +635,7 @@ ${d.sp ? `<div><b>${qw1}</b><span>فقرة الأسئلة</span><b>${qw2}</b></d
 ${(() => { const c = bcPredCounts(d, d.cur); if (!c.t || !winner) return ""; const wn = s1 > s2 ? c.a : c.b; return `<div class="lv-muted">${ic("target")} ${wn} من ${c.t} توقعوا فوز ${escapeHTML(winner)}</div>`; })()}
 <div class="lv-applied ${it.applied ? "" : "wait"}">${it.applied ? ic("check-circle") + " تم تسجيل النتيجة في جدول الدوري" : ic("hourglass") + " جاري تسجيل النتيجة في الجدول..."}</div>
 <div class="lv-sum">${sum}</div>
-${nx ? `<div class="bc-next">التالي: <b>${escapeHTML(nx.p1)}</b> ضد <b>${escapeHTML(nx.p2)}</b></div>` : `<div class="bc-next">هذي كانت آخر مواجهة في الجولة</div>`}
-
-${adminBar(`<button class="bc-go" onclick="bcNext(false)">${ic("zap")} ${nx ? "المواجهة التالية" : "ختام الجولة"}</button>`)}`;
+${nx ? `<div class="bc-next">التالي: <b>${escapeHTML(nx.p1)}</b> ضد <b>${escapeHTML(nx.p2)}</b></div>` : `<div class="bc-next">هذي كانت آخر مواجهة في الجولة</div>`}`;
     }
 
     if (d.scene === "closing") {

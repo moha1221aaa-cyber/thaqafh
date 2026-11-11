@@ -52,7 +52,8 @@ try {
     step("reveal", await until(() => liveDoc(db).phase === "reveal", 20000));
     await sleep(2200);
     await host.screenshot({ path: out + "/06-reveal-host.png" });
-    /* السؤال الثاني: الاثنين يضغطون مع بعض، واحد بس يفوز (transaction) */
+    /* السؤال الثاني: المقدم يضغط "السؤال التالي" (من 23 أكتوبر ما فيه انتقال تلقائي بعد الكشف)، وبعدها الاثنين يضغطون مع بعض، واحد بس يفوز (transaction) */
+    await host.evaluate(() => bcHostNextQ());
     step("q2 buzz", await until(() => liveDoc(db).qIndex === 1 && liveDoc(db).phase === "buzz", 15000));
     await sleep(800);
     const press = p => p.evaluate(() => { const b = document.getElementById("lvBell"); if (b) b.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true })); });
