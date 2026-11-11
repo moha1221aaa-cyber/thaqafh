@@ -313,7 +313,7 @@ function renderLiveScreenNow() {
     if (!d) {
         body.__bcR = null;
         body.innerHTML = `
-<div class="lv-top"><button class="rs-back" onclick="closeLiveScreen()">${ic("chevron-right")} خروج</button></div>
+<div class="lv-top"><button class="rs-back" onclick="closeLiveScreen()" aria-label="خروج">${ic("chevron-right")}<span class="lbl"> خروج</span></button></div>
 <div class="lv-stage"><div class="lv-muted">جاري تحميل البث...</div></div>`;
         return;
     }
@@ -342,11 +342,11 @@ function renderLiveScreenNow() {
     R.wave = sched ? `<div class="bc-wavebg"><svg class="w1" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0 60 C150 0 300 120 450 60 S750 0 900 60 1050 120 1200 60 V120 H0Z"/></svg><svg class="w2" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0 60 C150 120 300 0 450 60 S750 120 900 60 1050 0 1200 60 V120 H0Z"/></svg><svg class="w3" viewBox="0 0 1200 120" preserveAspectRatio="none"><path d="M0 70 C200 20 400 110 600 60 S1000 20 1200 70 V120 H0Z"/></svg></div>` : "";
     R.top = `
 <div class="lv-top">
-<button class="rs-back" onclick="closeLiveScreen()">${ic("chevron-right")} خروج</button>
-<span class="lv-badge ${live ? "" : (sched ? "soon" : "off")}"><span class="dot"></span>${live ? `على الهواء <b id="bcAirClock" class="st-air">00:00</b>` : (sched ? "قريباً" : "انتهى البث")}</span>
+<button class="rs-back" onclick="closeLiveScreen()" aria-label="خروج">${ic("chevron-right")}<span class="lbl"> خروج</span></button>
+<span class="lv-badge ${live ? "" : (sched ? "soon" : "off")}"><span class="dot"></span>${live ? `<span class="lbl">على الهواء </span><b id="bcAirClock" class="st-air">00:00</b>` : (sched ? "قريباً" : "انتهى البث")}</span>
 ${live && !(typeof BC_REPLAY !== "undefined" && BC_REPLAY) ? `<span class="lv-eye" title="الحضور">${ic("users")} <b id="bcListeners">…</b></span>` : ""}
 <span class="lv-round">الجولة ${escapeHTML(String(d.round || ""))}</span>
-${isAdmin && (live || sched) ? `<button class="bc-endbtn" onclick="bcEnd()">${ic("power")} ${sched ? "إلغاء" : "إنهاء البث"}</button>` : ""}
+${isAdmin && (live || sched) ? `<button class="bc-endbtn" onclick="bcEnd()" aria-label="${sched ? "إلغاء البث" : "إنهاء البث"}">${ic("power")}<span class="lbl"> ${sched ? "إلغاء" : "إنهاء البث"}</span></button>` : ""}
 </div>`;
 
     /* مكان الأزرار ضيق (عمودين)، عشان اسم المقدم ياخذ أكبر مكان بالنص */
@@ -376,7 +376,9 @@ ${pod(2)}
 
     R.stage = `<div class="lv-stage bc-scene" data-scene="${escapeHTML(d.scene || "")}">` + bcStageHTML(d, me) + `</div>`;
 
+    const topWas = body.__bcHtml && body.__bcHtml.top;
     bcPatchRegions(body, R);
+    if (body.__bcHtml.top !== topWas) bcFitTop();
     showAfterRender(body, d);
     bcEntrance(body, d);
     sgDockPaint(d);   /* أزرار المقدم في الفقرة الثانية والثالثة (برا الرسم الجزئي) */
@@ -401,6 +403,16 @@ function bcRedrawAll() {
     liveLastSig = "";
     setTimeout(renderLiveScreen, 0);
 }
+/* الشريط اللي فوق سطر واحد: لو ما وسع (جوال ضيق أو خط مكبّر من إعدادات الجوال) الأزرار تصير أيقونات بس، وبعدها يختفي اسم الجولة وكلمة "على الهواء".
+   بالقياس مو بعرض الشاشة، عشان تكبير الخط في الجوال ما يطلّع زر إنهاء البث برا (صورة محمد 11 نوفمبر 2026) */
+function bcFitTop() {
+    const t = document.querySelector("#liveScreen .lv-top");
+    if (!t) return;
+    const over = () => t.scrollWidth > t.clientWidth + 1;
+    t.classList.remove("tight", "tight2", "tight3");
+    for (const c of ["tight", "tight2", "tight3"]) { if (!over()) break; t.classList.add(c); }
+}
+window.addEventListener("resize", () => { if (openLiveId) bcFitTop(); });
 function bcPatchRegions(body, R) {
     if (!body.__bcR || !body.__bcR.stage || !body.__bcR.stage.isConnected) {
         body.innerHTML = BC_REGIONS.map(k => `<div class="bc-r" data-r="${k}"></div>`).join("");

@@ -287,6 +287,7 @@ function bcTickMics() {
         if (ls.textContent !== t) {
             const prev = parseInt(ls.textContent, 10);
             ls.textContent = t;
+            if (typeof bcFitTop === "function") bcFitTop();
             if (n && prev && n !== prev) {
                 bcRestartAnim(ls, "bump");
                 const f = document.createElement("span");
