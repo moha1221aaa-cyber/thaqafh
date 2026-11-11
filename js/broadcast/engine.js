@@ -408,11 +408,14 @@ async function bcStartRound(r) {
 function liveTx(id, fn) {
     if (window.BC_REPLAY) return Promise.resolve(null);   /* المشاهدة المسجّلة ما تكتب شي */
     const ref = liveRef(id);
+    const undoTag = bcUndoNext; bcUndoNext = "";
+    let before = null;
     return firebaseDB.runTransaction(async tx => {
         const snap = await tx.get(ref);
         if (!snap.exists) return null;
         const d = snap.data();
         const upd = fn(d, bcNow());
+        if (undoTag && upd) before = bcUndoClone(d);
         if (upd) {
             upd.v = (d.v || 0) + 1;
             /* المنظم موجود: أي كتابة منه تكفي (بدل كتابة "أنا موجود" كل 10 ث، وكل كتابة توصل كل الجوالات) */
@@ -427,7 +430,54 @@ function liveTx(id, fn) {
             tx.update(ref, upd);
         }
         return upd;
+    }).then(upd => {
+        if (undoTag && upd && before) bcUndoSet(id, before, upd.v, undoTag);
+        return upd;
     });
+}
+
+/* ===== التراجع عن آخر حكم (11 نوفمبر 2026، طلب محمد): المقدم ضغط صح بدل غلط (أو العكس) ← زر "تراجع" 5 ثواني يرجّع البث مثل ما كان قبل الضغطة.
+   ينحفظ نسخة من الوثيقة قبل الحكم (bcUndoArm قبل liveTx)، والتراجع يشتغل بس لو ما تغيّر شي بعد الحكم (نفس v)، عشان ما يمسح شي صار بعده ===== */
+const BC_UNDO_MS = 5000;
+let bcUndoNext = "", BC_UNDO = null, bcUndoTimer = 0;
+const BC_UNDO_SKIP = { v: 1, updatedAt: 1, hostSeen: 1 };
+function bcUndoArm(tag) { if (isAdmin && !window.BC_REPLAY) bcUndoNext = tag || "1"; }
+function bcUndoClone(x) {
+    if (x === null || typeof x !== "object") return x;
+    if (typeof x.toMillis === "function") return x;   /* Timestamp يبقى زي ما هو */
+    if (Array.isArray(x)) return x.map(bcUndoClone);
+    const o = {}; for (const k in x) o[k] = bcUndoClone(x[k]); return o;
+}
+function bcUndoSet(id, before, v, tag) {
+    BC_UNDO = { id, before, v, tag, at: Date.now() };
+    clearTimeout(bcUndoTimer);
+    bcUndoTimer = setTimeout(() => { if (BC_UNDO && Date.now() - BC_UNDO.at >= BC_UNDO_MS) BC_UNDO = null; liveLastSig = ""; renderLiveScreen(); }, BC_UNDO_MS + 60);
+}
+function bcUndoLive(d) {
+    const u = BC_UNDO;
+    if (!u || !isAdmin || window.BC_REPLAY || u.id !== openLiveId || Date.now() - u.at >= BC_UNDO_MS) return null;
+    d = d || liveMatchesCache[u.id];
+    return d && d.v === u.v ? u : null;
+}
+function bcUndo() {
+    const u = bcUndoLive();
+    if (!u) return;
+    BC_UNDO = null;
+    document.querySelectorAll(".bc-undo").forEach(b => { b.disabled = true; });
+    liveTx(u.id, x => {
+        if (x.v !== u.v) return null;
+        const del = firebase.firestore.FieldValue.delete(), upd = {};
+        for (const k in u.before) if (!BC_UNDO_SKIP[k]) upd[k] = u.before[k];
+        for (const k in x) if (!BC_UNDO_SKIP[k] && !(k in u.before)) upd[k] = del;
+        /* الوقت اللي راح بين الحكم والتراجع يرجع للمتسابق (عشان ما ينتهي وقته على طول وينتقل السؤال للثاني) */
+        const shift = Math.max(0, Date.now() - u.at);
+        if (upd.deadline > 0) upd.deadline += shift;
+        if (upd.sg && upd.sg.tEnd > 0) upd.sg = Object.assign({}, upd.sg, { tEnd: upd.sg.tEnd + shift });
+        return upd;
+    }).then(r => {
+        roomToast(r ? "رجّعنا الحكم" : "ما نقدر نتراجع: البث تغيّر بعد الحكم", r ? "check" : "alert");
+        liveLastSig = ""; renderLiveScreen();
+    }).catch(err => { roomToast("تعذّر: " + err.message, "alert"); liveLastSig = ""; renderLiveScreen(); });
 }
 
 /* ===== الأجوبة المختومة (functions/answer.js، SECURITY-PLAN الخطوة 1) =====
@@ -755,6 +805,7 @@ function bcHostVerdict(ok) {
     if (!id || !d0 || !isAdmin || d0.phase !== "answer") return;
     document.querySelectorAll(".bc-verdict button").forEach(b => { b.disabled = true; });
     bcTap(document.querySelector(".bc-verdict"), "tapped", "", 25);
+    bcUndoArm("verdict");
     liveTx(id, (x, now) => {
         if (x.status !== "live" || x.scene !== "playing" || x.phase !== "answer" || x.qIndex !== d0.qIndex || x.answerer !== d0.answerer) return null;
         const last = { by: x.answerer, text: "", correct: !!ok, judged: 1 };
@@ -767,6 +818,7 @@ function bcHostLateOk(n) {
     const id = openLiveId, d0 = liveMatchesCache[id];
     if (!id || !d0 || !isAdmin || !bcLateList(d0).includes(n)) return;
     document.querySelectorAll(".bc-late button, .bc-verdict button").forEach(b => { b.disabled = true; });
+    bcUndoArm("late");
     liveTx(id, (x, now) => {
         if (x.qIndex !== d0.qIndex || x.cur !== d0.cur || !bcLateList(x).includes(n)) return null;
         return liveRevealUpd(x, n, now, { by: n, text: "", correct: true, judged: 1, late: 1 });

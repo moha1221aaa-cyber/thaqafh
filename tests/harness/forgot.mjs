@@ -26,7 +26,7 @@ try {
         return { alerts: alerts.slice(), resets: await p.evaluate(() => window.__resets) };
     };
     let r = await send("player@test.local");
-    check("sends reset email in Arabic with return link to the site", r.resets.length === 1 && r.resets[0].email === "player@test.local" && r.resets[0].lang === "ar" && r.resets[0].url === "http://127.0.0.1:8787/", r);
+    check("sends reset email in Arabic with return link to the site", r.resets.length === 1 && r.resets[0].email === "player@test.local" && r.resets[0].lang === "ar" && r.resets[0].url === new URL(p.url()).origin + "/", r);
     check("success message names the email and mentions Spam", /player@test\.local/.test(r.alerts[0] || "") && /Spam/.test(r.alerts[0] || ""), r.alerts);
     check("button enabled again", await p.evaluate(() => !document.getElementById("forgotPassBtn").disabled));
     r = await send("", "asked@test.local");

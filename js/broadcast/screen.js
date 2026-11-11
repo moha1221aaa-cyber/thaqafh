@@ -184,6 +184,73 @@ function bcTickClock(d) {
 }
 
 /* لقطة انتقالية بين المشاهد (ستينجر) */
+/* ===== إضافات الإخراج (11 نوفمبر 2026، طلب محمد) ===== */
+/* زر التراجع عن آخر حكم (engine.js bcUndo): مكانه الجنب الفاضي من صف المقدم، وحلقته تخلص مع الـ 5 ثواني */
+function bcUndoHTML(d) {
+    const u = bcUndoLive(d);
+    if (!u) return "";
+    const left = Math.max(0, BC_UNDO_MS - (Date.now() - u.at));
+    return `<button class="bc-undo" onclick="bcUndo()" aria-label="تراجع عن آخر حكم" style="--ud:${left}ms">${ic("undo")}<span>تراجع</span></button>`;
+}
+/* شريط الزخم: يميل لجهة المتقدم بالنقاط (المتسابق الأول يمين) */
+function bcMomentumHTML(d) {
+    if (!(d.scene === "playing" || d.scene === "result")) return "";
+    const a = d.s1 || 0, b = d.s2 || 0, t = a + b;
+    const p = t ? Math.round(Math.min(88, Math.max(12, (a / t) * 100))) : 50;
+    return `<div class="st-mom ${a > b ? "l1" : (b > a ? "l2" : "")}" aria-hidden="true"><i class="m1" style="width:${p}%"></i><i class="m2"></i></div>`;
+}
+/* شارة السلسلة: جاوب صح ورا بعض في فقرة الأسئلة (من سجل الأسئلة d.log) */
+function bcStreakOf(d, n) {
+    if (d.scene !== "playing" || (d.seg && d.seg > 1)) return 0;
+    const log = d.log || [];
+    let c = 0;
+    for (let i = Math.min(log.length - 1, d.qIndex); i >= 0; i--) {
+        const w = log[i];
+        if (w === -1 || w == null) continue;
+        if (w !== n) break;
+        c++;
+    }
+    return c;
+}
+function bcStreakHTML(d, n) {
+    const c = bcStreakOf(d, n);
+    return c >= 2 ? `<span class="st-streak" aria-label="سلسلة ${c}"><i>🔥</i><b>${c}</b></span>` : "";
+}
+/* شارة الفقرة: رقمها ولونها واسمها بلقطة سينمائية (بدل الشريط العادي) */
+const BC_SEG_ID = { 2: { n: "2", t: "عجلة الحروف", k: "s2" }, 3: { n: "3", t: "خمّن الكلمة", k: "s3" }, 4: { n: "4", t: "ضد وند", k: "s4" } };
+function bcSegIdent(seg, at) {
+    const scr = document.getElementById("liveScreen"), m = BC_SEG_ID[seg];
+    if (!scr || !m) return;
+    const late = at ? bcNow() - at : 0;
+    if (late > 1500) return;
+    scr.querySelectorAll(".bc-segid,.bc-stinger").forEach(e => e.remove());
+    const el = document.createElement("div");
+    el.className = "bc-segid " + m.k;
+    el.innerHTML = `<i class="bsi-bar top"></i><i class="bsi-bar bot"></i><i class="bsi-glow"></i><i class="bsi-sweep"></i><div class="bsi-txt"><small>الفقرة</small><b>${m.n}</b><span>${escapeHTML(m.t)}</span></div>`;
+    scr.appendChild(el);
+    showSync(el, at);
+    showSound(at, "whoosh", 0.6);
+    setTimeout(() => el.remove(), Math.max(0, 2500 - Math.max(0, late)));
+}
+/* احتفال الفائز: قصاصات ملونة مرة وحدة أول ما تطلع النتيجة (CSS بس، وأقل على الجوالات) */
+let bcConfettiKey = "";
+function bcConfetti(d) {
+    const scr = document.getElementById("liveScreen");
+    if (!scr || !d || d.status !== "live" || d.scene !== "result" || (d.s1 || 0) === (d.s2 || 0)) return;
+    const key = openLiveId + ":" + d.cur;
+    if (bcConfettiKey === key) return;
+    bcConfettiKey = key;
+    if (bcNow() - (Number(d.sceneAt) || 0) > 6000) return;
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const n = scr.classList.contains("bc-lite") ? 16 : 30, cols = ["#facc15", "#fde68a", "#38bdf8", "#f472b6", "#4ade80", "#fff"];
+    const el = document.createElement("div");
+    el.className = "bc-confetti";
+    let h = "";
+    for (let i = 0; i < n; i++) h += `<i style="left:${(Math.random() * 100).toFixed(1)}%;background:${cols[i % cols.length]};animation-delay:${(Math.random() * 0.9).toFixed(2)}s;animation-duration:${(2.4 + Math.random() * 1.4).toFixed(2)}s;--r:${Math.round(Math.random() * 720 - 360)}deg;--x:${Math.round(Math.random() * 120 - 60)}px"></i>`;
+    el.innerHTML = h;
+    scr.appendChild(el);
+    setTimeout(() => el.remove(), 4800);
+}
 function bcStinger(title, sub, at) {
     const scr = document.getElementById("liveScreen");
     if (!scr) return;
@@ -306,7 +373,7 @@ function renderLiveScreenNow() {
     /* نعيد الرسم فقط إذا تغيّر شي مهم (عشان ما ينمسح اللي تكتبه في خانة الإجابة) */
     const applied = d ? (d.order || []).map(o => o.state + (o.applied ? 1 : 0)).join(",") : "";
     const sig = d ? [d.v, d.status, d.scene, d.cur, d.phase, d.qIndex, d.answerer, d.ready1, d.ready2, d.s1, d.s2, applied, me, isAdmin,
-        bcTrack ? 1 : 0, bcSelfMuted ? 1 : 0, bcPolicyMuted ? 1 : 0, bcMicErr, bcAudioErr, bcJoined ? 1 : 0, bcConnState, bcNetQ >= 5 ? 1 : 0, bcVoiceOn ? 1 : 0, bcDiagOpen ? 1 : 0, bcAnswerOf(d, d.qIndex) ? 1 : 0, bcPredSig(d)].join("|") : "none";
+        bcTrack ? 1 : 0, bcSelfMuted ? 1 : 0, bcPolicyMuted ? 1 : 0, bcMicErr, bcAudioErr, bcJoined ? 1 : 0, bcConnState, bcNetQ >= 5 ? 1 : 0, bcVoiceOn ? 1 : 0, bcDiagOpen ? 1 : 0, bcAnswerOf(d, d.qIndex) ? 1 : 0, bcPredSig(d), bcUndoLive(d) ? BC_UNDO.at : 0].join("|") : "none";
     if (sig === liveLastSig) return false;
     liveLastSig = sig;
 
@@ -350,7 +417,7 @@ ${isAdmin && (live || sched) ? `<button class="bc-endbtn" onclick="bcEnd()" aria
 </div>`;
 
     /* مكان الأزرار ضيق (عمودين)، عشان اسم المقدم ياخذ أكبر مكان بالنص */
-    R.host = live ? `<div class="st-hostrow" style="--sidew:68px">${bcHostHTML(d)}${bcSideCtlHTML()}</div>` : "";
+    R.host = live ? `<div class="st-hostrow" style="--sidew:68px">${bcUndoHTML(d)}${bcHostHTML(d)}${bcSideCtlHTML()}</div>` : "";
     R.pods = "";
     if (live && o && (d.scene === "talk" || d.scene === "countdown" || d.scene === "playing" || d.scene === "result")) {
         /* منصات المتسابقين: تنور منصة اللي ضغط الجرس */
@@ -362,6 +429,7 @@ ${isAdmin && (live || sched) ? `<button class="bc-endbtn" onclick="bcEnd()" aria
 <img src="${safeSrc(bcAv(o, n))}" alt="">
 <div class="nm">${escapeHTML(n === 1 ? o.p1 : o.p2)}</div>
 <div class="st-desk">${showScoreHTML(d, n)}<i>أجوبة</i></div>
+${bcStreakHTML(d, n)}
 </div>`;
         const mid = d.scene === "talk" ? `الترحيب` : d.scene === "playing" ? (d.seg > 1 && d.sg ? (d.seg === 4 ? `ضد وند<small>الفقرة الرابعة</small>` : `الفقرة ${d.seg}<small>الجولة ${(d.sg.r || 0) + 1} من ${SG_ROUNDS}</small>`) : d.qIndex >= LIVE_Q_COUNT ? `ذهبي<small>سؤال الحسم</small>` : `السؤال ${d.qIndex + 1}<small>من ${LIVE_Q_COUNT}</small>`) : (d.scene === "result" ? "النتيجة" : "استعدوا");
         const mc = (d.scene === "talk" || d.scene === "countdown" || d.scene === "playing") ? bcMicCtlHTML(d) : "";
@@ -371,7 +439,8 @@ ${mc ? `<div class="st-microw">${mc}</div>` : ""}
 ${pod(1)}
 <div class="st-mid"><div class="st-qn">${mid}</div><div class="st-ml">المواجهة ${d.cur + 1} من ${total}</div></div>
 ${pod(2)}
-</div>`;
+</div>
+${bcMomentumHTML(d)}`;
     }
 
     R.stage = `<div class="lv-stage bc-scene" data-scene="${escapeHTML(d.scene || "")}">` + bcStageHTML(d, me) + `</div>`;
@@ -384,6 +453,7 @@ ${pod(2)}
     sgDockPaint(d);   /* أزرار المقدم في الفقرة الثانية والثالثة (برا الرسم الجزئي) */
     if (typeof rxSync === "function") rxSync(d);   /* تفاعلات الجمهور (react.js) */
     bcFitStage();
+    bcConfetti(d);
 
     const qc = body.querySelector(".st-qcard");
     /* still بس للوحة جديدة لنفس السؤال (انعاد بناء المشهد)، مو للوحة نفسها اللي للحين تتحرك (الرسم الجزئي ما يعيد بناءها) */

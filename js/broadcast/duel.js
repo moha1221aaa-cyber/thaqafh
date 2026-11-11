@@ -151,6 +151,7 @@ function duStart() {
 function duAnswer(yes) {
     const d0 = sgCur();
     if (!d0 || d0.seg !== 4 || d0.sg.st !== "play") return;
+    bcUndoArm("du");
     sgAct((x, now) => sgUpd(x, { turn: sgOther(x.sg.turn), q: (x.sg.q || 0) + 1, gs: x.sg.gs.concat([{ p: x.sg.turn, a: yes ? 1 : 0 }]).slice(-30) }, null, now));
 }
 /* الفوز: واحد عرف اللي في بال الثاني ← +1، واللي في بالهم يطلع للكل */
@@ -158,6 +159,7 @@ function duWin(n) {
     const d0 = sgCur();
     if (!d0 || d0.seg !== 4 || d0.sg.st !== "play" || !(n === 1 || n === 2)) return;
     const rv = duRevealOf(d0);
+    bcUndoArm("du");
     sgAct((x, now) => sgEndRound(x, now, n, "found", { reveal: rv }));
 }
 function duSkip() {
@@ -276,7 +278,7 @@ function duFx(d) {
     DU.prev = snap;
     const fresh = bcNow() - (Number(sg.at) || 0) < 2500;
     if (!p || p.key !== key) {
-        if (sg.st === "cat") { bcStinger("الفقرة الرابعة", "ضد وند", sg.at); if (fresh) SG_SFX.seg(); }
+        if (sg.st === "cat") { bcSegIdent(4, sg.at); if (fresh) SG_SFX.seg(); }
         if (sg.st === "pick" && fresh) SG_SFX.land();
         if (sg.st === "play") showSound(sg.at, "start_q", 0.8);
         if (sg.st === "done" && fresh && sg.win) { SG_SFX.ok(); setTimeout(SG_SFX.round, 900); }
