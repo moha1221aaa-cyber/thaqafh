@@ -90,6 +90,23 @@ try {
         check("وتختفي بعد ثانيتين ونص", !!await until(() => o.fan.evaluate(() => !document.querySelector(".bc-segid")), 4000));
         await close(o);
     }
+    /* ===== 4ب) صوت بداية الجولة يشتغل حتى لو الحالة وصلت متأخرة ثانية (نت الجوال) ===== */
+    {
+        const now = Date.now();
+        const o = await fresh({ scene: "playing", seg: 2, phase: "s2", sp: {}, s1: 3, s2: 2, sg: Object.assign(sg2(now), { st: "letter" }) }, ["host", "fan"]);
+        await sleep(1200);
+        await o.fan.evaluate(() => { window.__s = []; const f = window.cineS; window.cineS = (id, t, v, x) => { window.__s.push(id); return f(id, t, v, x); }; });
+        await o.host.evaluate(() => liveTx(openLiveId, (x, now) => ({ sg: Object.assign({}, x.sg, { st: "play", at: now - 1000, n: x.sg.n + 1, turn: 1, tEnd: now + 9000 }) })));
+        check("صوت بداية الجولة يشتغل لو وصلت الحالة بعد ثانية", !!await until(() => o.fan.evaluate(() => window.__s.includes("start_q")), 4000), await o.fan.evaluate(() => window.__s));
+        await close(o);
+        const o2 = await fresh({ scene: "playing", seg: 2, phase: "s2", sp: {}, s1: 3, s2: 2, sg: Object.assign(sg2(now), { st: "letter" }) }, ["host", "fan"]);
+        await sleep(1200);
+        await o2.fan.evaluate(() => { window.__s = []; const f = window.cineS; window.cineS = (id, t, v, x) => { window.__s.push(id); return f(id, t, v, x); }; });
+        await o2.host.evaluate(() => liveTx(openLiveId, (x, now) => ({ sg: Object.assign({}, x.sg, { st: "play", at: now - 4000, n: x.sg.n + 1, turn: 1, tEnd: now + 9000 }) })));
+        await sleep(1500);
+        check("واللي وصله متأخر كثير (4 ث) ما يسمع صوت قديم", await o2.fan.evaluate(() => !window.__s.includes("start_q")), await o2.fan.evaluate(() => window.__s));
+        await close(o2);
+    }
     /* ===== 5) احتفال الفائز ===== */
     {
         const o = await fresh({ scene: "result", s1: 4, s2: 2, sceneAt: Date.now() }, ["fan"]);
