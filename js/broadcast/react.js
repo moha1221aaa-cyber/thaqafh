@@ -21,21 +21,27 @@ function bcFloat(e, mine) {
     setTimeout(() => f.remove(), 2700);
 }
 
-/* ===== الزر والصف ===== */
+/* ===== الزر والصف =====
+   الزر مع أزرار البث الصغيرة جنب المقدم (bcSideCtlHTML في screen.js)، والصف يطلع تحته لما ينفتح.
+   كان زر عائم تحت يسار ويركب على أزرار المقدم ونتيجة المواجهة (فحص 11 نوفمبر 2026) */
+function rxOn(d) { return !!(d && d.status === "live" && !(typeof BC_REPLAY !== "undefined" && BC_REPLAY)); }
+function rxBtnHTML(d) { return rxOn(d) ? `<button class="rx-side ${RX.open ? "on" : ""}" onclick="rxToggle()" aria-label="تفاعل" aria-expanded="${RX.open}">${RX.open ? ic("x") : "😀"}</button>` : ""; }
 function rxBarHTML(d) {
-    if (!d || d.status !== "live" || (typeof BC_REPLAY !== "undefined" && BC_REPLAY)) return "";
-    return `<div class="rx-bar ${RX.open ? "open" : ""}" id="rxBar">${RX.open ? `<div class="rx-row">${BC_RX.map((e, i) => `<button onclick="bcReact(${i})" aria-label="${e}">${e}</button>`).join("")}</div>` : ""}<button class="rx-tog" onclick="rxToggle()" aria-label="تفاعل">${RX.open ? ic("x") : "😀"}</button></div>`;
+    if (!rxOn(d) || !RX.open) return "";
+    return `<div class="rx-bar open" id="rxBar"><div class="rx-row">${BC_RX.map((e, i) => `<button onclick="bcReact(${i})" aria-label="${e}">${e}</button>`).join("")}</div></div>`;
 }
 function rxPaint(d) {
     const scr = document.getElementById("liveScreen");
     if (!scr) return;
     let el = document.getElementById("rxBar");
     const html = rxBarHTML(d);
-    if (!html) { if (el) el.remove(); return; }
-    if (el && el.dataset.sig === (RX.open ? "1" : "0")) return;
-    const t = document.createElement("div"); t.innerHTML = html;
-    const n = t.firstChild; n.dataset.sig = RX.open ? "1" : "0";
-    if (el) el.replaceWith(n); else scr.appendChild(n);
+    const btn = scr.querySelector(".rx-side");
+    if (btn) { btn.classList.toggle("on", RX.open); btn.setAttribute("aria-expanded", String(RX.open)); const want = RX.open ? "x" : "e"; if (btn.dataset.k !== want) { btn.dataset.k = want; btn.innerHTML = RX.open ? ic("x") : "😀"; } }
+    if (!html || !btn) { if (el) el.remove(); return; }
+    if (!el) { const t = document.createElement("div"); t.innerHTML = html; el = t.firstChild; scr.appendChild(el); }
+    const sr = scr.getBoundingClientRect(), br = btn.getBoundingClientRect();
+    el.style.top = Math.round(br.bottom - sr.top + 6) + "px";
+    el.style.left = Math.max(8, Math.round(br.left - sr.left)) + "px";
 }
 function rxToggle() { RX.open = !RX.open; rxPaint(liveMatchesCache[openLiveId]); }
 

@@ -82,7 +82,7 @@ try {
             const h = document.querySelector(".st-host").getBoundingClientRect(), sd = document.querySelector(".st-side").getBoundingClientRect();
             const mid = (h.left + h.right) / 2;
             const im = document.querySelector(".st-host img").getBoundingClientRect(), nb = document.querySelector(".st-host .tx b").getBoundingClientRect();
-            return sd.right <= h.left && Math.abs(mid - innerWidth / 2) < 30 && !document.querySelector(".st-side [aria-label='تفاعل']") && nb.top >= im.bottom - 2;
+            return sd.right <= h.left && Math.abs(mid - innerWidth / 2) < 30 && !document.querySelector(".st-side [aria-label='تفاعل']:not(.rx-side)") && nb.top >= im.bottom - 2;
         }));
         check("short screen: contestant pictures still shown under the mic bar (not hidden)", await p1.evaluate(() => {
             const bar = document.querySelector(".st-microw"), imgs = [...document.querySelectorAll(".st-pod img")];

@@ -81,10 +81,19 @@ function tvBoard(d) {
 <div class="tv-bd-p r ${d.outcome === 2 ? "up" : ""}">${num(p2, s2)}<span class="nm">${escapeHTML(o.p2)}</span><img src="${safeSrc(bcAv(o, 2))}" alt=""></div>
 </div>
 <div class="tv-bd-lead">${escapeHTML(lead)}</div>`;
+        tvBoardPlace(b);
         bcRestartAnim(b, "on", () => TV.boardKey === key, true);
         return;
     }
+    tvBoardPlace(b);
     b.classList.add("on");
+}
+/* اللوحة تطلع تحت منصات المتسابقين (فوق السؤال اللي خلص)، مو تحت فوق كرت الإجابة الصحيحة (كانت تغطيها، فحص 11 نوفمبر 2026) */
+function tvBoardPlace(b) {
+    const scr = document.getElementById("liveScreen"), pods = scr && scr.querySelector(".st-pods");
+    if (!pods) { b.style.top = ""; b.style.bottom = ""; return; }
+    b.style.top = Math.round(pods.getBoundingClientRect().bottom - scr.getBoundingClientRect().top + 6) + "px";
+    b.style.bottom = "auto";
 }
 
 /* ===== الفاصل بين المواجهات: يسبق مشهد المواجهة الجاية ===== */

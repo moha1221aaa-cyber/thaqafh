@@ -875,7 +875,7 @@ body.live-open #mainHeader *,body.live-open .section *,body.room-open #mainHeade
 .lv-eye{display:inline-flex;align-items:center;gap:4px;flex-shrink:0;padding:5px 10px;border-radius:999px;background:rgba(2,6,23,.6);border:1px solid rgba(148,163,184,.35);color:#e2e8f0;font-size:13px;}
 .lv-eye .ic{width:14px;height:14px;}
 .lv-eye b{font-variant-numeric:tabular-nums;color:#fff;}
-.rx-bar{position:absolute;inset-inline-start:10px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:8;display:flex;align-items:center;gap:6px;}
+.rx-bar{position:absolute;z-index:8;display:flex;align-items:center;gap:6px;}
 .rx-tog{width:46px;height:46px;margin:0;padding:0;border-radius:50%;border:1px solid rgba(250,204,21,.5);background:rgba(2,6,23,.75);color:#fff;font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.4);}
 .rx-tog .ic{width:20px;height:20px;}
 .rx-row{display:flex;gap:4px;padding:4px 6px;border-radius:999px;background:rgba(2,6,23,.85);border:1px solid rgba(148,163,184,.35);animation:rxIn .18s ease-out;}
@@ -907,3 +907,36 @@ body.live-open #mainHeader *,body.live-open .section *,body.room-open #mainHeade
 .lv-top.tight3{gap:3px;}
 .lv-top.tight3 .lv-eye .ic{display:none;}
 .lv-top.tight3 .rs-back,.lv-top.tight3 .bc-endbtn,.lv-top.tight3 .lv-eye,.lv-top.tight3 .lv-badge{padding:5px 6px;}
+/* زر التفاعلات مع أزرار البث الصغيرة (react.js rxBtnHTML) */
+.st-side .rx-side{font-size:15px;line-height:1;border-color:rgba(250,204,21,.55);}
+.st-side .rx-side.on{background:rgba(250,204,21,.18);}
+/* المشهد ما وسع (bcFitStage في screen.js): الرأس والمنصات يصغرون على مرحلتين، وبعدها ظل تحت يبيّن إن فيه تكملة */
+#liveScreen.fit1 .st-hostrow{margin-top:2px;}
+#liveScreen.fit1 .st-hostrow .st-host{padding:3px 10px;gap:2px;}
+#liveScreen.fit1 .st-host .ring img{width:32px;height:32px;}
+#liveScreen.fit1 .st-host .ring .mi{width:16px;height:16px;}
+#liveScreen.fit1 .st-host .tx b{font-size:14px;}
+#liveScreen.fit1 .st-host .tx span{display:none;}
+#liveScreen.fit1 .st-microw{margin-top:3px;}
+#liveScreen.fit1 .st-microw .bc-mybtn{padding:3px 6px;font-size:11.5px;}
+#liveScreen.fit1 .st-pods{margin:4px 0 2px;}
+#liveScreen.fit1 .st-pod{gap:2px;}
+#liveScreen.fit1 .st-pod img{width:32px;height:32px;border-width:2px;}
+#liveScreen.fit1 .st-desk{padding:2px 0 4px;}
+#liveScreen.fit1 .st-desk b{font-size:20px;}
+#liveScreen.fit1 .lv-stage{gap:6px;}
+#liveScreen.fit2 .st-pod img{width:26px;height:26px;}
+#liveScreen.fit2 .st-desk i{display:none;}
+#liveScreen.fit2 .st-ml{display:none;}
+#liveScreen.fit2[data-scene="playing"] .st-ticker{display:none;}
+#liveScreen .lv-stage.more{-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 34px),transparent);}
+#liveScreen.fit1 .du-card{padding:6px 6px;}
+#liveScreen.fit1 .du-card img{width:40px;height:40px;}
+#liveScreen.fit1 .du-title{margin:2px 0 6px;}
+#liveScreen.fit1 .bc-win-av{width:64px;height:64px;}
+#liveScreen.fit1 .lv-final .w{font-size:24px;}
+#liveScreen.fit1 .bc-side .ring img{width:60px;height:60px;}
+#liveScreen.fit1 .bc-side{gap:4px;}
+#liveScreen.fit2 .bc-side .ring img{width:48px;height:48px;}
+#liveScreen.fit2 .st-form{display:none;}
+.lv-top.noround .lv-round{display:none;}

@@ -21,8 +21,8 @@ try {
 
     /* ===== التفاعلات ===== */
     await p1.evaluate(() => { window.__fl = []; new MutationObserver(m => m.forEach(x => x.addedNodes.forEach(n => { if (n.classList && n.classList.contains("st-float")) window.__fl.push(n.textContent); }))).observe(document.getElementById("liveScreen"), { childList: true }); });
-    check("زر التفاعل ظاهر للمشاهد", !!await until(() => fan.$("#rxBar .rx-tog"), 6000));
-    await fan.click("#rxBar .rx-tog");
+    check("زر التفاعل ظاهر للمشاهد", !!await until(() => fan.$("#liveScreen .rx-side"), 6000));
+    await fan.click("#liveScreen .rx-side");
     check("ينفتح صف 6 إيموجيات", await until(() => fan.evaluate(() => document.querySelectorAll("#rxBar .rx-row button").length === 6), 3000));
     await fan.evaluate(() => { bcReact(0); bcReact(0); bcReact(1); });
     check("الإيموجي يطير عند اللي ضغطه على طول", await fan.evaluate(() => document.querySelectorAll("#liveScreen .st-float").length >= 3));
