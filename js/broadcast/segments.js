@@ -113,7 +113,8 @@ function sgNewWord(cat, avoid) {
 
 /* ===== الدخول للفقرات والخروج منها (engine.js يناديها) ===== */
 function sgEnter(d, seg, now) {
-    return { scene: "playing", seg: seg, phase: "s" + seg, deadline: 0, lastAnswer: null, sg: seg === 4 ? duNewRound(d, now) : sgNewRound(seg, 0, now, null) };
+    /* lks: لحظة قفل توقع فائز هالفقرة (predict.js) */
+    return { scene: "playing", seg: seg, phase: "s" + seg, deadline: 0, lastAnswer: null, sg: seg === 4 ? duNewRound(d, now) : sgNewRound(seg, 0, now, null), ["lks." + d.cur + ".g" + seg]: now };
 }
 /* عدد جولات الفقرة (الرابعة "ضد وند" جولة وحدة) */
 function sgRounds(seg) { return seg === 4 ? DU_ROUNDS : SG_ROUNDS; }

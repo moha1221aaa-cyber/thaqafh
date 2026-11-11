@@ -249,6 +249,23 @@ await no("users: adding email back", ctx.p2.doc("users/u_p2").update({ email: "p
 await no("predictions: new with userEmail", ctx.p1.doc("predictions/u_p1_m1").set({ userId: "u_p1", matchId: "m1", s1: 1, s2: 0, userEmail: "p1@t.local" }));
 await ok("predictions: new without email", ctx.p1.doc("predictions/u_p1_m1").set({ userId: "u_p1", matchId: "m1", s1: 1, s2: 0 }));
 await no("predictions: in someone else's name", ctx.p1.doc("predictions/u_p2_m1").set({ userId: "u_p2", matchId: "m1", s1: 1, s2: 0 }));
+/* توقعات الموسم (11 نوفمبر 2026، predict.js): 0 تعادل أو 1 أو 2، ووقت كل توقع ساعة السيرفر */
+const PD = db => db.doc("predictions/u_fan_r2_سعد_فهد");
+const pbase = x => Object.assign({ userId: "u_fan", matchId: "r2_سعد_فهد", name: "مشاهد", updatedAt: TS() }, x);
+await ok("pred: winner draw with server time", PD(ctx.fan).set(pbase({ w: 0, tw: TS() }), { merge: true }));
+await ok("pred: segment pick with its time", PD(ctx.fan).set(pbase({ g2: 1, t2: TS() }), { merge: true }));
+await ok("pred: change the winner (new time)", PD(ctx.fan).set(pbase({ w: 2, tw: TS() }), { merge: true }));
+await no("pred: pick without its time", PD(ctx.fan).set(pbase({ g3: 1 }), { merge: true }));
+await no("pred: old time (before the lock)", PD(ctx.fan).set(pbase({ w: 1, tw: new Date(Date.now() - 3600000) }), { merge: true }));
+await no("pred: moving the time back alone", PD(ctx.fan).set({ tw: new Date(Date.now() - 3600000) }, { merge: true }));
+await no("pred: time refresh without changing the pick", PD(ctx.fan).set({ tw: TS() }, { merge: true }));
+await no("pred: value 3", PD(ctx.fan).set(pbase({ g4: 3, t4: TS() }), { merge: true }));
+await no("pred: doc id not matching the match", ctx.fan.doc("predictions/u_fan_other").set(pbase({ w: 1, tw: TS() })));
+await no("pred: fake updatedAt", PD(ctx.fan).set(pbase({ w: 1, tw: TS(), updatedAt: new Date(0) }), { merge: true }));
+await no("pred: guest", ctx.guest.doc("predictions/x_r2_سعد_فهد").set({ userId: "x", matchId: "r2_سعد_فهد", w: 1, tw: TS() }));
+await no("pred board: viewer writes the season board", ctx.fan.doc("league/predBoard").set({ u: { u_fan: { n: "x", p: 999, c: 9, a: 9 } } }));
+await ok("pred board: admin writes", ctx.admin.doc("league/predBoard").set({ u: {}, k: [], at: TS() }));
+await no("pred res: viewer writes the lock times", ctx.fan.doc("league/predRes").set({ k: {} }));
 
 /* ===== اللي ما تغيّر ===== */
 await no("league: player writes the table", ctx.p1.doc("league/current").set({ matches: [] }));

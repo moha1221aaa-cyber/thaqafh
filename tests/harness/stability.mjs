@@ -1,6 +1,6 @@
 /* ثبات البث (26 أكتوبر 2026، بعد "الموقع يعلق والجرس ما يضغط والمذيع يتأخر وصوت المتسابق يختفي"):
    1) المايك ينفتح وينتشر مرة وحدة ويتكتم ويتفتح بس (المتسابق من صفحة مواجهته لين نتيجتها، والمنظم طول البث)
-   2) توقعات المشاهدين في livePred/<id>/u/<uid> (كل واحد وثيقته)، مو في وثيقة البث
+   2) توقعات المشاهدين في predictions/<uid>_<المواجهة> (كل واحد وثيقته)، مو في وثيقة البث
    3) المنظم ما يكتب "أنا موجود" لحاله وهو كتب شي قريب، والكشف من جهازه فيه الجواب بنفس الكتابة
    4) صوت السؤال الجاي (بصيغته اللي بتنقرا) يتجهز وقت كشف السؤال اللي قبله، والمنظم ما يبدأ السؤال قبل صوته
    5) رسم صفحات الموقع ورا البث يتأجل لين تنقفل شاشة البث
@@ -63,10 +63,10 @@ try {
         await until(() => fan.$(".st-predbtns button"), 10000);
         const v0 = db.get(P).ver;
         await fan.evaluate(() => bcPredict(1));
-        const pd = await until(() => db.data("room/main/livePred/round_2/u/u_fan"), 5000);
-        check("prediction saved in livePred/<id>/u/<uid> (own doc)", pd && pd.p && pd.p.c0 === 1 && pd.name, pd);
+        const pd = await until(() => db.data("predictions/u_fan_r2_سعد_فهد"), 5000);
+        check("prediction saved in predictions/<uid>_<match> (own doc, season)", pd && pd.w === 1 && pd.userId === "u_fan" && pd.matchId === "r2_سعد_فهد" && pd.name && pd.tw, pd);
         check("broadcast doc untouched by the prediction", db.get(P).ver === v0 && !liveDoc(db).pred);
-        const shown = await until(() => fan.evaluate(() => (document.querySelector(".st-predlbl") || {}).textContent || "").then(t => /1 توقّع/.test(t) ? t : ""), 5000);
+        const shown = await until(() => fan.evaluate(() => (document.querySelector(".st-predlbl") || {}).textContent || "").then(t => /100%/.test(t) ? t : ""), 5000);
         check("prediction counted on screen", !!shown, shown);
         /* الجدول تغيّر وشاشة البث مفتوحة: الرسم يتأجل */
         await fan.evaluate(() => { window.__lr = 0; const f = renderLeagueAll; renderLeagueAll = function () { window.__lr++; return f.apply(this, arguments); }; });

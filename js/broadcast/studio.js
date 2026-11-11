@@ -295,69 +295,7 @@ function bcDirector(d) {
     });
 }
 
-/* ===== توقّع الفائز (للمشاهدين، قبل بداية كل مواجهة) ===== */
-/* 26 أكتوبر 2026: التوقعات برا وثيقة البث (كل توقّع كان يكتب فيها فتنرسل كاملة لكل الجوالات وتتعارض مع الجرس)،
-   وكل مشاهد له وثيقته: room/main/livePred/<id>/u/<uid> فيها { p: { c<المواجهة>: 1 أو 2 }, name } (المرحلة 2: صاحبها بس يكتب).
-   الوثائق القديمة: d.pred */
-let bcPredDoc = null, bcPredSub = null, bcPredSubId = "";
-function bcPredListen(id) {
-    if (window.BC_REPLAY) id = "";
-    if (bcPredSubId === (id || "")) return;
-    if (bcPredSub) { bcPredSub(); bcPredSub = null; }
-    bcPredSubId = id || ""; bcPredDoc = null;
-    if (!id || !firebaseDB) return;
-    bcPredSub = livePredRef(id).collection("u").onSnapshot(snap => {
-        const all = {};
-        snap.forEach(doc => {
-            const x = doc.data() || {}, p = x.p || {};
-            Object.keys(p).forEach(c => { if (p[c] === 1 || p[c] === 2) (all[c] = all[c] || {})[doc.id] = { n: p[c], name: x.name || "مشاهد" }; });
-        });
-        bcPredDoc = all;
-        if (openLiveId === id) { liveLastSig = ""; renderLiveScreen(); }
-    }, () => {});
-}
-function bcPredAll(d) { return Object.assign({}, (d && d.pred) || {}, bcPredDoc || {}); }
-function bcPredMap(d, cur) { return bcPredAll(d)["c" + cur] || {}; }
-function bcPredCounts(d, cur) {
-    const m = bcPredMap(d, cur); let a = 0, b = 0;
-    Object.keys(m).forEach(k => { if (m[k] && m[k].n === 1) a++; else if (m[k] && m[k].n === 2) b++; });
-    return { a, b, t: a + b };
-}
-function bcPredSig(d) { if (!d) return ""; const m = bcPredMap(d, d.cur); const c = bcPredCounts(d, d.cur); return c.a + "-" + c.b + "-" + (currentUser && m[currentUser.uid] ? m[currentUser.uid].n : 0); }
-function bcCanPredict(d) { return !!currentUser && !!d && d.status === "live" && d.scene === "intro" && !myLiveNum(d); }
-function bcPredict(n) {
-    const d = liveMatchesCache[openLiveId];
-    if (!bcCanPredict(d)) return;
-    const name = (currentUserDocData && currentUserDocData.name) || currentUser.displayName || "مشاهد";
-    livePredRef(openLiveId).collection("u").doc(currentUser.uid).set({ p: { ["c" + d.cur]: n }, name: String(name).slice(0, 60) }, { merge: true })
-        .then(() => roomToast("انحفظ توقعك", "check"))
-        .catch(err => roomToast(err && err.code === "permission-denied" ? "ما قدرنا نحفظ توقعك (صلاحيات قاعدة البيانات)" : "تعذّر حفظ توقعك", "alert"));
-}
-function bcPredHTML(d, o) {
-    const c = bcPredCounts(d, d.cur);
-    const pa = c.t ? Math.round(c.a * 100 / c.t) : 50;
-    const mine = currentUser ? (bcPredMap(d, d.cur)[currentUser.uid] || {}).n : 0;
-    const bar = `<div class="st-predbar"><i style="width:${pa}%"></i></div><div class="st-predlbl"><span>${escapeHTML(o.p1)} ${c.t ? pa + "%" : ""}</span><span>${c.t} توقّع</span><span>${c.t ? (100 - pa) + "%" : ""} ${escapeHTML(o.p2)}</span></div>`;
-    if (!currentUser) return `<div class="st-pred"><div class="t">${ic("target")} توقّع الفائز</div>${bar}<div class="lv-muted">سجّل دخول عشان تتوقع</div></div>`;
-    if (myLiveNum(d)) return c.t ? `<div class="st-pred"><div class="t">${ic("target")} توقعات الجمهور</div>${bar}</div>` : "";
-    return `<div class="st-pred"><div class="t">${ic("target")} مين بيفوز؟ توقّع قبل البداية</div>
-<div class="st-predbtns"><button class="${mine === 1 ? "on" : ""}" onclick="bcPredict(1)">${escapeHTML(o.p1)}</button><button class="${mine === 2 ? "on" : ""}" onclick="bcPredict(2)">${escapeHTML(o.p2)}</button></div>${bar}</div>`;
-}
-/* ترتيب أفضل المتوقعين في الجولة */
-function bcPredBoard(d) {
-    const tally = {};
-    (d.order || []).forEach((o, i) => {
-        if (o.state !== "done" || (o.s1 || 0) === (o.s2 || 0)) return;
-        const w = (o.s1 || 0) > (o.s2 || 0) ? 1 : 2;
-        const m = bcPredMap(d, i);
-        Object.keys(m).forEach(uid => {
-            const x = m[uid]; if (!x) return;
-            const t = tally[uid] || (tally[uid] = { name: x.name || "مشاهد", ok: 0, all: 0 });
-            t.all++; if (x.n === w) t.ok++;
-        });
-    });
-    return Object.values(tally).sort((a, b) => b.ok - a.ok || a.all - b.all).slice(0, 5);
-}
+/* توقعات الجمهور انتقلت لـ predict.js (11 نوفمبر 2026: على الموسم، وفيها التعادل وفائز كل فقرة) */
 
 /* ===== رابط مباشر للبث (يتنسخ ويتفتح في الواتساب) ===== */
 function bcShareUrl(id) { return location.origin + "/?live=" + encodeURIComponent(id); }
