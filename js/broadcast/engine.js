@@ -681,7 +681,9 @@ function liveRevealNext(d, now) {
 /* صافرة النهاية (والتعادل ينتهي تعادل، الدوري يحسبه نقطة لكل واحد: السؤال الذهبي انشال 22 أكتوبر 2026): نحفظ نتيجة المواجهة داخل البث وننتقل لمشهد النتيجة */
 function bcFinishUpd(d, now) {
     const order = (d.order || []).map(o => Object.assign({}, o));
-    if (order[d.cur]) Object.assign(order[d.cur], { s1: d.s1 || 0, s2: d.s2 || 0, state: "done", applied: false, fb1: d.fb1 || 0, fb2: d.fb2 || 0, bh1: d.bh1 || 0, bh2: d.bh2 || 0 });
+    if (order[d.cur]) Object.assign(order[d.cur], { s1: d.s1 || 0, s2: d.s2 || 0, state: "done", applied: false, fb1: d.fb1 || 0, fb2: d.fb2 || 0, bh1: d.bh1 || 0, bh2: d.bh2 || 0 },
+        /* للتوقعات (predict.js): فائز كل فقرة ولحظات قفل التوقع */
+        d.sp ? { sw: prSegWinners(d.sp) } : {}, (d.lks || {})[d.cur] ? { lk: d.lks[d.cur] } : {});
     return { scene: "result", phase: "done", order: order, deadline: 0, sceneAt: now };
 }
 
@@ -1031,6 +1033,8 @@ function bcApplyResults(id) {
             if (idx !== -1 && (arr[idx].s1 === "" || arr[idx].s2 === "")) {
                 arr[idx] = Object.assign({}, arr[idx], { s1: String(it.s1 || 0), s2: String(it.s2 || 0) });
                 tx.update(leagueRef, { matches: arr, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+                /* التوقعات (predict.js): فائز كل فقرة ولحظات القفل لهالمواجهة */
+                if (it.sw || it.lk) tx.set(firebaseDB.collection("league").doc("predRes"), { k: { [prKey(rr, it.p1, it.p2)]: { sw: it.sw || null, lk: it.lk || null } } }, { merge: true });
             }
             it.applied = true;
             tx.update(liveRef(id), { order: order });

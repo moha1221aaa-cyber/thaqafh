@@ -174,7 +174,7 @@ function showStats(d) {
     }
     if (typeof bcPredCounts === "function") {
         const c = bcPredCounts(d, d.cur);
-        if (c.t) out.push(`${ic("users")} توقعات الجمهور: ${escapeHTML(o.p1)} <b>${Math.round(c.a / c.t * 100)}%</b> · ${escapeHTML(o.p2)} <b>${Math.round(c.b / c.t * 100)}%</b>`);
+        if (c.t) out.push(`${ic("users")} توقعات الجمهور: ${escapeHTML(o.p1)} <b>${Math.round(c.a / c.t * 100)}%</b> · تعادل <b>${Math.round(c.dr / c.t * 100)}%</b> · ${escapeHTML(o.p2)} <b>${Math.round(c.b / c.t * 100)}%</b>`);
     }
     return out;
 }

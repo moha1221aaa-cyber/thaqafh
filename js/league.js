@@ -354,7 +354,7 @@ box.innerHTML = `<summary>${ic("clapper")} ملخص بث الجولة ${escapeHT
 ${done.map(o => `<div class="rs-row"><span>${escapeHTML(o.p1)}</span><b>${o.s2 || 0} - ${o.s1 || 0}</b><span>${escapeHTML(o.p2)}</span></div>`).join("")}
 ${bm.fast ? `<div class="rs-line">${ic("zap")} أسرع ضغطة جرس: <b>${escapeHTML(bm.fast.name)}</b> في ${bcSec(bm.fast.ms)} ثانية</div>` : ""}
 ${bm.big ? `<div class="rs-line">${ic("trophy")} أكبر فوز: <b>${escapeHTML(bm.big.w)}</b> ${bm.big.a} - ${bm.big.b}</div>` : ""}
-${board.length ? `<div class="rs-line">${ic("target")} أفضل المتوقعين: ${board.slice(0, 3).map(x => `<b>${escapeHTML(x.name)}</b> (${x.ok}/${x.all})`).join("، ")}</div>` : ""}
+${board.length ? `<div class="rs-line">${ic("target")} أفضل المتفرجين في الموسم: ${board.slice(0, 3).map(x => `<b>${escapeHTML(x.name)}</b> (${x.p})`).join("، ")}</div>` : ""}
 </div>`;
 return box;
 }

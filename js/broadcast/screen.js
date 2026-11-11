@@ -114,6 +114,7 @@ async function closeLiveScreen(fromPop) {
     bcTicker(null);
     { const l3 = document.getElementById("stL3"); if (l3) l3.remove(); BC_L3.key = ""; }
     { const tb = document.getElementById("tvBoard"); if (tb) tb.remove(); if (scr) scr.classList.remove("tv-final"); }
+    { ["prSum", "prPanel"].forEach(x => { const e = document.getElementById(x); if (e) e.remove(); }); if (typeof PR !== "undefined") PR.open = false; }
     if (scr) { delete scr.dataset.scene; delete scr.dataset.shot; }
     bcSyncAudio();
     if (typeof screenAwake === "function") screenAwake("live", false);
@@ -455,6 +456,7 @@ ${bcMomentumHTML(d)}`;
     bcEntrance(body, d);
     sgDockPaint(d);   /* أزرار المقدم في الفقرة الثانية والثالثة (برا الرسم الجزئي) */
     if (typeof rxSync === "function") rxSync(d);   /* تفاعلات الجمهور (react.js) */
+    if (typeof prSync === "function") prSync(d);   /* توقعات الجمهور على الموسم (predict.js) */
     bcFitStage();
     bcConfetti(d);
 
@@ -551,6 +553,7 @@ function bcSideCtlHTML() {
 <button onclick="bcShare()" aria-label="رابط البث">${ic("share")}</button>
 <button class="${bcVoiceOn ? "" : "off"}" onclick="bcToggleVoice()" aria-label="صوت المقدم">${ic(bcVoiceOn ? "volume-2" : "volume-x")}</button>
 ${isAdmin ? `<button class="${bcDiagOpen ? "" : "off"}" onclick="bcToggleDiag()" aria-label="التشخيص">${ic("chart")}</button>` : ""}
+${typeof prBtnHTML === "function" ? prBtnHTML(liveMatchesCache[openLiveId]) : ""}
 ${typeof rxBtnHTML === "function" ? rxBtnHTML(liveMatchesCache[openLiveId]) : ""}
 </div>`;
 }
@@ -706,7 +709,7 @@ ${adminBar(`<button class="bc-go" onclick="bcNext(false)">${ic("zap")} ${nx ? "�
 ${d.sp ? `<div><b>${qw1}</b><span>فقرة الأسئلة</span><b>${qw2}</b></div>${(d.sp.g2 || d.sp.g3) ? `<div><b>${(d.sp.g2 || [0, 0])[0]}</b><span>فقرة الحروف</span><b>${(d.sp.g2 || [0, 0])[1]}</b></div><div><b>${(d.sp.g3 || [0, 0])[0]}</b><span>فقرة الكلمات</span><b>${(d.sp.g3 || [0, 0])[1]}</b></div>${d.sp.g4 ? `<div><b>${d.sp.g4[0]}</b><span>ضد وند</span><b>${d.sp.g4[1]}</b></div>` : ""}` : ""}` : `<div><b>${pc(s1)}</b><span>نسبة النجاح</span><b>${pc(s2)}</b></div>`}
 <div><b class="${fastest === 1 ? "hi" : ""}">${fb(fb1)}</b><span>أسرع ضغطة جرس</span><b class="${fastest === 2 ? "hi" : ""}">${fb(fb2)}</b></div>
 </div>
-${(() => { const c = bcPredCounts(d, d.cur); if (!c.t || !winner) return ""; const wn = s1 > s2 ? c.a : c.b; return `<div class="lv-muted">${ic("target")} ${wn} من ${c.t} توقعوا فوز ${escapeHTML(winner)}</div>`; })()}
+${prResultLine(d, o)}
 <div class="lv-applied ${it.applied ? "" : "wait"}">${it.applied ? ic("check-circle") + " تم تسجيل النتيجة في جدول الدوري" : ic("hourglass") + " جاري تسجيل النتيجة في الجدول..."}</div>
 <div class="lv-sum">${sum}</div>
 ${nx ? `<div class="bc-next">التالي: <b>${escapeHTML(nx.p1)}</b> ضد <b>${escapeHTML(nx.p2)}</b></div>` : `<div class="bc-next">هذي كانت آخر مواجهة في الجولة</div>`}`;
@@ -724,7 +727,7 @@ ${(() => {
     if (!bm.fast && !bm.big) return "";
     return `<div class="st-best"><div class="t">${ic("zap")} أفضل لحظات الجولة</div>${bm.fast ? `<div>أسرع ضغطة جرس: <b>${escapeHTML(bm.fast.name)}</b> في ${bcSec(bm.fast.ms)} ثانية</div>` : ""}${bm.big ? `<div>أكبر فوز: <b>${escapeHTML(bm.big.w)}</b> ${bm.big.a} - ${bm.big.b}</div>` : ""}</div>`;
 })()}
-${(() => { const b = bcPredBoard(d); if (!b.length) return ""; return `<div class="st-best"><div class="t">${ic("target")} أفضل المتوقعين</div>${b.map((x, i) => `<div>${i + 1}. <b>${escapeHTML(x.name)}</b> · ${x.ok} من ${x.all} صح</div>`).join("")}</div>`; })()}
+${(() => { const b = bcPredBoard(d); if (!b.length) return ""; return `<div class="st-best"><div class="t">${ic("target")} أفضل المتفرجين في الموسم</div>${b.map((x, i) => `<div>${i + 1}. <b>${escapeHTML(x.name)}</b> · ${x.p} نقطة</div>`).join("")}</div>`; })()}
 <div class="bc-fixtures">${bcFixturesHTML(d, true)}</div>
 
 ${adminBar(`<button class="bc-go" onclick="bcEnd()">${ic("power")} إنهاء البث</button>`)}`;

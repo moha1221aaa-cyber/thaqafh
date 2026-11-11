@@ -220,14 +220,27 @@ service cloud.firestore {
 
     // التوقعات: كل واحد يكتب توقعاته هو بس (المعرّف يبدأ بـ uid حقه و userId نفسه).
     // المرحلة 2 (26 أكتوبر 2026): الإيميل ما ينكتب فيها (userEmail كان يكشف إيميلات الكل)
+    // 11 نوفمبر 2026 (predict.js): التوقع w (فائز المواجهة) و g2/g3/g4 (فائز كل فقرة) = 0 تعادل أو 1 أو 2،
+    // ووقت كل توقع (tw/t2/t3/t4) ساعة السيرفر وقت ما تغيّر التوقع بالضبط، وما يتغيّر لحاله (عشان أحد ما يرجّع وقت توقعه قبل القفل).
+    function predKeys() { return resource == null ? request.resource.data.keys() : request.resource.data.diff(resource.data).affectedKeys(); }
+    function predPickOk(k) { return !(k in request.resource.data) || request.resource.data[k] in [0, 1, 2]; }
+    function predTsOk(k, t) {
+      return (k in predKeys()) == (t in predKeys()) && (!(t in predKeys()) || request.resource.data[t] == request.time);
+    }
+    function predOk(pid) {
+      return request.resource.data.userId == request.auth.uid
+        && request.resource.data.matchId is string && pid == request.auth.uid + '_' + request.resource.data.matchId
+        && predPickOk('w') && predPickOk('g2') && predPickOk('g3') && predPickOk('g4')
+        && predTsOk('w', 'tw') && predTsOk('g2', 't2') && predTsOk('g3', 't3') && predTsOk('g4', 't4')
+        && (!('name' in request.resource.data) || (request.resource.data.name is string && request.resource.data.name.size() <= 60))
+        && (!('updatedAt' in predKeys()) || request.resource.data.updatedAt == request.time);
+    }
     match /predictions/{pid} {
       allow read: if true;
-      allow create: if signedIn()
-        && request.resource.data.userId == request.auth.uid
+      allow create: if signedIn() && predOk(pid)
         && pid.matches(request.auth.uid + '_.+')
         && !('userEmail' in request.resource.data);
-      allow update: if signedIn()
-        && request.resource.data.userId == request.auth.uid
+      allow update: if signedIn() && predOk(pid)
         && pid.matches(request.auth.uid + '_.+')
         && !('userEmail' in changedKeys());
       allow delete: if isAdmin() || (signedIn() && resource.data.userId == request.auth.uid);

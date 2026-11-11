@@ -1023,3 +1023,60 @@ body.live-open #mainHeader *,body.live-open .section *,body.room-open #mainHeade
   .st-x2,#liveScreen.bc-pressing .bc-press,.st-side .rx-heat.full{animation:none!important;}
   #liveScreen.bc-pressing .bc-press{opacity:.8;}
 }
+/* ===== توقعات الجمهور على الموسم (predict.js، 11 نوفمبر 2026) ===== */
+.st-predbtns.pr3 button{padding:8px 4px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.st-predbtns.pr3 button:nth-child(2){flex:0 0 26%;border-color:#94a3b8;}
+.st-predbar.pr3{display:flex;background:#1e293b;}
+.st-predbar.pr3 i{flex-shrink:0;}
+.st-predbar.pr3 i.a{background:#facc15;}
+.st-predbar.pr3 i.d{background:#94a3b8;}
+.st-predbar.pr3 i.b{background:#38bdf8;}
+.st-pred .pr-login{margin:0;padding:8px;border-radius:10px;font-size:13px;font-weight:800;background:#1e293b;border:1px solid #475569;display:flex;align-items:center;justify-content:center;gap:6px;}
+/* زر 🎯 مع أزرار البث: مجموعك */
+.st-side .pr-side{position:relative;overflow:visible;font-size:14px;line-height:1;border-color:rgba(250,204,21,.55)!important;}
+.st-side .pr-side b{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);min-width:16px;padding:1px 4px;border-radius:99px;background:#facc15;color:#0f172a;font-weight:900;font-size:10px;line-height:12px;font-variant-numeric:tabular-nums;box-sizing:border-box;}
+.st-side .pr-side.on{background:rgba(250,204,21,.18);}
+.st-side .pr-side.due{animation:prDue 1.1s ease-in-out infinite;}
+@keyframes prDue{50%{box-shadow:0 0 0 4px rgba(250,204,21,.35);border-color:#facc15}}
+#liveScreen.bc-lite .st-side .pr-side.due{animation:prDue 1.1s ease-in-out 4;}
+/* لوحة توقعاتك (تنفتح من زر 🎯) */
+.pr-panel{position:absolute;z-index:9;inset-inline-end:auto;left:8px;width:min(300px,calc(100% - 16px));box-sizing:border-box;max-height:62%;overflow-y:auto;padding:10px;border-radius:16px;background:rgba(2,6,23,.96);border:1px solid rgba(250,204,21,.45);box-shadow:0 12px 34px rgba(0,0,0,.55);animation:rxIn .18s ease-out;display:flex;flex-direction:column;gap:8px;}
+.pr-head{display:flex;align-items:center;gap:10px;font-size:13px;color:#cbd5e1;}
+.pr-head b{font-size:18px;color:#fde68a;font-variant-numeric:tabular-nums;}
+.pr-head .pr-x{margin:0 auto 0 0;margin-inline-start:auto;width:28px;height:28px;padding:0;border-radius:50%;background:#1e293b;border:1px solid #334155;display:flex;align-items:center;justify-content:center;}
+.pr-head .pr-x .ic{width:14px;height:14px;}
+.pr-rows{display:flex;flex-direction:column;gap:5px;}
+.pr-row{display:flex;align-items:center;gap:6px;font-size:12px;padding:5px 6px;border-radius:10px;background:rgba(30,41,59,.7);}
+.pr-row .l{flex:0 0 52px;color:#93c5fd;font-weight:700;}
+.pr-row .v{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;}
+.pr-row i{font-style:normal;display:flex;align-items:center;gap:2px;font-weight:900;}
+.pr-row i .ic{width:15px;height:15px;}
+.pr-row i.ok{color:#4ade80;}.pr-row i.no{color:#f87171;}.pr-row i.wait{color:#94a3b8;}
+.pr-row.open{flex-wrap:wrap;}
+.pr-btns{flex:1;display:flex;gap:4px;min-width:0;}
+.pr-btns button{flex:1;min-width:0;margin:0;padding:6px 3px;border-radius:8px;font-size:12px;font-weight:800;background:#1e293b;border:1px solid #3b82f6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pr-btns button:nth-child(2){border-color:#94a3b8;flex:0 0 24%;}
+.pr-btns button.on{background:linear-gradient(90deg,#a16207,#facc15);color:#0f172a;border-color:#facc15;}
+.pr-board{display:flex;flex-direction:column;gap:3px;}
+.pr-board>div{display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 6px;border-radius:8px;}
+.pr-board>div.me{background:rgba(250,204,21,.14);outline:1px solid rgba(250,204,21,.5);}
+.pr-board .r{flex:0 0 20px;text-align:center;color:#94a3b8;font-weight:800;display:flex;justify-content:center;}
+.pr-board .r .ic{width:16px;height:16px;}
+.pr-board .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pr-board b{color:#fde68a;font-variant-numeric:tabular-nums;}
+/* نتيجة توقعاتك بعد المواجهة وفي الختام: تبقى لين "تخطي" */
+.pr-sum{position:absolute;inset:0;z-index:12;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:rgba(2,6,23,.72);animation:bsiFade .35s ease-out both;}
+.pr-sum-card{width:min(360px,100%);max-height:100%;overflow-y:auto;box-sizing:border-box;padding:16px;border-radius:20px;background:linear-gradient(160deg,#172554,#0b1638 60%,#1e1b4b);border:2px solid #facc15;box-shadow:0 18px 50px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:10px;animation:stQIn .5s cubic-bezier(.2,.9,.3,1.15) both;}
+.pr-sum-t{text-align:center;font-weight:900;font-size:18px;color:#fde68a;display:flex;align-items:center;justify-content:center;gap:6px;}
+.pr-sum-rows{display:flex;flex-direction:column;gap:5px;}
+.pr-sum-rows>div{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:6px;padding:6px 8px;border-radius:10px;font-size:13px;background:rgba(30,41,59,.75);}
+.pr-sum-rows>div span:first-child{color:#93c5fd;font-weight:700;}
+.pr-sum-rows>div span:nth-child(2){min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;}
+.pr-sum-rows>div.ok b{color:#4ade80;}.pr-sum-rows>div.no b{color:#f87171;display:flex;}
+.pr-sum-rows>div.no b .ic{width:15px;height:15px;}
+.pr-sum-rows>div.bonus{background:rgba(250,204,21,.16);}
+.pr-sum-got{text-align:center;font-size:34px;font-weight:900;color:#4ade80;font-variant-numeric:tabular-nums;line-height:1;}
+.pr-sum-me{text-align:center;font-size:15px;color:#e2e8f0;}
+.pr-sum-me b{font-size:20px;color:#fde68a;}
+.pr-sum .pr-skip{margin:2px 0 0;width:100%;}
+@media (prefers-reduced-motion: reduce){ .pr-sum,.pr-sum-card,.pr-panel,.st-side .pr-side.due{animation:none!important;} }
